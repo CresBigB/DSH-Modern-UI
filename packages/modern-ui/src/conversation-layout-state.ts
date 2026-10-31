@@ -1,7 +1,7 @@
 /** Browser-local conversation geometry. A narrow pane never overwrites the preferred desktop width. */
 export const LAYOUT_WIDTHS = { reading: 680, standard: 840, wide: 1040 } as const
-export type ConversationLayoutMode = keyof typeof LAYOUT_WIDTHS
-export interface ConversationLayoutPreference { mode: ConversationLayoutMode; width?: number }
+export type ConversationLayoutMode = keyof typeof LAYOUT_WIDTHS | 'custom'
+export interface ConversationLayoutPreference { mode: ConversationLayoutMode; customWidth?: number }
 export const LAYOUT_STORAGE_KEY = 'modern-ui.conversation.layout.v1'
 export const DEFAULT_LAYOUT: ConversationLayoutPreference = { mode: 'standard' }
 export const MIN_LAYOUT_WIDTH = 480
@@ -10,19 +10,29 @@ export const MAX_LAYOUT_WIDTH = 1600
 export function readLayoutPreference(raw: string | null): ConversationLayoutPreference {
   try {
     const value: unknown = raw === null ? null : JSON.parse(raw)
-    if (value === null || typeof value !== 'object' || !('mode' in value)
-      || !Object.hasOwn(LAYOUT_WIDTHS, String(value.mode))) return DEFAULT_LAYOUT
+    if (value === null || typeof value !== 'object' || !('mode' in value) || typeof value.mode !== 'string'
+      || (value.mode !== 'custom' && !Object.hasOwn(LAYOUT_WIDTHS, String(value.mode)))) return DEFAULT_LAYOUT
     const mode = value.mode as ConversationLayoutMode
-    const width = 'width' in value ? value.width : undefined
+    // Accept widths saved by the initial three-preset preview without losing the user's adjustment.
+    const legacyWidth = 'width' in value ? value.width : undefined
+    const width = 'customWidth' in value ? value.customWidth : legacyWidth
     return typeof width === 'number' && Number.isFinite(width)
-      ? { mode, width: Math.round(Math.min(MAX_LAYOUT_WIDTH, Math.max(MIN_LAYOUT_WIDTH, width))) }
+      ? { mode: 'customWidth' in value ? mode : 'custom', customWidth: Math.round(Math.min(MAX_LAYOUT_WIDTH, Math.max(MIN_LAYOUT_WIDTH, width))) }
       : { mode }
   } catch { return DEFAULT_LAYOUT }
 }
 
 /** Available is the scrollport's inner width, after the transcript's two padding gutters. */
 export function resolveLayoutWidth(preference: ConversationLayoutPreference, available: number): number {
-  return Math.max(0, Math.min(available, preference.width ?? LAYOUT_WIDTHS[preference.mode]))
+  const preferred = preference.mode === 'custom' ? preference.customWidth ?? LAYOUT_WIDTHS.standard : LAYOUT_WIDTHS[preference.mode]
+  return Math.max(0, Math.min(available, preferred))
+}
+
+/** Presets leave the last custom width intact; the first custom adjustment starts at the current preset. */
+export function selectLayoutMode(current: ConversationLayoutPreference, mode: ConversationLayoutMode): ConversationLayoutPreference {
+  return mode === 'custom'
+    ? { mode, customWidth: current.customWidth ?? (current.mode === 'custom' ? LAYOUT_WIDTHS.standard : LAYOUT_WIDTHS[current.mode]) }
+    : { ...current, mode }
 }
 
 export function draggedLayoutWidth(initial: number, delta: number, side: 'left' | 'right', available: number): number {

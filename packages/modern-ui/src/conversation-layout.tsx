@@ -1,33 +1,36 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { Button } from '@iroha1145/dsh-modern-ui/primitives'
 import { PreferenceRow } from './vendor/chat/client/settings/PreferenceRow.tsx'
 import type { ConversationWidthControlsInputProps } from './vendor/conversation/client/contract/slots.ts'
-import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, LAYOUT_WIDTHS, MAX_LAYOUT_WIDTH, MIN_LAYOUT_WIDTH, draggedLayoutWidth, readLayoutPreference, resolveLayoutWidth, type ConversationLayoutMode, type ConversationLayoutPreference } from './conversation-layout-state.ts'
+import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, LAYOUT_WIDTHS, MAX_LAYOUT_WIDTH, MIN_LAYOUT_WIDTH, draggedLayoutWidth, readLayoutPreference, resolveLayoutWidth, selectLayoutMode, type ConversationLayoutMode, type ConversationLayoutPreference } from './conversation-layout-state.ts'
 import css from './conversation-layout.module.css'
 
 export const layoutLabels = {
-  zh: { label: '对话宽度', reading: '阅读', standard: '标准', wide: '宽屏', custom: '自定义', resize: '调整对话宽度', hint: '拖动两侧调宽；双击恢复当前档位。方向键微调，Home / End 到最小 / 最大宽度。' },
-  en: { label: 'Chat width', reading: 'Reading', standard: 'Standard', wide: 'Wide', custom: 'Custom', resize: 'Resize conversation', hint: 'Drag either edge; double-click to restore the preset. Arrow keys adjust, Home / End select the minimum / maximum width.' },
-  ja: { label: '会話の幅', reading: '読書', standard: '標準', wide: 'ワイド', custom: 'カスタム', resize: '会話の幅を調整', hint: '両端をドラッグ。ダブルクリックでプリセットに戻す。矢印キーで調整、Home / End で最小 / 最大。' },
-  es: { label: 'Ancho del chat', reading: 'Lectura', standard: 'Estándar', wide: 'Amplio', custom: 'Personalizado', resize: 'Ajustar ancho de conversación', hint: 'Arrastra un borde; doble clic para restaurar. Flechas para ajustar, Home / End para mínimo / máximo.' },
-  fr: { label: 'Largeur du chat', reading: 'Lecture', standard: 'Standard', wide: 'Large', custom: 'Personnalisé', resize: 'Redimensionner la conversation', hint: 'Faites glisser un bord ; double-clic pour rétablir. Flèches pour ajuster, Home / End pour minimum / maximum.' },
-  de: { label: 'Chatbreite', reading: 'Lesen', standard: 'Standard', wide: 'Breit', custom: 'Angepasst', resize: 'Gesprächsbreite ändern', hint: 'Rand ziehen; Doppelklick setzt zurück. Pfeiltasten ändern die Breite, Home / End wählen Minimum / Maximum.' },
-  ru: { label: 'Ширина чата', reading: 'Чтение', standard: 'Обычная', wide: 'Широкая', custom: 'Своя', resize: 'Изменить ширину диалога', hint: 'Перетащите край; двойной щелчок сбрасывает ширину. Стрелки изменяют ширину, Home / End — минимум / максимум.' },
-  pt: { label: 'Largura do chat', reading: 'Leitura', standard: 'Padrão', wide: 'Amplo', custom: 'Personalizado', resize: 'Ajustar largura da conversa', hint: 'Arraste uma borda; clique duplo para restaurar. Setas ajustam, Home / End selecionam mínimo / máximo.' },
+  zh: { label: '对话宽度', reading: '阅读', standard: '标准', wide: '宽屏', custom: '自定义', resize: '拖动两侧调宽，松手即保存', done: '完成', cancel: '取消', hint: '方向键微调，Shift 加速，Home / End 到最小 / 最大宽度；Enter 完成，Escape 取消。' },
+  en: { label: 'Chat width', reading: 'Reading', standard: 'Standard', wide: 'Wide', custom: 'Custom', resize: 'Drag either edge; release to save', done: 'Done', cancel: 'Cancel', hint: 'Arrow keys adjust, Shift accelerates, Home / End select minimum / maximum. Enter saves; Escape cancels.' },
+  ja: { label: '会話の幅', reading: '読書', standard: '標準', wide: 'ワイド', custom: 'カスタム', resize: '両端をドラッグし、離すと保存', done: '完了', cancel: 'キャンセル', hint: '矢印キーで調整、Shift で加速、Home / End で最小 / 最大。Enter で保存、Escape でキャンセル。' },
+  es: { label: 'Ancho del chat', reading: 'Lectura', standard: 'Estándar', wide: 'Amplio', custom: 'Personalizado', resize: 'Arrastra un borde; suelta para guardar', done: 'Listo', cancel: 'Cancelar', hint: 'Flechas para ajustar, Shift acelera, Home / End para mínimo / máximo. Enter guarda; Escape cancela.' },
+  fr: { label: 'Largeur du chat', reading: 'Lecture', standard: 'Standard', wide: 'Large', custom: 'Personnalisé', resize: 'Glissez un bord ; relâchez pour enregistrer', done: 'Terminé', cancel: 'Annuler', hint: 'Flèches pour ajuster, Shift accélère, Home / End pour minimum / maximum. Entrée enregistre ; Échap annule.' },
+  de: { label: 'Chatbreite', reading: 'Lesen', standard: 'Standard', wide: 'Breit', custom: 'Angepasst', resize: 'Rand ziehen; Loslassen speichert', done: 'Fertig', cancel: 'Abbrechen', hint: 'Pfeiltasten ändern, Shift beschleunigt, Home / End wählen Minimum / Maximum. Enter speichert; Escape verwirft.' },
+  ru: { label: 'Ширина чата', reading: 'Чтение', standard: 'Обычная', wide: 'Широкая', custom: 'Своя', resize: 'Перетащите край; отпустите для сохранения', done: 'Готово', cancel: 'Отмена', hint: 'Стрелки меняют ширину, Shift ускоряет, Home / End — минимум / максимум. Enter сохраняет, Escape отменяет.' },
+  pt: { label: 'Largura do chat', reading: 'Leitura', standard: 'Padrão', wide: 'Amplo', custom: 'Personalizado', resize: 'Arraste uma borda; solte para salvar', done: 'Concluir', cancel: 'Cancelar', hint: 'Setas ajustam, Shift acelera, Home / End selecionam mínimo / máximo. Enter salva; Escape cancela.' },
 } as const
 const language = createSnapshotStore<keyof typeof layoutLabels>('en')
 const layoutDescriptions = {
-  zh: '选择阅读、标准或宽屏，也可拖动对话两侧微调；仅保存在本机浏览器。',
-  en: 'Choose Reading, Standard or Wide, or drag either conversation edge. Saved in this browser only.',
-  ja: '読書・標準・ワイドを選択するか、会話の両端をドラッグして調整。このブラウザーにのみ保存されます。',
-  es: 'Elige Lectura, Estándar o Amplio, o arrastra un borde. Se guarda solo en este navegador.',
-  fr: 'Choisissez Lecture, Standard ou Large, ou faites glisser un bord. Enregistré uniquement dans ce navigateur.',
-  de: 'Lesen, Standard oder Breit wählen oder einen Gesprächsrand ziehen. Nur in diesem Browser gespeichert.',
-  ru: 'Выберите режим или перетащите край диалога. Настройка сохраняется только в этом браузере.',
-  pt: 'Escolha Leitura, Padrão ou Amplo, ou arraste uma borda. Salvo apenas neste navegador.',
+  zh: '选择预设，或选「自定义」后关闭设置，拖动两侧调宽；松手后灰线自动隐藏。再次选择「自定义」可重新调整，仅保存在本机浏览器。',
+  en: 'Choose a preset, or select Custom and close settings to drag either edge. Guides hide on release. Select Custom again to readjust. Saved in this browser only.',
+  ja: 'プリセット、またはカスタムを選び設定を閉じて両端をドラッグ。離すとガイドが消えます。カスタムを再選択して再調整。このブラウザーにのみ保存。',
+  es: 'Elige un ajuste o Personalizado y cierra los ajustes para arrastrar un borde. Las guías se ocultan al soltar. Vuelve a elegir Personalizado para ajustar. Solo se guarda en este navegador.',
+  fr: 'Choisissez un préréglage ou Personnalisé, puis fermez les paramètres pour glisser un bord. Les guides disparaissent au relâchement. Resélectionnez Personnalisé pour ajuster. Enregistré dans ce navigateur uniquement.',
+  de: 'Vorgabe oder Angepasst wählen und Einstellungen schließen, um einen Rand zu ziehen. Hilfslinien verschwinden beim Loslassen. Angepasst erneut wählen zum Ändern. Nur in diesem Browser gespeichert.',
+  ru: 'Выберите режим или «Своя» и закройте настройки, чтобы перетащить край. Линии исчезнут при отпускании. Снова выберите «Своя» для изменения. Сохраняется только в этом браузере.',
+  pt: 'Escolha uma predefinição ou Personalizado e feche as configurações para arrastar uma borda. As guias somem ao soltar. Selecione Personalizado novamente para ajustar. Salvo apenas neste navegador.',
 } as const
 const preference = createSnapshotStore<ConversationLayoutPreference>(DEFAULT_LAYOUT)
+// Editing is deliberately transient: reloading never brings the guides back.
+const editing = createSnapshotStore<ConversationLayoutPreference | null>(null)
 let loaded = false
 
 function loadPreference(): void {
@@ -58,10 +61,13 @@ export function ConversationLayoutSettings() {
   return <div data-conversation-layout-settings><PreferenceRow
     title={labels.label}
     description={layoutDescriptions[activeLanguage]}
-    value={current.width === undefined ? current.mode : 'custom'}
-    selectedLabel={current.width === undefined ? labels[current.mode] : `${labels.custom} · ${current.width}px`}
-    options={Object.keys(LAYOUT_WIDTHS).map(id => ({ id, label: labels[id as ConversationLayoutMode] }))}
-    onSelect={value => { savePreference({ mode: value as ConversationLayoutMode }) }}
+    value={current.mode}
+    selectedLabel={current.mode === 'custom' ? `${labels.custom} · ${current.customWidth ?? LAYOUT_WIDTHS.standard}px` : labels[current.mode]}
+    options={[...Object.keys(LAYOUT_WIDTHS), 'custom'].map(id => ({ id, label: labels[id as ConversationLayoutMode] }))}
+    onSelect={value => {
+      editing.set(value === 'custom' ? current : null)
+      savePreference(selectLayoutMode(current, value as ConversationLayoutMode))
+    }}
   /></div>
 }
 
@@ -69,6 +75,7 @@ export function ConversationLayoutSettings() {
 export function ConversationWidthControls({ container, phase }: ConversationWidthControlsInputProps) {
   const current = usePreference()
   const labels = useLabels()
+  const editBefore = useSyncExternalStore(editing.subscribe, editing.getSnapshot, editing.getSnapshot)
   const [geometry, setGeometry] = useState({ available: 0, offset: 0 })
   const { available, offset } = geometry
   const actual = resolveLayoutWidth(current, available)
@@ -113,12 +120,17 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
   }
   const finish = (cancel: boolean) => {
     const active = drag.current
-    if (active === null) return
+    const before = editing.getSnapshot()
+    if (before === null) return
     clearFrame()
     drag.current = null
-    savePreference(cancel ? active.before : pending.current ?? preference.getSnapshot())
+    savePreference(cancel ? before : pending.current ?? preference.getSnapshot())
     pending.current = null
     container?.removeAttribute('data-layout-dragging')
+    editing.set(null)
+    // The temporary control disappears; keep keyboard focus in the conversation.
+    const composer = container?.querySelector<HTMLElement>('[data-composer-card]')
+    if (active !== null || container?.contains(document.activeElement)) composer?.focus({ preventScroll: true })
   }
   useEffect(() => () => {
     if (frame.current !== null) cancelAnimationFrame(frame.current)
@@ -138,14 +150,14 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
   const move = (event: PointerEvent<HTMLDivElement>, side: 'left' | 'right') => {
     const active = drag.current
     if (active === null || active.pointer !== event.pointerId) return
-    pending.current = { mode: active.before.mode, width: draggedLayoutWidth(active.initial, event.clientX - active.x, side, available) }
+    pending.current = { mode: 'custom', customWidth: draggedLayoutWidth(active.initial, event.clientX - active.x, side, available) }
     frame.current ??= requestAnimationFrame(() => {
       frame.current = null
       if (pending.current !== null) savePreference(pending.current, false)
     })
   }
   const key = (event: KeyboardEvent<HTMLDivElement>, side: 'left' | 'right') => {
-    if (event.key === 'Escape') { finish(true); return }
+    if (event.key === 'Escape' || event.key === 'Enter') { event.preventDefault(); finish(event.key === 'Escape'); return }
     const step = event.shiftKey ? 40 : 8
     let width: number
     if (event.key === 'Home') width = Math.min(MIN_LAYOUT_WIDTH, available)
@@ -154,11 +166,16 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
       width = draggedLayoutWidth(actual, (event.key === 'ArrowLeft' ? -step : step) / 2, side, available)
     } else return
     event.preventDefault()
-    savePreference({ mode: current.mode, width })
+    savePreference({ mode: 'custom', customWidth: width }, false)
   }
 
-  if (phase !== 'active' || actual === 0 || available < MIN_LAYOUT_WIDTH + 64) return null
-  return <>{(['left', 'right'] as const).map(side => <div key={side} className={css.handle}
+  if (phase !== 'active' || actual === 0 || current.mode !== 'custom' || editBefore === null) return null
+  return <><div className={css.adjustment} data-conversation-width-adjustment role="group" aria-label={labels.label}
+    onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); finish(true) } }}>
+    <span title={labels.hint}>{labels.resize} · {Math.round(actual)}px</span>
+    <Button size="sm" onClick={() => { finish(true) }}>{labels.cancel}</Button>
+    <Button size="sm" variant="primary" onClick={() => { finish(false) }}>{labels.done}</Button>
+  </div>{available >= MIN_LAYOUT_WIDTH + 64 && (['left', 'right'] as const).map(side => <div key={side} className={css.handle}
     data-conversation-width-handle={side} data-side={side} role="separator" tabIndex={0}
     aria-orientation="vertical" aria-label={labels.resize} aria-valuemin={MIN_LAYOUT_WIDTH}
     aria-valuemax={Math.min(MAX_LAYOUT_WIDTH, available)} aria-valuenow={Math.round(actual)} title={labels.hint}
@@ -172,7 +189,6 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
       const unit = event.deltaMode === 1 ? Number.parseFloat(getComputedStyle(scroll).lineHeight) || 16 : event.deltaMode === 2 ? scroll.clientHeight : 1
       scroll.scrollBy({ top: event.deltaY * unit })
     }}
-    onDoubleClick={() => { savePreference({ mode: current.mode }) }}
   />)}</>
 }
 
@@ -185,7 +201,10 @@ export function installConversationLayout(ctx: Context): void {
     sync()
     const stop = ctx.locale.subscribe(sync)
     const onStorage = (event: StorageEvent) => {
-      if (event.key === LAYOUT_STORAGE_KEY || event.key === null) preference.set(readLayoutPreference(event.newValue))
+      if (event.key === LAYOUT_STORAGE_KEY || event.key === null) {
+        editing.set(null)
+        preference.set(readLayoutPreference(event.newValue))
+      }
     }
     window.addEventListener('storage', onStorage)
     return () => { stop(); window.removeEventListener('storage', onStorage) }

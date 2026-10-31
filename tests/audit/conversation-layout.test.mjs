@@ -54,7 +54,7 @@ createRoot(document.getElementById('app')).render(<Demo/>);`,
           contents:
             args.path === 'official-layer'
               ? officialLayer
-              : `export {Menu} from ${JSON.stringify(path.join(root, 'packages/modern-ui/src/vendor/primitives/Menu.tsx'))}; export {IconChevronDownOutlineRegular} from ${JSON.stringify(path.join(root, 'packages/modern-ui/src/vendor/primitives/icons/index.tsx'))};`,
+              : `export {Button} from ${JSON.stringify(path.join(root, 'packages/modern-ui/src/vendor/primitives/Button.tsx'))}; export {Menu} from ${JSON.stringify(path.join(root, 'packages/modern-ui/src/vendor/primitives/Menu.tsx'))}; export {IconChevronDownOutlineRegular} from ${JSON.stringify(path.join(root, 'packages/modern-ui/src/vendor/primitives/icons/index.tsx'))};`,
           loader: 'tsx',
           resolveDir: root,
         }))
@@ -86,7 +86,8 @@ async function width(page) {
 }
 async function chooseMode(page, mode) {
   await page.locator('[data-conversation-layout-settings] button[aria-haspopup="menu"]').click()
-  await page.getByRole('menuitem', { name: { reading: 'Reading', standard: 'Standard', wide: 'Wide' }[mode], exact: true }).click()
+  assert.equal(await page.getByRole('menuitem').count(), 4)
+  await page.getByRole('menuitem', { name: { reading: 'Reading', standard: 'Standard', wide: 'Wide', custom: 'Custom' }[mode], exact: true }).click()
 }
 async function open() {
   const context = await browser.newContext({ viewport: { width: 1520, height: 900 } })
@@ -129,43 +130,91 @@ test('presets center the whole response, remove its second measure, and preserve
       assert.ok(Math.abs(geometry.axis) < 1, JSON.stringify(geometry))
       assert.equal(geometry.listMeasure, 'none')
       assert.notEqual(geometry.previewMeasure, 'none')
+      assert.equal(await page.locator('[data-conversation-width-handle]').count(), 0)
+      assert.equal(await page.locator('[data-conversation-width-adjustment]').count(), 0)
     }
   } finally {
     await context.close()
   }
 })
 
-test('both pointer handles, keyboard controls, persistence and preset reset work together', async () => {
+test('custom guides are temporary, preserve width on reload and can be reopened from settings', async () => {
   const { context, page } = await open()
   try {
     const right = page.locator('[data-conversation-width-handle="right"]')
+    assert.equal(await right.count(), 0)
+    await chooseMode(page, 'custom')
     const box = await right.boundingBox()
     await page.mouse.move(box.x + box.width / 2, box.y + 20)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width / 2 + 60, box.y + 20, { steps: 8 })
     await page.mouse.up()
     assert.equal(await width(page), 960)
+    assert.equal(await right.count(), 0)
+    assert.equal(await page.locator('[data-conversation-width-adjustment]').count(), 0)
     await page.reload()
     await page.locator('[data-conversation-layout]').waitFor()
     assert.equal(await width(page), 960)
-    const left = page.locator('[data-conversation-width-handle="left"]')
-    await left.focus()
-    await left.press('ArrowLeft')
-    assert.equal(await width(page), 968)
-    await left.press('Home')
-    assert.equal(await width(page), 480)
+    assert.equal(await right.count(), 0)
     await chooseMode(page, 'reading')
     assert.equal(await width(page), 680)
-    await right.focus()
-    await right.press('ArrowRight')
-    await right.dblclick()
-    assert.equal(await width(page), 680)
+    await chooseMode(page, 'custom')
+    assert.equal(await width(page), 960)
+    const left = page.locator('[data-conversation-width-handle="left"]')
+    const leftBox = await left.boundingBox()
+    await page.mouse.move(leftBox.x + leftBox.width / 2, leftBox.y + 20)
+    await page.mouse.down()
+    await page.mouse.move(leftBox.x + leftBox.width / 2 - 20, leftBox.y + 20, { steps: 4 })
+    await page.mouse.up()
+    assert.equal(await width(page), 1000)
+    assert.equal(await left.count(), 0)
+    await chooseMode(page, 'custom')
     await page.locator('#pane').evaluate(pane => {
       pane.style.height = '280px'
     })
     await right.hover()
     await page.mouse.wheel(0, 180)
     await page.waitForFunction(() => document.querySelector('[data-conversation-scroll]').scrollTop > 0)
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    assert.equal(await right.count(), 0)
+  } finally {
+    await context.close()
+  }
+})
+
+test('keyboard adjustment can be saved or cancelled without leaving permanent guides', async () => {
+  const { context, page } = await open()
+  try {
+    await chooseMode(page, 'custom')
+    const left = page.locator('[data-conversation-width-handle="left"]')
+    await left.press('ArrowLeft')
+    assert.equal(await width(page), 848)
+    await left.press('Shift+ArrowLeft')
+    assert.equal(await width(page), 888)
+    await left.press('Enter')
+    assert.equal(await left.count(), 0)
+    await chooseMode(page, 'custom')
+    await left.press('Home')
+    assert.equal(await width(page), 480)
+    await left.press('Escape')
+    assert.equal(await width(page), 888)
+    assert.equal(await left.count(), 0)
+    await chooseMode(page, 'wide')
+    await chooseMode(page, 'custom')
+    await left.press('Home')
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+    assert.equal(await width(page), 1040)
+    assert.equal(await left.count(), 0)
+    await chooseMode(page, 'custom')
+    const right = page.locator('[data-conversation-width-handle="right"]')
+    const box = await right.boundingBox()
+    await page.mouse.move(box.x + box.width / 2, box.y + 20)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2 + 40, box.y + 20, { steps: 4 })
+    await right.press('Escape')
+    await page.mouse.up()
+    assert.equal(await width(page), 1040)
+    assert.equal(await right.count(), 0)
   } finally {
     await context.close()
   }
