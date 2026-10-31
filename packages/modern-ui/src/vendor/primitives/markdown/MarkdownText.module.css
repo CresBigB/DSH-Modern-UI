@@ -57,7 +57,8 @@
    edge. Code blocks, tables, math and images keep the full column, so a
    block of text holding one stays uncapped. Compact text is left as is. */
 .markdown:not(.compact) :is(p, blockquote):not(:has(:is(pre, table, img, :global(.md-code-block), :global(.katex-display)))) {
-  max-width: 65ch;
+  /* Chat owns its centered column; standalone document previews keep this reading measure. */
+  max-width: var(--dsh-markdown-measure, 65ch);
 }
 
 .markdown:not(.compact) blockquote:not(:has(:is(pre, table, img, :global(.md-code-block), :global(.katex-display)))) {
@@ -65,7 +66,7 @@
 }
 
 .markdown:not(.compact) li:not(:has(:is(pre, table, img, :global(.md-code-block), :global(.katex-display)))) {
-  max-width: calc(65ch - 18px);
+  max-width: var(--dsh-markdown-measure, calc(65ch - 18px));
 }
 
 .markdown :where(h1, h2, h3, h4, h5, h6) strong {

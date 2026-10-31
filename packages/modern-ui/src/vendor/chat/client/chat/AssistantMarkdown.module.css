@@ -8,6 +8,7 @@
    when the body is a single block. */
 
 .root {
+  --dsh-markdown-measure: none;
   display: flex;
   flex-direction: column;
   font-size: var(--dsh-content-font-size, 14px);
