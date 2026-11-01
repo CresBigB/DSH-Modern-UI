@@ -210,7 +210,7 @@
       "source": "packages/client/ui-chat/src/client/contract/turn-process.ts",
       "target": "src/vendor/chat/client/contract/turn-process.ts",
       "sourceSha256": "dce44841b376607f143df8c990b4f9e54579655a2d6adc8fead2fe7112efe7ef",
-      "targetSha256": "02aa8e3ac245dc9b15797f4eb6ce993abc4d6479f0329fe59e2dd71fac279466",
+      "targetSha256": "8a7a03ae7d4896138eccc06237393f0fee362fd87bdd46f42f43d2f8a36f2dd7",
       "adapted": true
     },
     {
@@ -903,7 +903,7 @@
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "95a8e455d2dc70f146aabdb8ef01dcd610111ff5ad36d71b431df24b611808c5",
+      "targetSha256": "3bb13913493ea8aee50ecce6c13064b8b77a624bae1040004e3ad8eb90d55107",
       "adapted": true
     },
     {
@@ -1967,7 +1967,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "33caaf91b219f7440c81f0c3186ad73aad7bc1c765f82b7589f3145c7142363b",
+      "targetSha256": "8ecd1def2e9b76751ff826a04542a296229563a5cac28b9d34ac4facfa2b4bbc",
       "adapted": true
     },
     {
@@ -3193,8 +3193,8 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-navigation.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-navigation.ts",
       "sourceSha256": "89ff69fda6f8b048c83119978a26a62a49033c9f8ea7727f4656e328423c7008",
-      "targetSha256": "23cf039e80f312dd87427d06fcdf603646cb596d638018b0eb68ca497387719b",
-      "adapted": false
+      "targetSha256": "beca616dab3f7aaf95cedc1db526b4a6d1b248a74678ca2400e6443267923308",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process-presentation.ts",
@@ -3600,7 +3600,7 @@
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "d6993968a591203c3a4f0ac506e3cf294d3331b2952fe20e833d20ae63d02492",
+      "targetSha256": "affaebeb6a1442d502e1102a7d67f03d3d4c6325b770818f07de3222fc468348",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
@@ -3670,7 +3670,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
-      "targetSha256": "1c345f0be1fb1a75904284e85688c4d347e3de645d2b289e019a4bec671de7ac",
+      "targetSha256": "747b6cf1e103e755ff020e6ffc7bb7f36c3ed1f9e09b6b3923d7292fb9be12ad",
       "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
     },
     {
@@ -3680,17 +3680,17 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-source.ts",
-      "targetSha256": "ef56c495fa9a44377faa6f7a300b7b002435b56038910e7b5b82704c647a8724",
+      "targetSha256": "6f2570b218dd64e6058f638fbca092b4a36883f74f4bdc43bd87fc41bde67c62",
       "description": "Original pure helpers for openui-lang fences: which bodies render, whether a reply holds a complete fence, the parse size bound, and the text a @ToAssistant click sends."
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "d935f3464c950a34b31b5e39bb88ca1080ca7b9483dad3eaf39d4e2d616b392c",
+      "targetSha256": "fe50d93c61bd81169cb2e010d9607ba794f677460e3b5588fe02a412d8affd3b",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
       "target": "src/jev-tool-card.ts",
-      "targetSha256": "b0d53d87f10cac9b141a8d69b96865b42a0db5250baeeba668cb6cee20afdf82",
+      "targetSha256": "cde11a988a51f84227179266968cd4e6ae50af6885ef0714cb854658d21f8fcd",
       "description": "Original Tool-row copy for jev_presentation_advice in the eight interface languages: its title and the outcome label read from the tool's result metadata (choice or status); the recorded confidence is deliberately not shown."
     },
     {
@@ -3710,7 +3710,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-budget.ts",
-      "targetSha256": "e18a5651edac7f34cc73e04cfc4ebaa35e5ab4ef5d6eecad2de6aadb7ca00823",
+      "targetSha256": "3ad8dabcb8d80f7636e11df39ffa4c21cc414726c35e1471cf726c6424cf73e1",
       "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library, the counters for the build-time patched evaluator and parser of @openuidev/lang-core (loops, built lists, objects and text, what each loop pass produces, component props, parsed nodes) and the parse limit, which stop an over-budget parse, evaluation or render in the @openuidev/react-lang runtime."
     }
   ],

@@ -6,6 +6,11 @@ const VALUE_LIMIT = 300
 export const CONTENT_LIMIT = 128_000
 /** Upper bound on the items one block's @Each loops may expand to, nested loops multiplied. */
 export const EXPANSION_LIMIT = 20_000
+/**
+ * Deepest nesting of brackets a block may hold. The parser, the loop estimate and the evaluator recurse once or more
+ * per level, and a few thousand levels overflow the stack; a program a reader can follow stays far below this.
+ */
+export const NESTING_LIMIT = 100
 // A loop over a list whose length the source does not fix (function results, values set at runtime) counts as
 // this many; the block's runtime budget counts what such loops really expand to.
 const UNKNOWN_LENGTH = 100
@@ -29,7 +34,8 @@ export function looksLikeOpenUI(code: string): boolean {
 export function hasOpenUIFence(text: string): boolean {
   const lines = text.split(/\r?\n/)
   for (let index = 0; index < lines.length; index++) {
-    const open = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)/.exec(lines[index])
+    // A backtick fence's info string cannot hold a backtick (CommonMark 4.5): ```x``` at line start is inline code.
+    const open = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})[ \t]*([^\s`]*)/.exec(lines[index])
     if (open === null) continue
     const [, marker, info] = open
     const close = new RegExp(`^ {0,3}${marker[0] === '`' ? '`' : '~'}{${marker.length},}[ \\t]*$`)
@@ -40,6 +46,28 @@ export function hasOpenUIFence(text: string): boolean {
     index = end
   }
   return false
+}
+
+/**
+ * How deeply a fence body nests its brackets, (, [ and {, outside text in "double" or 'single' quotes, read the way
+ * the openui-lang lexer reads them (a backslash escapes the next character). Cheap enough to run before parsing.
+ * @param code - The fence body, possibly still streaming.
+ * @returns The deepest level reached.
+ */
+export function nestingDepth(code: string): number {
+  let depth = 0
+  let deepest = 0
+  let quote = ''
+  for (let index = 0; index < code.length; index++) {
+    const char = code[index]
+    if (quote !== '') {
+      if (char === '\\') index++
+      else if (char === quote) quote = ''
+    } else if (char === '"' || char === "'") quote = char
+    else if (char === '(' || char === '[' || char === '{') deepest = Math.max(deepest, ++depth)
+    else if (char === ')' || char === ']' || char === '}') depth = Math.max(0, depth - 1)
+  }
+  return deepest
 }
 
 /** What a @ToAssistant click carries. */

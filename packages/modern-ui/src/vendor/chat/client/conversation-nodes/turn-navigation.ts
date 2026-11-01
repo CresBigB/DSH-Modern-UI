@@ -1,4 +1,5 @@
 import { isVisibleChatNode } from '../contract/chat-visibility.ts'
+import { isAnswerStep } from '../contract/turn-process.ts'
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import type { ChatLocationNodeIndex, ChatNodeStore, TurnNavigationItem } from '../contract/snapshot.ts'
 
@@ -87,13 +88,14 @@ export function turnNavigationItem(
   const user = loaded.find(node => node.kind === 'user')
   const anchor = user ?? loaded[0]
   if (anchor === undefined) return undefined
-  // Preview the answer's first reply rather than a later closing note, falling back to the latest reply.
+  // Preview the answer's first reply rather than a later closing note, falling back to the latest reply. A staged
+  // answer delivers its first part in a Step before the answer Step, so take the earliest Step of the answer.
   const location = anchor.location
-  const answerStep = location.kind === 'turn' || location.kind === 'step'
-    ? location.turn.data.get('turn-process')?.answerStep ?? null
-    : null
-  const answer = answerStep === null ? undefined
-    : loaded.find(node => node.kind === 'assistant-step' && node.data.step === answerStep && responseText(node) !== '')
+  const spec = location.kind === 'turn' || location.kind === 'step'
+    ? location.turn.data.get('turn-process')
+    : undefined
+  const answer = spec === undefined || spec.answerStep === null ? undefined
+    : loaded.find(node => node.kind === 'assistant-step' && isAnswerStep(spec, node.data) && responseText(node) !== '')
   const response = answer ?? loaded.findLast(node => responseText(node) !== '')
   return {
     turn,

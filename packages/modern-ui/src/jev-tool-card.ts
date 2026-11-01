@@ -1,8 +1,8 @@
 /**
  * Copy for the jev_presentation_advice Tool row: its title, and the outcome of a settled call read from the result
- * metadata the Host tool records. Confidence is in that metadata too but is not shown: TypeSafe derives it from the
- * candidate distribution, and a number beside a suggestion reads as the chance that the suggestion is right.
- * Browser-side; the tool itself lives in jev-tool.ts.
+ * metadata the Host tool records. Older records also carry Jev's confidence there; it is never shown: TypeSafe
+ * derives it from the candidate distribution, and a number beside a suggestion reads as the chance that the
+ * suggestion is right. Browser-side; the tool itself lives in jev-tool.ts.
  */
 
 /** The model-facing tool name, as registered by jev-tool.ts. */
@@ -33,7 +33,7 @@ export type JevOutcomeKey = (typeof CHOICE_KEYS)[keyof typeof CHOICE_KEYS] | (ty
 
 /**
  * The outcome label of one settled call.
- * @param meta - The persisted result metadata: `{ status, presentation?, confidence? }`.
+ * @param meta - The persisted result metadata: `{ status, presentation? }`, with `confidence` in older records.
  * @returns A label key, or undefined for metadata of any other shape (an older record, a cancelled call).
  */
 export function jevOutcomeKey(meta: unknown): JevOutcomeKey | undefined {

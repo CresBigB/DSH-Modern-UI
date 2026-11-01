@@ -266,3 +266,23 @@ test('the temporary bar follows the composer height published on the scroll box'
     await context.close()
   }
 })
+
+test('phones and narrow panes do not offer an edit they cannot show', async () => {
+  const { context, page } = await open()
+  try {
+    for (const size of [640, 390]) {
+      await page.setViewportSize({ width: size, height: 900 })
+      await chooseMode(page, 'custom')
+      await page.waitForTimeout(200)
+      assert.equal(await page.locator('[data-conversation-width-adjustment]').count(), 0, `adjustment bar at ${size}px`)
+      assert.equal(await page.locator('[data-conversation-width-handle]').count(), 0, `guides at ${size}px`)
+    }
+    // Back on a wide screen, choosing Custom again opens the temporary edit as before.
+    await page.setViewportSize({ width: 1520, height: 900 })
+    await chooseMode(page, 'custom')
+    await page.locator('[data-conversation-width-adjustment]').waitFor()
+    assert.equal(await page.locator('[data-conversation-width-handle]').count(), 2)
+  } finally {
+    await context.close()
+  }
+})

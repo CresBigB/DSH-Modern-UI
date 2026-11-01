@@ -67,20 +67,58 @@ export const Carousel = defineComponent({
 });
 
 // Popover
+// The panel keeps EDGE px from the viewport's edges and GAP px from its trigger, and is never taller than TALLEST.
+const EDGE = 12;
+const GAP = 8;
+const TALLEST = 420;
+// Less room than this on both sides of the trigger, and the panel may cover it rather than shrink to nothing.
+const LEAST = 120;
+type Placement = { left: number; top: number; maxHeight: number };
+
+/** The panel on the side of its trigger that has room for it (below when both have), no taller than that side. */
+function place(trigger: HTMLElement, panel: HTMLElement): Placement {
+  const r = trigger.getBoundingClientRect();
+  const [width, height] = [window.innerWidth, window.innerHeight];
+  // Its height with all of its content, scrolled or not; scrollHeight leaves out the border.
+  const natural = Math.min(TALLEST, panel.scrollHeight + panel.offsetHeight - panel.clientHeight);
+  const below = height - EDGE - (r.bottom + GAP);
+  const above = r.top - GAP - EDGE;
+  const up = natural > below && above > below;
+  const maxHeight = Math.max(0, Math.min(TALLEST, height - 2 * EDGE, Math.max(LEAST, up ? above : below)));
+  const shown = Math.min(natural, maxHeight);
+  return {
+    left: Math.max(EDGE, Math.min(r.left, width - EDGE - panel.offsetWidth)),
+    top: Math.max(EDGE, Math.min(up ? r.top - GAP - shown : r.bottom + GAP, height - EDGE - shown)),
+    maxHeight,
+  };
+}
+
 export const Popover = defineComponent({
   name: "Popover",
   props: z.object({ trigger: slot, content: slot }),
   description: 'Shows content in a small panel when the trigger is clicked: a definition, a source, details behind an Icon("info", "sm").',
   component: function PopoverView({ props, renderNode }) {
     const [open, setOpen] = useState(false);
-    const [at, setAt] = useState<{ left: number; top: number; up: boolean } | null>(null);
+    const [at, setAt] = useState<Placement | null>(null);
     const button = useRef<HTMLElement>(null);
     const panel = useRef<HTMLDivElement>(null);
+    const body = useRef<HTMLDivElement>(null);
+    // Measured before the first paint, and again whenever the viewport, the trigger or the content changes size.
     useLayoutEffect(() => {
-      if (!open || !button.current) return;
-      const r = button.current.getBoundingClientRect();
-      const up = r.bottom + 220 > window.innerHeight && r.top > 240;
-      setAt({ left: Math.min(Math.max(12, r.left), window.innerWidth - 292), top: up ? r.top - 8 : r.bottom + 8, up });
+      if (!open) return;
+      const update = () => {
+        if (!button.current || !panel.current) return;
+        const next = place(button.current, panel.current);
+        setAt((current) => (current?.left === next.left && current.top === next.top && current.maxHeight === next.maxHeight ? current : next));
+      };
+      update();
+      const observer = new ResizeObserver(update);
+      for (const element of [button.current, body.current]) if (element) observer.observe(element);
+      window.addEventListener("resize", update);
+      return () => {
+        observer.disconnect();
+        window.removeEventListener("resize", update);
+      };
     }, [open]);
     useEffect(() => {
       if (!open) return;
@@ -126,17 +164,14 @@ export const Popover = defineComponent({
           </span>
         )}
         {open &&
-          at &&
           createPortal(
-            // The panel leaves the block's DOM, so it carries its own scope for the tokens and styles.
+            // The panel leaves the block's DOM, so it carries its own scope for the tokens and styles. It is laid out
+            // hidden once, to be measured, before it is placed.
             <div className="iui-root iui-portal" data-theme={button.current?.closest("[data-theme]")?.getAttribute("data-theme") ?? undefined}>
-              <div
-                ref={panel}
-                role="dialog"
-                className="iui-popover"
-                style={{ left: at.left, top: at.top, transform: at.up ? "translateY(-100%)" : undefined }}
-              >
-                {renderSlot(props.content, renderNode)}
+              <div ref={panel} role="dialog" className="iui-popover" style={at ? { left: at.left, top: at.top, maxHeight: at.maxHeight } : { left: 0, top: 0, visibility: "hidden" }}>
+                <div ref={body} className="iui-popover-body">
+                  {renderSlot(props.content, renderNode)}
+                </div>
               </div>
             </div>,
             document.body,

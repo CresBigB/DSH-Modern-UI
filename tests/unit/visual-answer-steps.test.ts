@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { hasMarkdownSection, hasSectionReply, hasVisualReply, isAnswerStep } from '../../packages/modern-ui/src/vendor/chat/client/contract/turn-process.ts'
 import { ChatTurnProcessProjector } from '../../packages/modern-ui/src/vendor/chat/client/conversation-nodes/turn-process-presentation.ts'
 import { turnProcessDefinition } from '../../packages/modern-ui/src/vendor/chat/client/conversation-nodes/turn-process.ts'
+import { turnNavigationItem } from '../../packages/modern-ui/src/vendor/chat/client/conversation-nodes/turn-navigation.ts'
 import { hasOpenUIFence } from '../../packages/modern-ui/src/vendor/intelligent/client/openui-source.ts'
 
 // Shaped after a real staged answer: three visualizations, each followed by web searches before the next one, so the
@@ -28,6 +29,11 @@ describe('hasOpenUIFence', () => {
     expect(hasOpenUIFence('Intro\n\n~~~~ OpenUI-Lang\nroot = Col([])\n~~~~\n')).toBe(true)
     expect(hasOpenUIFence('```openui\n// sizing\nroot = Card([])\n```')).toBe(true)
     expect(hasOpenUIFence('Intro\r\n\r\n```openui-lang\r\nroot = Col([])\r\n```\r\n')).toBe(true)
+  })
+
+  test('a line opening with inline code is not a fence, so the real block after it still counts', () => {
+    // Read as a fence, the inline ```text``` would run to the real block's closing line and swallow the block.
+    expect(hasOpenUIFence('```text``` 是普通代码块的标签。\n\n```openui-lang\nroot = Card([])\n```')).toBe(true)
   })
 
   test('ignores streaming fences, prose mentions, HTML openui fences and fences nested in other code', () => {
@@ -126,6 +132,10 @@ describe('hasMarkdownSection', () => {
     expect(hasMarkdownSection('找到原因了。状态报告:\n\n## 📊 检查结果\n\n| 项目 | 状态 |\n|---|---|\n| 插件加载 | 正常 |')).toBe(true)
   })
 
+  test('a line opening with inline code does not hide the heading after it', () => {
+    expect(hasMarkdownSection('```openui-lang``` 是组件代码块的标签。\n\n## 天气\n\n三天以晴为主。')).toBe(true)
+  })
+
   test('ignores plain progress notes, headings in fences or indented code, and hashes that open no heading', () => {
     expect(hasMarkdownSection("I'll investigate this. Let me start by looking at your workspace.")).toBe(false)
     expect(hasMarkdownSection('我来搜一下东京今天的天气。')).toBe(false)
@@ -164,6 +174,24 @@ describe('progressively delivered text sections stay outside the folded process'
       finalNode: { seq: 44 },
     },
   ]
+
+  test('the turn navigation previews the first delivered part, not the closing one', () => {
+    const { spec, location } = buildSpec(travel)
+    const values = [
+      { key: 'input', kind: 'user', anchorSeq: 10, data: { content: [{ type: 'text', text: '帮我规划三天行程' }] } },
+      ...travel.map(data => ({ key: `step-${data.step}`, kind: 'assistant-step', anchorSeq: data.finalNode.seq - 1, data })),
+    ].map(node => ({
+      target: 'chat',
+      id: node.key,
+      visibility: 'visible',
+      location: { kind: 'turn', turn: { ...location, data: { get: () => spec } } },
+      ...node,
+    }))
+    const byKey = new Map(values.map(node => [node.key, node]))
+    const item = turnNavigationItem(1, { getTurn: () => [...byKey.keys()] } as never, { get: (key: string) => byKey.get(key) } as never)
+    expect(item?.response).toContain('三天以晴为主')
+    expect(item?.response).not.toContain('鲷鱼饭')
+  })
 
   test('every Step that delivers a section joins the answer; the progress note stays in the fold', () => {
     const { spec } = buildSpec(travel)

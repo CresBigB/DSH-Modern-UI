@@ -7,6 +7,7 @@ import {
   installJevTool,
   JEV_TOOL,
   type JevSettings,
+  jevConversation,
   jevToolDefinition,
   PRESENTATIONS,
   PresentationAdvisor,
@@ -90,15 +91,25 @@ describe('decisionFromResponse', () => {
     expect(decisionFromResponse(answer('table', { confidence: 1.5 }))).toBeUndefined()
     expect(decisionFromResponse(answer('table', { probabilities: { table: 0.9, map: 0.1 } }))).toBeUndefined()
     expect(decisionFromResponse(answer('table', { probabilities: { table: -1 } }))).toBeUndefined()
+    expect(decisionFromResponse(answer('table', { probabilities: [] }))).toBeUndefined()
     expect(decisionFromResponse({})).toBeUndefined()
     expect(decisionFromResponse(null)).toBeUndefined()
+  })
+})
+
+describe('jevConversation', () => {
+  test('cuts a long message without leaving half of a surrogate pair', () => {
+    const [cut] = jevConversation([`${'a'.repeat(5999)}😀 and more`], summary)
+    expect(cut.content).toBe('a'.repeat(5999))
+    expect(cut.content.isWellFormed()).toBe(true)
+    expect(jevConversation(['b'.repeat(7000)], summary)[0].content).toBe('b'.repeat(6000))
   })
 })
 
 describe('advice wording', () => {
   test('"text" means no additional suggestion and leaves every component open', () => {
     const advice = adviceFor({ presentation: 'text', confidence: 0.97 })
-    expect(advice).toEqual({ status: 'no_suggestion', presentation: 'text', confidence: 0.97, advice: expect.any(String) })
+    expect(advice).toEqual({ status: 'no_suggestion', presentation: 'text', advice: expect.any(String) })
     expect(advice.advice).toBe(
       `No additional presentation suggestion. Choose from the material and the user's preferences; you may use or combine any components that fit. (${CAPABILITY})`,
     )
@@ -112,7 +123,7 @@ describe('advice wording', () => {
     for (const presentation of Object.keys(PRESENTATIONS).filter(key => key !== 'text')) {
       const advice = adviceFor({ presentation, confidence: 0.91 } as never)
       expect(advice.status).toBe('suggestion')
-      expect(advice.confidence).toBe(0.91)
+      expect(advice).not.toHaveProperty('confidence')
       expect(advice.advice).toMatch(/^You could consider \S.* for (the )?parts /)
       expect(advice.advice).toContain('You may ignore this, choose another form, or combine it with text and other components.')
       expect(advice.advice).toContain(CAPABILITY)
@@ -129,7 +140,8 @@ describe('advice wording', () => {
     expect(definition.description).toContain('answering without consulting Jev is a normal outcome')
     expect(definition.description).toContain('it does not see sources, files or tool results')
     expect(definition.description).toContain("your own reading of the material and the user's wishes decides")
-    expect(definition.description).not.toMatch(/\bmust\b|before answering/i)
+    expect(definition.description).toContain('while that structure is still unclear, ask later or not at all')
+    expect(definition.description).not.toMatch(/\bmust\b|before answering|confiden/i)
     expect(definition.parameters).toEqual({
       type: 'object',
       properties: { content_summary: { type: 'string', description: expect.stringContaining(`at most ${SUMMARY_LIMIT} characters`) } },
@@ -140,12 +152,15 @@ describe('advice wording', () => {
     expect(PRESENTATION_PROMPT).not.toMatch(/jev|presentation_advice/i)
   })
 
-  test('the card keeps status, choice and confidence; the model reads only the advice text', () => {
+  test('the card keeps status and choice; a direct call reads the advice text, and no value carries the confidence', () => {
     const definition = jevToolDefinition(advisor({ fetch: jev(() => json(answer('text'))).fetch }).instance)
     const value = adviceFor({ presentation: 'flowchart', confidence: 0.7 })
+    expect(value).toEqual({ status: 'suggestion', presentation: 'flowchart', advice: expect.any(String) })
     expect(definition.output.render({}, value as never)).toEqual([{ type: 'text', text: value.advice }])
-    expect(definition.output.presentationMeta?.({}, value as never)).toEqual({ status: 'suggestion', presentation: 'flowchart', confidence: 0.7 })
+    expect(definition.output.presentationMeta?.({}, value as never)).toEqual({ status: 'suggestion', presentation: 'flowchart' })
     expect(definition.output.presentationMeta?.({}, adviceFor(undefined) as never)).toEqual({ status: 'unavailable' })
+    // A program calling the tool from code gets the whole value, typed from this schema.
+    expect(Object.keys((definition.output.schema as { properties: object }).properties)).toEqual(['status', 'advice', 'presentation'])
   })
 })
 
@@ -156,7 +171,7 @@ describe('PresentationAdvisor', () => {
     const live = session()
     openTurn(instance, live, user('compare redis and memcached'))
     const advice = await instance.advise({ content_summary: summary }, call(live))
-    expect(advice).toMatchObject({ status: 'suggestion', presentation: 'table', confidence: 0.8 })
+    expect(advice).toEqual({ status: 'suggestion', presentation: 'table', advice: expect.stringMatching(/^You could consider a table/) })
     expect(recorded.calls).toHaveLength(1)
     const [sent] = recorded.calls
     expect(sent.url).toBe('http://127.0.0.1:9/v1/systemone')
@@ -317,6 +332,72 @@ describe('PresentationAdvisor', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
+  test('a cancelled call does not use up the turn, so a later call in the same turn can still ask', async () => {
+    let hold = true
+    const recorded = jev((_body, init) => {
+      if (init.signal?.aborted) throw init.signal.reason
+      if (!hold) return json(answer('table'))
+      return new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(init.signal?.reason)))
+    })
+    const warn = vi.fn()
+    const { instance } = advisor({ fetch: recorded.fetch, config: () => settings({ timeout: 60_000 }), warn })
+    const live = session()
+    openTurn(instance, live, user('compare redis and memcached'))
+    // Cancelled before anything went out: nothing is sent.
+    expect((await instance.advise({ content_summary: summary }, call(live, AbortSignal.abort()))).status).toBe('unavailable')
+    expect(recorded.calls).toHaveLength(0)
+    // Cancelled while Jev was thinking, as when a code run ends without awaiting the call and the turn goes on.
+    const controller = new AbortController()
+    const left = instance.advise({ content_summary: summary }, call(live, controller.signal))
+    await vi.waitFor(() => expect(recorded.calls).toHaveLength(1))
+    controller.abort('run_code settled')
+    expect((await left).status).toBe('unavailable')
+    hold = false
+    expect(await instance.advise({ content_summary: summary }, call(live))).toMatchObject({ status: 'suggestion', presentation: 'table' })
+    expect(recorded.calls).toHaveLength(2)
+    // The answered request is the turn's consultation from then on.
+    expect((await instance.advise({ content_summary: 'Four options, each with a short pro and con list.' }, call(live))).status).toBe('already_consulted')
+    expect(recorded.calls).toHaveLength(2)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  test('a session logs each new failure reason once, rather than only its first failure', async () => {
+    const warn = vi.fn()
+    let reply = (_init: RequestInit): Promise<Response> | Response => json({ error: 'nope' }, 500)
+    const recorded = jev((_body, init) => reply(init))
+    const { instance } = advisor({ fetch: recorded.fetch, config: () => settings({ timeout: 50 }), warn })
+    const live = session()
+    const ask = async (turn: number) => {
+      instance.observe(live, turnStart(turn))
+      instance.observe(live, user(`question ${turn}`))
+      expect((await instance.advise({ content_summary: summary }, call(live))).status).toBe('unavailable')
+      instance.observe(live, turnEnd(turn))
+    }
+    await ask(1)
+    await ask(2)
+    reply = init => new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(init.signal?.reason)))
+    await ask(3)
+    reply = () => json({ error: 'nope' }, 500)
+    await ask(4)
+    expect(recorded.calls).toHaveLength(4)
+    expect(warn.mock.calls.map(([message]) => message)).toEqual([
+      expect.stringContaining('(HTTP 500)'),
+      expect.stringContaining('(timed out)'),
+      expect.stringContaining('(HTTP 500)'),
+    ])
+  })
+
+  test('a response body over the size cap is refused, even when it holds a valid answer', async () => {
+    const warn = vi.fn()
+    const recorded = jev(() => json({ ...answer('table'), padding: 'x'.repeat(1024 * 1024) }))
+    const { instance } = advisor({ fetch: recorded.fetch, warn })
+    const live = session()
+    openTurn(instance, live, user('compare these'))
+    expect((await instance.advise({ content_summary: summary }, call(live))).status).toBe('unavailable')
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0][0]).toContain('(response too large)')
+  })
+
   test('without a key, switched off, with the prompt off or in a subagent it neither calls Jev nor warns', async () => {
     const recorded = jev(() => json(answer('table')))
     const warn = vi.fn()
@@ -417,7 +498,9 @@ describe('installJevTool', () => {
   }
 
   function host(initialKey: string | undefined) {
-    const state = { key: initialKey, enabled: true, prompt: true }
+    const state = { key: initialKey, enabled: true, prompt: true, hold: false }
+    // While `hold` is set, each key read waits until the test releases it.
+    const reads: (() => void)[] = []
     // biome-ignore lint/suspicious/noExplicitAny: a recording stand-in for the Host event bus
     type Listener = (...args: any[]) => any
     const top = new Map<string, Listener>()
@@ -426,7 +509,12 @@ describe('installJevTool', () => {
     const agents: FakeAgent[] = []
     const roots = new Set<FakeAgent>()
     const scope = {
-      credentials: { resolve: vi.fn(async () => (state.key === undefined ? undefined : { value: state.key, source: 'file' })) },
+      credentials: {
+        resolve: vi.fn(async () => {
+          if (state.hold) await new Promise<void>(release => reads.push(release))
+          return state.key === undefined ? undefined : { value: state.key, source: 'file' }
+        }),
+      },
       agents: { list: () => [...agents], roots: () => agents.filter(agent => roots.has(agent)) },
       logger: { warn: vi.fn() },
       on: (event: string, fn: Listener) => {
@@ -462,6 +550,7 @@ describe('installJevTool', () => {
       state,
       scope,
       top,
+      reads,
       install,
       main: (id = 'main') => add(fakeAgent(id), true),
       subagent: (id = 'sub') => add(fakeAgent(id, 'subagent'), false),
@@ -471,6 +560,8 @@ describe('installJevTool', () => {
         await listeners.get('agent/created')?.({ agent, source: 'startup' })
         await flush()
       },
+      // The creation listener alone, settling when the Host would let the session make its first request.
+      creating: (agent: FakeAgent): Promise<unknown> => Promise.resolve(listeners.get('agent/created')?.({ agent, source: 'startup' })),
       disposed: (agent: FakeAgent) => listeners.get('agent/disposed')?.({ agent }),
       keyUpdated: async (ref = 'TYPESAFE_API_KEY') => {
         listeners.get('credentials/reference-updated')?.(ref)
@@ -583,6 +674,58 @@ describe('installJevTool', () => {
     expect(sub.state.live).toBeUndefined()
     // Only a new main session re-reads the key.
     expect(env.scope.credentials.resolve.mock.calls.length).toBe(reads)
+  })
+
+  test('a new main session reads the key before its creation settles, so a change no event announced still counts', async () => {
+    const env = host(undefined)
+    await env.install()
+    // Changed without a credentials event, as a provider that does not announce changes leaves it.
+    env.state.key = 'test-key'
+    const main = env.main('later')
+    await env.creating(main)
+    expect(main.state.live?.name).toBe(JEV_TOOL)
+    expect(main.state.registrations).toBe(1)
+  })
+
+  test('sessions created together each wait for the newest key read, and a subagent waits for none', async () => {
+    const env = host(undefined)
+    await env.install()
+    env.state.key = 'test-key'
+    env.state.hold = true
+    const first = env.main('first')
+    const second = env.main('second')
+    const settled: Record<string, string | undefined> = {}
+    const done = [first, second].map(agent =>
+      env.creating(agent).then(() => {
+        settled[agent.id] = agent.state.live?.name
+      }),
+    )
+    await flush()
+    expect(env.reads).toHaveLength(2)
+    const sub = env.subagent('sub')
+    await env.creating(sub)
+    expect(env.reads).toHaveLength(2)
+    // The second session's read supersedes the first one's, so the first session waits for it too.
+    env.reads[0]()
+    await flush()
+    expect(settled).toEqual({})
+    env.reads[1]()
+    await Promise.all(done)
+    expect(settled).toEqual({ first: JEV_TOOL, second: JEV_TOOL })
+    expect([first, second, sub].map(agent => agent.state.registrations)).toEqual([1, 1, 0])
+  })
+
+  test('unloading while a new session reads the key leaves no registration behind', async () => {
+    const env = host('test-key')
+    await env.install()
+    env.state.hold = true
+    const main = env.main('later')
+    const creating = env.creating(main)
+    await flush()
+    await env.dispose()
+    env.reads[0]()
+    await creating
+    expect(main.state.live).toBeUndefined()
   })
 
   test('the registered tool answers from the bound turn through the Host fetch', async () => {

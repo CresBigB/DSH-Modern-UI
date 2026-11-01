@@ -106,6 +106,13 @@ export class ExpansionBudget {
 const over = () => new Error('openui-lang block is over its expansion budget')
 // A view's functions reach every evaluation context its Renderer builds, so they name the block evaluating.
 const owners = new WeakMap<object, ExpansionBudget>()
+// Functions that write every item of their lists out as JSON (@Join of objects, @Unique), which takes as long as
+// everything inside the items, however few there are.
+const WRITES_ITEMS = new Set(['Join', 'Unique'])
+// What an engine throws when a text or list would be longer than it can build ("Invalid string length", "Invalid
+// array length", "Out of memory"), or when nesting runs out of stack; the functions refuse an over-long text with
+// a RangeError of their own before they build it. A bad date ("Invalid time value") stays a bad argument.
+const tooLong = (error: unknown) => error instanceof RangeError && /length|memory|call stack/i.test(error.message)
 
 /**
  * The library as one block's Renderer sees it: the same components and functions, with every component lookup and
@@ -124,10 +131,23 @@ export function budgeted<L extends Library>(library: L, budget: ExpansionBudget)
       {
         ...definition,
         fn: owned(budget, (args: Record<string, unknown>) => {
-          // A function walks the lists and text it is given, like the built-in ones the patched evaluator charges.
-          if (!budget.step(1 + Object.values(args).reduce((steps: number, arg) => steps + (Array.isArray(arg) ? arg.length : textSteps(arg)), 0)))
+          // A function walks the lists and text it is given, like the built-in ones the patched evaluator charges;
+          // one that writes its items out walks everything inside them.
+          const nested = WRITES_ITEMS.has(name)
+          const given = Object.values(args).reduce(
+            (steps: number, arg) => steps + (Array.isArray(arg) ? (nested ? writtenSize(arg) : arg.length) : textSteps(arg)),
+            0,
+          )
+          if (!budget.step(1 + given)) throw over()
+          let result: unknown
+          try {
+            result = definition.fn(args)
+          } catch (error) {
+            // lang-core would take a text or list too long to build for a bad argument and go on with null.
+            if (!tooLong(error)) throw error
+            budget.exceed()
             throw over()
-          const result: unknown = definition.fn(args)
+          }
           if (Array.isArray(result) && !budget.step(result.length * ITEM_STEPS)) throw over()
           if (!budget.step(textSteps(result))) throw over()
           return result
@@ -192,12 +212,23 @@ function charge(context: EvaluationContext, steps: number): boolean {
 const textSteps = (value: unknown) => (typeof value === 'string' ? Math.ceil(value.length / TEXT_CHARS) : 0)
 const isStateRef = (value: unknown): value is { k: 'StateRef'; n: string } =>
   value !== null && typeof value === 'object' && (value as { k?: unknown }).k === 'StateRef' && typeof (value as { n?: unknown }).n === 'string'
+type ElementNode = { type: 'element'; typeName: string; props: Record<string, unknown>; partial: boolean }
+// lang-core's own test for a component node (isElementNode), so the budget and the Renderer agree on what draws as
+// a component; a data row with a field named type, or k, is data. The fields lang-core gives a node draw nothing.
+const isElement = (value: object): value is ElementNode => {
+  const node = value as { type?: unknown; typeName?: unknown; props?: unknown; partial?: unknown }
+  return node.type === 'element' && typeof node.typeName === 'string' && typeof node.props === 'object' && node.props !== null && typeof node.partial === 'boolean'
+}
+const NODE_FIELDS = new Set(['type', 'typeName', 'partial', 'hasDynamicProps', 'statementId'])
+// Props the evaluator handed out, and charged, for a component of their own: the component around it holds them again.
+const paid = new WeakSet<object>()
 
 /**
  * How much a value draws, counted until the budget could not pay for it at `weight` steps each: every number or
  * flag, every list, and every text by its length, reached through lists and plain objects, whatever their keys.
- * With `nested`, also through the props of the components inside, reading a $variable a prop still names, as one
- * evaluated outside a component leaves it.
+ * A component node adds its props, but not props already charged for it on their own unless `nested` asks for the
+ * props of every component inside, reading a $variable a prop still names, as one evaluated outside a component
+ * leaves it; any other field on a node is data.
  */
 function drawnSize(value: unknown, context: EvaluationContext, nested: boolean, weight: number): number {
   const limit = Math.ceil(STEP_LIMIT / weight) + 1
@@ -211,11 +242,34 @@ function drawnSize(value: unknown, context: EvaluationContext, nested: boolean, 
       count += 1
       for (const item of next) stack.push(item)
     } else if (next !== null && typeof next === 'object') {
-      const element = next as { type?: unknown; props?: Record<string, unknown> }
-      if (element.type !== 'element') for (const item of Object.values(next)) stack.push(item)
-      else if (nested && element.props)
-        for (const prop of Object.values(element.props)) stack.push(isStateRef(prop) ? context.getState?.(prop.n) : prop)
+      if (!isElement(next)) for (const item of Object.values(next)) stack.push(item)
+      else
+        for (const [key, item] of Object.entries(next)) {
+          if (key === 'props') {
+            if (nested || !paid.has(next.props))
+              for (const prop of Object.values(next.props)) stack.push(isStateRef(prop) ? context.getState?.(prop.n) : prop)
+          } else if (!NODE_FIELDS.has(key)) stack.push(item)
+          else if (typeof item === 'string') count += Math.floor(item.length / TEXT_CHARS)
+        }
     }
+  }
+  return count
+}
+
+/** Every value, list and object in `value`, and every TEXT_CHARS characters of its text and keys, as writing it out as JSON walks them; counted to just past the budget. */
+function writtenSize(value: unknown): number {
+  let count = 0
+  const stack = [value]
+  while (stack.length > 0 && count <= STEP_LIMIT) {
+    const next = stack.pop()
+    count += 1
+    if (typeof next === 'string') count += Math.floor(next.length / TEXT_CHARS)
+    else if (Array.isArray(next)) for (const item of next) stack.push(item)
+    else if (next !== null && typeof next === 'object')
+      for (const [key, item] of Object.entries(next)) {
+        count += Math.floor(key.length / TEXT_CHARS)
+        stack.push(item)
+      }
   }
   return count
 }
@@ -229,7 +283,10 @@ __dshSetCounters({
   built: (items, context) => items === 0 || charge(context, items),
   text: (chars, context) => charge(context, Math.ceil(chars / TEXT_CHARS)),
   result: (value, context) => charge(context, drawnSize(value, context, true, ITEM_STEPS) * ITEM_STEPS),
-  drawn: (props, context, nested) => charge(context, drawnSize(props, context, nested, DATA_STEPS) * DATA_STEPS),
+  drawn: (props, context, nested) => {
+    paid.add(props)
+    return charge(context, drawnSize(props, context, nested, DATA_STEPS) * DATA_STEPS)
+  },
   parsed: nodes => {
     if (nodes > PARSE_LIMIT) throw new ParseLimitError()
   },
