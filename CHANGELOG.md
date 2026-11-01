@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-02
+
 ### Fixed
 
 - 手机设置页的字体说明与输入框上下排列，模型 ID 和显示名称各占一行，避免窄屏下文字和字段挤成细列。
@@ -144,7 +146,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.2...v0.1.3
