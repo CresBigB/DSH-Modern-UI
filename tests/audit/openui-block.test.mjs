@@ -782,3 +782,143 @@ test('an HtmlView frame allows the data: images its inner policy promises', asyn
   assert.match(policy, /frame-src 'none'/)
   await view.unmount()
 })
+
+// Second audit of v0.1.4: chart numbers, stacked areas across zero, data that looks like a component, deep nesting,
+// and text a function builds before it is charged.
+test('chart ticks and tooltips tell close large values apart, and tiny values from 0', async () => {
+  const view = await mount(
+    'root = Col([Chart("scatter", [{name:"A", x:1000000, y:1}, {name:"B", x:1000001, y:2}], "x", ["y"], "number"), Chart("scatter", [{x:1000, y:1}, {x:1001, y:2}, {x:1002, y:3}], "x", ["y"]), Chart("scatter", [{x:2020, y:1}, {x:2022, y:2}, {x:2025, y:3}], "x", ["y"]), Chart("line", [{p:"a", v:0}, {p:"b", v:1e-25}], "p", ["v"])])',
+  )
+  const plots = [...view.host.querySelectorAll('.iui-chart-plot')]
+  const xTicks = plot => [...plot.querySelectorAll('.iui-chart-tick[text-anchor="middle"]')].map(tick => tick.textContent)
+  const yTicks = plot => [...plot.querySelectorAll('.iui-chart-tick[text-anchor="end"]')].map(tick => tick.textContent)
+  for (const plot of plots.slice(0, 3)) {
+    const ticks = xTicks(plot)
+    assert.ok(ticks.length > 2 && new Set(ticks).size === ticks.length, `x ticks ${ticks}`)
+  }
+  const tiny = yTicks(plots[3])
+  assert.ok(new Set(tiny).size === tiny.length && tiny.filter(text => text === '0').length === 1, `y ticks ${tiny}`)
+  const tips = []
+  for (const point of plots[0].querySelectorAll('circle')) {
+    await act(async () => {
+      point.dispatchEvent(new dom.window.MouseEvent('pointerover', { bubbles: true }))
+    })
+    tips.push(plots[0].querySelector('.iui-chart-tooltip')?.textContent)
+  }
+  assert.deepEqual(tips, ['Ax 1,000,000y 1', 'Bx 1,000,001y 2'])
+  await view.unmount()
+})
+
+test('a stacked area series that turns negative splits at zero instead of crossing the layer below', async () => {
+  const view = await mount('root = Col([Chart("area", [{x:"A", a:10, b:10}, {x:"B", a:10, b:-10}], "x", ["a","b"], "number", null, true)])')
+  const [a, b] = [...view.host.querySelectorAll('path[fill^="url("]')].map(path => path.getAttribute('d'))
+  const ys = d => [...d.matchAll(/[ML][-\d.]+,([-\d.]+)/g)].map(match => Number(match[1]))
+  // Series a is the band between y(0) and y(10); every part of b lies above y(10) or below y(0), never across a.
+  const [top, zero] = [Math.min(...ys(a)), Math.max(...ys(a))]
+  const parts = b.split('Z').filter(Boolean)
+  assert.equal(parts.length, 2, b)
+  for (const part of parts) assert.ok(ys(part).every(y => y <= top) || ys(part).every(y => y >= zero), `b part ${part} crosses a (${top}-${zero})`)
+  await view.unmount()
+})
+
+test('a data field named type with the value "element" is counted like any other data', async () => {
+  const program = type => {
+    const rows = repeat(100, `{type: "${type}", x: "A", a: 1, b: 2, c: 3, d: 4}`)
+    return `$pts = [${rows}]\nroot = Col(@Each(@Range(0, 80), "i", Chart("bar", $pts, "x", ["a", "b", "c", "d"])))`
+  }
+  for (const type of ['row', 'element']) {
+    const view = await mount(program(type))
+    assert.equal(view.block().dataset.state, 'tooLarge', type)
+    assert.equal(view.host.querySelectorAll('.iui-chart path').length, 0, type)
+    await view.unmount()
+  }
+  // A label nothing draws changes nothing in what the block is charged.
+  const steps = async type => {
+    const budget = new ExpansionBudget()
+    let total = 0
+    const step = budget.step.bind(budget)
+    budget.step = (count = 1) => {
+      total += count
+      return step(count)
+    }
+    const root = createRoot(document.createElement('div'))
+    const rows = repeat(10, `{type: "${type}", x: "A", a: 1, b: 2}`)
+    const response = `$pts = [${rows}]\nroot = Col([Chart("bar", $pts, "x", ["a", "b"]), Col(@Each(@Range(0, 3), "i", Chart("bar", $pts, "x", ["a", "b"])))])`
+    await act(async () => {
+      root.render(React.createElement(Renderer, { library: budgeted(library, budget), response, isStreaming: false }))
+    })
+    await act(async () => root.unmount())
+    return total
+  }
+  assert.equal(await steps('element'), await steps('row'))
+})
+
+test('a deeply nested program shows its source instead of overflowing the stack out of the block', async () => {
+  const errors = []
+  const record = event => {
+    errors.push(event.error)
+    event.preventDefault()
+  }
+  dom.window.addEventListener('error', record)
+  try {
+    for (const code of [
+      `root = Col([Text("" + @Count(${'['.repeat(4000)}1${']'.repeat(4000)}))])`,
+      `root = ${'Col(['.repeat(1000)}Text("x")${'])'.repeat(1000)}`,
+    ]) {
+      const view = await mount(code)
+      assert.ok(view.host.querySelector('[data-source]'), code.slice(0, 40))
+      assert.equal(view.block().dataset.state, 'tooLarge', code.slice(0, 40))
+      await view.unmount()
+    }
+    // Chains nested without brackets may fit the stack or not; either way the block draws what it can (an
+    // evaluation that overflows marks it partial) or shows its source.
+    for (const code of [`root = Col([Text("" + ${Array(3000).fill('1').join(' + ')})])`, `root = Col([Text("" + ${'!'.repeat(3000)}true)])`]) {
+      const view = await mount(code)
+      const state = view.block().dataset.state
+      assert.ok(state === 'complete' || state === 'partial' || view.host.querySelector('[data-source]'), `${code.slice(0, 40)}: ${state}`)
+      await view.unmount()
+    }
+    // A deep fragment while the fence streams does not stop the finished program from rendering.
+    const view = await mount(`root = Col([Text("" + @Count(${'['.repeat(4000)}`, { streaming: true, closed: false })
+    assert.equal(view.block().dataset.state, 'tooLarge')
+    await view.update({ code: 'root = Col([Text("fine")])', streaming: true, closed: true })
+    assert.equal(view.block().dataset.state, 'complete')
+    await view.unmount()
+  } finally {
+    dom.window.removeEventListener('error', record)
+  }
+  assert.deepEqual(errors, [])
+})
+
+test('text a function would build past what a block can show is refused, and charged, before it is built', async () => {
+  const doubled = `s0 = "${'x'.repeat(10_000)}"\ns1 = @Replace(s0, "x", "${'x'.repeat(64)}")`
+  for (const code of [`${doubled}\nroot = Col([Text(@Replace(s1, "x", s1))])`, `${doubled}\nroot = Col([Text(@Join(@Range(0, 1000), s1))])`]) {
+    const view = await mount(code)
+    assert.equal(view.block().dataset.state, 'tooLarge', code.slice(-40))
+    await view.unmount()
+  }
+  // Ordinary uses stay well inside the budget.
+  const small = await mount(`${doubled}\nroot = Col([Text("" + @Count(@Split(@Replace(s0, "x", "x,"))))])`)
+  assert.equal(small.block().dataset.state, 'complete')
+  assert.match(small.host.textContent, /10000/)
+  await small.unmount()
+})
+
+test('functions that write their items out as JSON are charged for everything inside the items', async () => {
+  for (const call of ['@Count(@Unique($d))', '@Join($d, "")']) {
+    const view = await mount(`$d = [[${zeros(2000)}]]\nroot = Col(@Each(@Range(0, 100), "i", Text("" + ${call})))`)
+    assert.equal(view.block().dataset.state, 'tooLarge', call)
+    await view.unmount()
+  }
+  const few = await mount(`$d = [[${zeros(20)}], [${zeros(20)}]]\nroot = Col([Text("" + @Count(@Unique($d)))])`)
+  assert.equal(few.block().dataset.state, 'complete')
+  assert.equal(few.host.textContent, '1')
+  await few.unmount()
+})
+
+test('a date out of range is a bad argument, not a block over budget', async () => {
+  const view = await mount('root = Col([Text("day " + @AddDays("2026-01-01", 1000000000000))])')
+  assert.notEqual(view.block().dataset.state, 'tooLarge')
+  assert.match(view.host.textContent, /day/)
+  await view.unmount()
+})

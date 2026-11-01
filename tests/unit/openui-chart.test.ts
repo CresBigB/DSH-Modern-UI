@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { bar, curve, makeFormat, stepDigits } from '../../packages/modern-ui/src/vendor/openui/components/chart-math.ts'
+import { bar, curve, makeFormat, stackAreas, stepDigits } from '../../packages/modern-ui/src/vendor/openui/components/chart-math.ts'
 
 describe('chart number formats', () => {
   test('small non-zero values never read as 0, on ticks or in tooltips', () => {
     const number = makeFormat('number', undefined)
-    const digits = stepDigits(0.0005)
-    expect([0, 0.0005, 0.001, 0.0015].map(tick => number(tick, true, digits))).toEqual(['0', '0.0005', '0.001', '0.0015'])
+    expect([0, 0.0005, 0.001, 0.0015].map(tick => number(tick, true, 0.0005))).toEqual(['0', '0.0005', '0.001', '0.0015'])
     expect(number(0.001)).toBe('0.001')
     expect(number(0.0012345)).toBe('0.00123')
     expect(makeFormat('percent', undefined)(0.05)).toBe('0.05%')
@@ -15,29 +14,138 @@ describe('chart number formats', () => {
   test('larger values keep their existing shapes', () => {
     const number = makeFormat('number', undefined)
     expect(number(1234.567)).toBe('1,234.57')
-    expect(number(2500, true, stepDigits(2500))).toBe('2.5K')
-    expect(number(2.5, true, stepDigits(2.5))).toBe('2.5')
+    expect(number(2500, true, 2500)).toBe('2.5K')
+    expect(number(2.5, true, 2.5)).toBe('2.5')
     expect(makeFormat('currency', 'EUR')(1_240_000_000)).toBe('€1.24B')
     expect(number(0)).toBe('0')
   })
 
   test('precision never leaves the range Intl accepts, even for coincident ticks or values below 1e-20', () => {
     expect([0, Number.NaN, -1, Number.POSITIVE_INFINITY].map(stepDigits)).toEqual([0, 0, 0, 0])
-    expect(stepDigits(1e-25)).toBe(20)
+    expect(stepDigits(1e-25)).toBe(25)
     const number = makeFormat('number', undefined)
-    expect(() => number(1e-25, true, 25)).not.toThrow()
-    expect(() => number(0.5, false, 25)).not.toThrow()
+    expect(() => number(1e-25, true, 1e-25)).not.toThrow()
+    expect(() => number(0.5, false, 1e-25)).not.toThrow()
   })
 
   test('tooltips keep the axis precision, and three significant digits below 1', () => {
     const number = makeFormat('number', undefined)
-    expect(number(1.0005, false, stepDigits(0.0005))).toBe('1.0005')
-    expect(number(0.000123456, false, stepDigits(0.00002))).toBe('0.000123')
+    expect(number(1.0005, false, 0.0005)).toBe('1.0005')
+    expect(number(0.000123456, false, 0.00002)).toBe('0.000123')
     expect(number(1234.567, false, 0)).toBe('1,234.57')
   })
 
   test('tick precision follows the step', () => {
     expect([1000, 5, 2.5, 0.25, 0.0005].map(stepDigits)).toEqual([0, 0, 1, 2, 4])
+  })
+
+  // Ticks a step apart, and the values in tooltips, must read differently, however large or small they are.
+  const ticks = (lo: number, step: number, count: number, kind = 'number') =>
+    Array.from({ length: count }, (_, k) => makeFormat(kind, undefined)(lo + k * step, true, step))
+
+  test('large ticks keep the precision of their step, written out where a compact unit cannot show it', () => {
+    expect(ticks(1_000_000, 0.2, 6)).toEqual(['1,000,000', '1,000,000.2', '1,000,000.4', '1,000,000.6', '1,000,000.8', '1,000,001'])
+    expect(ticks(1000, 0.5, 5)).toEqual(['1,000', '1,000.5', '1,001', '1,001.5', '1,002'])
+    expect(ticks(2020, 1, 6)).toEqual(['2,020', '2,021', '2,022', '2,023', '2,024', '2,025'])
+    expect(ticks(0, 250_000_000, 6)).toEqual(['0', '250M', '500M', '750M', '1B', '1.25B'])
+    expect(ticks(0, 1000, 3, 'currency')).toEqual(['$0', '$1K', '$2K'])
+  })
+
+  test('ticks below 20 decimals switch to scientific notation instead of all reading 0', () => {
+    expect(ticks(0, 2e-26, 6)).toEqual(['0', '2E-26', '4E-26', '6E-26', '8E-26', '1E-25'])
+    expect(ticks(0, 2.5e-26, 3)).toEqual(['0', '2.5E-26', '5E-26'])
+  })
+
+  test('tooltips show the actual value, compact only when that loses nothing', () => {
+    const number = makeFormat('number', undefined)
+    expect([1_000_000, 1_000_001].map(value => number(value, false, 0.2))).toEqual(['1,000,000', '1,000,001'])
+    expect(number(1_000_000.4, false, 0.2)).toBe('1,000,000.4')
+    expect(number(1_234_567_890, false, 250_000_000)).toBe('1,234,567,890')
+    expect(number(1_250_000_000, false, 250_000_000)).toBe('1.25B')
+    expect(number(0.5004, false, 0.0001)).toBe('0.5004')
+    expect(number(1e-25, false, 2e-26)).toBe('1E-25')
+    expect(number(1e-25)).toBe('1E-25')
+    expect(makeFormat('currency', 'USD')(1_000_001)).toBe('$1,000,001')
+  })
+})
+
+describe('stacked areas', () => {
+  test('a series that changes sign splits where it crosses zero instead of twisting across the layer below', () => {
+    const [a, b] = stackAreas([
+      [10, 10],
+      [10, -10],
+    ])
+    expect(a.bands).toEqual([
+      [
+        [0, 10],
+        [0.5, 10],
+        [1, 10],
+        [1, 0],
+        [0.5, 0],
+        [0, 0],
+      ],
+    ])
+    // b sits on a while positive, then hangs below zero once negative.
+    expect(b.bands).toEqual([
+      [
+        [0, 20],
+        [0.5, 10],
+        [1, 10],
+        [1, 10],
+        [0.5, 10],
+        [0, 10],
+      ],
+      [
+        [0, 0],
+        [0.5, 0],
+        [1, -10],
+        [1, 0],
+        [0.5, 0],
+        [0, 0],
+      ],
+    ])
+    expect(b.edge).toEqual([
+      [
+        [0, 20],
+        [0.5, 10],
+      ],
+      [
+        [0.5, 0],
+        [1, -10],
+      ],
+    ])
+  })
+
+  test('layers that never change sign keep one band and one unbroken edge each', () => {
+    const layers = stackAreas([
+      [0, 0],
+      [10, 0],
+      [20, 20],
+    ])
+    expect(layers.map(layer => layer.bands.length)).toEqual([1, 1])
+    expect(layers.map(layer => layer.edge.length)).toEqual([1, 1])
+    expect(layers[1].bands[0]).toEqual([
+      [0, 0],
+      [1, 10],
+      [2, 40],
+      [2, 20],
+      [1, 10],
+      [0, 0],
+    ])
+  })
+
+  test('a single series crossing zero keeps one edge through the crossing', () => {
+    const [only] = stackAreas([[5], [-5], [5]])
+    expect(only.edge).toEqual([
+      [
+        [0, 5],
+        [0.5, 0],
+        [1, -5],
+        [1.5, 0],
+        [2, 5],
+      ],
+    ])
+    expect(only.bands).toHaveLength(2)
   })
 })
 

@@ -1,33 +1,51 @@
-/** Pure helpers for the chart component: number formats, tick precision, line curves and bar outlines. */
+/** Pure helpers for the chart component: number formats, tick precision, line curves, bar outlines and stacked areas. */
 
-/** Formats a value; `compact` for axis ticks, `digits` for the decimals a tick step needs. */
-export type Format = (value: number, compact?: boolean, digits?: number) => string;
+/** Formats a value; `compact` for axis ticks, `step` for the axis step whose precision the text keeps. */
+export type Format = (value: number, compact?: boolean, step?: number) => string;
+
+// The units en-US compact notation writes as T, B, M and K.
+const UNITS = [1e12, 1e9, 1e6, 1e3];
 
 export function makeFormat(kind: string | undefined, currency: string | undefined): Format {
   const code = typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
-  // Axis ticks are compact ("$2B") and carry as many decimals as their step needs ("0.0005"); tooltips keep at
-  // least two decimals and the axis step's precision ("$1.24B", "1.0005"), or three significant digits below 1,
-  // so a small non-zero value never reads as 0. Intl accepts at most 20 fraction digits.
-  return (value, compact, digits) => {
-    const big = Math.abs(value) >= (compact ? 1000 : 1e6);
-    const tiny = (digits === undefined || !compact) && value !== 0 && Math.abs(value) < 1;
-    const places = Math.min(20, compact ? (digits ?? 2) : Math.max(2, digits ?? 2));
-    const fraction: Intl.NumberFormatOptions = tiny
-      ? { maximumSignificantDigits: 3 }
-      : { minimumFractionDigits: 0, maximumFractionDigits: big ? (compact ? 1 : 2) : places };
-    if (kind === "percent") return `${value.toLocaleString("en-US", { ...fraction, useGrouping: false })}%`;
-    const options: Intl.NumberFormatOptions = { ...fraction, ...(big ? { notation: "compact" } : {}) };
-    return value.toLocaleString("en-US", kind === "currency" ? { ...options, style: "currency", currency: code } : options);
+  const write = (value: number, options: Intl.NumberFormatOptions) =>
+    kind === "percent"
+      ? `${value.toLocaleString("en-US", { ...options, useGrouping: false })}%`
+      : value.toLocaleString("en-US", kind === "currency" ? { ...options, style: "currency", currency: code } : options);
+  // Ticks a step apart always read differently: compact where the unit keeps the step's precision ("$2B", "1.25B"),
+  // written out where it cannot ("1,000,000.2", "2,021"), with the decimals the step needs ("0.0005"), and past the
+  // 20 fraction digits Intl accepts in scientific notation ("2E-26"). Tooltips show the value itself: at least two
+  // decimals, the step's precision and three significant digits below 1 ("1.0005", "0.000123"), compact only where
+  // that loses nothing ("$1.24B", but "1,000,001"), so a small non-zero value never reads as 0.
+  return (value, compact, step = 0) => {
+    const abs = Math.abs(value);
+    if (value === 0 || !Number.isFinite(value)) return write(value, { maximumFractionDigits: 0 });
+    const places = compact ? stepDigits(step) : Math.max(2, stepDigits(step), abs < 1 ? 2 - Math.floor(Math.log10(abs)) : 0);
+    if (places > 20) {
+      const mantissa = stepDigits(step / 10 ** Math.floor(Math.log10(abs)));
+      return write(value, compact ? { notation: "scientific", maximumFractionDigits: Math.min(20, mantissa) } : { notation: "scientific", maximumSignificantDigits: 3 });
+    }
+    const unit = kind === "percent" ? undefined : UNITS.find((u) => abs >= u && (compact || u >= 1e6));
+    // The unit keeps the step's precision in at most two decimals, so values on this axis read compact.
+    const scaled = unit === undefined ? Number.POSITIVE_INFINITY : stepDigits(step / unit);
+    if (unit !== undefined && scaled <= 2) {
+      if (compact) return write(value, { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: scaled });
+      // Hundredths of the unit in the written-out value: a whole number of them reads the same compact.
+      const hundredths = Number(value.toFixed(places)) / (unit / 100);
+      if (Math.abs(hundredths - Math.round(hundredths)) < 1e-9 * Math.max(1, Math.abs(hundredths)))
+        return write(value, { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+    return write(value, { minimumFractionDigits: 0, maximumFractionDigits: places });
   };
 }
 
-/** Decimals that tell neighbouring ticks apart: 0 for a step of 1000, 1 for 2.5, 4 for 0.0005. */
+/** Decimals that tell neighbouring ticks apart: 0 for a step of 1000, 1 for 2.5, 4 for 0.0005, 26 for 2e-26. */
 export function stepDigits(step: number) {
-  // Coincident ticks (a step lost to rounding) or a missing step need no decimals; Intl allows at most 20.
+  // Coincident ticks (a step lost to rounding) or a missing step need no decimals.
   if (!Number.isFinite(step) || step <= 0) return 0;
   const power = Math.floor(Math.log10(step));
   const lead = step / 10 ** power;
-  return Math.min(20, Math.max(0, -power + (Math.abs(lead - Math.round(lead)) > 1e-9 ? 1 : 0)));
+  return Math.max(0, -power + (Math.abs(lead - Math.round(lead)) > 1e-9 ? 1 : 0));
 }
 
 /** A path of straight segments through the points. */
@@ -72,4 +90,55 @@ export function bar(left: number, top: number, width: number, height: number, up
   return up
     ? `M${left},${bottom}V${top + r}A${r},${r} 0 0 1 ${left + r},${top}H${right - r}A${r},${r} 0 0 1 ${right},${top + r}V${bottom}Z`
     : `M${left},${top}V${bottom - r}A${r},${r} 0 0 0 ${left + r},${bottom}H${right - r}A${r},${r} 0 0 0 ${right},${bottom - r}V${top}Z`;
+}
+
+type Point = [number, number];
+
+/**
+ * Stacked areas whose values run straight between neighbouring categories. The positive part of every series stacks
+ * up from 0 and the negative part down from 0, so a series that changes sign between two categories splits where it
+ * crosses zero instead of twisting across the layers below it.
+ * @param values - values[i][s] is series s at category i.
+ * @returns Per series, `bands`: the closed outline of its positive and of its negative part, outer edge forward and
+ * the edge it rests on backwards (a part never thicker than 0 is left out, unless the series has no other); `edge`:
+ * its outer edge as runs of points, broken where it moves between the two stacks. A point is [category, value],
+ * where the category may fall between two.
+ */
+export function stackAreas(values: readonly (readonly number[])[]): { bands: Point[][]; edge: Point[][] }[] {
+  // Every category, and every place between two where a series crosses zero (that series is exactly 0 there).
+  const columns: { at: number; v: number[] }[] = [];
+  values.forEach((row, i) => {
+    columns.push({ at: i, v: [...row] });
+    const next = values[i + 1];
+    if (!next) return;
+    const crossings = row.map((v, s) => (v * next[s] < 0 ? v / (v - next[s]) : Number.NaN));
+    for (const t of [...new Set(crossings.filter((t) => !Number.isNaN(t)))].sort((a, b) => a - b)) {
+      columns.push({ at: i + t, v: row.map((v, s) => (crossings[s] === t ? 0 : v + (next[s] - v) * t)) });
+    }
+  });
+  // Each series' [base, outer edge] in the upward and in the downward stack, at every column.
+  const stacks = columns.map(({ v }) => {
+    let up = 0;
+    let down = 0;
+    return v.map((value) => ({ up: [up, (up += Math.max(0, value))], down: [down, (down += Math.min(0, value))] }));
+  });
+  return (values[0] ?? []).map((_, s) => {
+    const part = (side: "up" | "down") => {
+      const outer = columns.map(({ at }, k): Point => [at, stacks[k][s][side][1]]);
+      const base = columns.map(({ at }, k): Point => [at, stacks[k][s][side][0]]);
+      return { thick: outer.some(([, v], k) => v !== base[k][1]), outline: [...outer, ...base.reverse()] };
+    };
+    const parts = [part("up"), part("down")];
+    const bands = parts.filter((p) => p.thick).map((p) => p.outline);
+    // Between two columns a series stays on one side of zero, and its edge on that side's stack.
+    const side = (k: number) => (columns[k].v[s] + (columns[k + 1]?.v[s] ?? 0) < 0 ? "down" : "up");
+    const edge: Point[][] = [];
+    for (let k = 0; k < Math.max(1, columns.length - 1); k++) {
+      const from: Point = [columns[k].at, stacks[k][s][side(k)][1]];
+      const last = edge.at(-1)?.at(-1);
+      if (!last || last[0] !== from[0] || last[1] !== from[1]) edge.push([from]);
+      if (columns[k + 1]) edge.at(-1)?.push([columns[k + 1].at, stacks[k + 1][s][side(k)][1]]);
+    }
+    return { bands: bands.length ? bands : [parts[0].outline], edge };
+  });
 }

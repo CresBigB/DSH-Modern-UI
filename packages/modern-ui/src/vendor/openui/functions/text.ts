@@ -3,6 +3,13 @@ import { z } from "zod/v4";
 import { list, MAX_ITEMS, read } from "./shared";
 
 const LOCALE = "en-US";
+/** Longest text a function builds, as much as a block's whole budget pays for (100,000 steps of 100 characters). */
+const MAX_TEXT = 10_000_000;
+
+/** Refuses, before anything is built, a text past MAX_TEXT; the block's budget reads the RangeError as running over. */
+function fits(length: number): void {
+  if (length > MAX_TEXT) throw new RangeError(`text of ${length} characters is past the length a block can show`);
+}
 
 function currencyCode(code: string | undefined): string {
   const upper = (code ?? "USD").toUpperCase();
@@ -59,12 +66,14 @@ export const Join = defineFunction({
   description: 'Joins the items (or their field) into text with sep (default ", "), skipping nulls',
   params: z.object({ list: list(), sep: z.string().optional(), field: z.string().optional() }),
   returns: z.string(),
-  fn: ({ list, sep = ", ", field = "" }) =>
-    list
+  fn: ({ list, sep = ", ", field = "" }) => {
+    const parts = list
       .map((item) => read(item, field))
       .filter((v) => v != null)
-      .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
-      .join(sep),
+      .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)));
+    fits(parts.reduce((length, part) => length + part.length, 0) + sep.length * Math.max(0, parts.length - 1));
+    return parts.join(sep);
+  },
 });
 
 export const Plural = defineFunction({
@@ -132,7 +141,13 @@ export const Replace = defineFunction({
   description: "Text with every find replaced by replacement",
   params: z.object({ text: z.string(), find: z.string(), replacement: z.string() }),
   returns: z.string(),
-  fn: ({ text, find, replacement }) => (find === "" ? text : text.split(find).join(replacement)),
+  fn: ({ text, find, replacement }) => {
+    if (find === "") return text;
+    let found = 0;
+    for (let at = text.indexOf(find); at >= 0; at = text.indexOf(find, at + find.length)) found++;
+    fits(text.length + found * (replacement.length - find.length));
+    return text.split(find).join(replacement);
+  },
 });
 
 export const Duration = defineFunction({

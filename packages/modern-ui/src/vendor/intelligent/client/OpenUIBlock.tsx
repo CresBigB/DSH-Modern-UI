@@ -10,7 +10,7 @@ import { runLibraryAction } from '../../openui/actions.ts'
 import { FieldRegistry, FieldRegistryContext } from '../../openui/components/fields.ts'
 import { webUrl } from '../../openui/components/style.ts'
 import { UI_TEXT, UiTextContext, type UiText } from '../../openui/components/ui-text.ts'
-import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate } from './openui-source.ts'
+import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate, NESTING_LIMIT, nestingDepth } from './openui-source.ts'
 import { budgeted, ExpansionBudget, ParseLimitError } from './openui-budget.ts'
 import './locales.ts'
 import css from './OpenUIBlock.module.css'
@@ -24,13 +24,26 @@ type Notice = { key: 'proposed' | 'insertRejected' | 'copiedText' | 'copyFailed'
 // parse result arrives a commit later and would describe the previous source.
 const parser = createParser(library.toJSONSchema(), library.root)
 
-/** The parse result, or null when the source inlines more nodes than one parse may build. */
-function parseWithin(code: string) {
+/**
+ * The parse result, or why the block keeps its source: 'tooLarge' for source too long, nested too deep or inlining
+ * more nodes than one parse may build, 'invalid' when the parser throws for any other reason. Nothing it throws
+ * reaches the host, which would lose the whole answer.
+ */
+function parseWithin(code: string): ReturnType<typeof parser.parse> | 'tooLarge' | 'invalid' {
+  if (code.length > CONTENT_LIMIT || nestingDepth(code) > NESTING_LIMIT) return 'tooLarge'
   try {
     return parser.parse(code)
   } catch (error) {
-    if (error instanceof ParseLimitError) return null
-    throw error
+    return error instanceof ParseLimitError ? 'tooLarge' : 'invalid'
+  }
+}
+
+/** The loop estimate, or past every limit when a program nested without brackets (a long chain of !) overflows it. */
+function estimate(root: unknown, states: Readonly<Record<string, unknown>>): number {
+  try {
+    return expansionEstimate(root, states)
+  } catch {
+    return Number.POSITIVE_INFINITY
   }
 }
 
@@ -68,8 +81,8 @@ export function OpenUIBlock(props: BlockProps) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const fields = useMemo(() => new FieldRegistry(), [])
   const text = useMemo(() => Object.fromEntries(Object.keys(UI_TEXT).map(key => [key, t(key as keyof UiText)])) as UiText, [t])
-  const parsed = useMemo(() => (code.length > CONTENT_LIMIT ? null : parseWithin(code)), [code])
-  const oversized = useMemo(() => parsed === null || expansionEstimate(parsed.root, parsed.stateDeclarations) > EXPANSION_LIMIT, [parsed])
+  const parsed = useMemo(() => parseWithin(code), [code])
+  const oversized = useMemo(() => typeof parsed !== 'string' && estimate(parsed.root, parsed.stateDeclarations) > EXPANSION_LIMIT, [parsed])
   // The estimate cannot know lengths computed at runtime; the Renderer counts real steps against this budget.
   const [budget] = useState(() => new ExpansionBudget())
   const counted = useMemo(() => budgeted(library, budget), [budget])
@@ -86,7 +99,7 @@ export function OpenUIBlock(props: BlockProps) {
   const onStateUpdate = useCallback((state: Record<string, unknown>): void => {
     const values = Object.fromEntries(Object.entries(state).map(([name, value]) =>
       [name, value !== null && typeof value === 'object' && !Array.isArray(value) && 'value' in value ? value.value : value]))
-    if (parsed !== null && expansionEstimate(parsed.root, values) > EXPANSION_LIMIT) budget.exceed()
+    if (typeof parsed !== 'string' && estimate(parsed.root, values) > EXPANSION_LIMIT) budget.exceed()
   }, [parsed, budget])
   // Inputs stay disabled only while this fence itself is still arriving.
   const arriving = streaming && !closed
@@ -124,7 +137,8 @@ export function OpenUIBlock(props: BlockProps) {
     <CodeBlock code={code} lang="openui-lang" {...labels} />
   </section>
 
-  if (oversized || overBudget || parsed === null) return preserved('tooLarge')
+  if (typeof parsed === 'string') return preserved(parsed)
+  if (oversized || overBudget) return preserved('tooLarge')
   const rendered = parsed.root !== null
   if (!rendered && (closed || unfinished)) return preserved(closed ? 'invalid' : 'incomplete')
   const { errors, unresolved, incomplete } = parsed.meta

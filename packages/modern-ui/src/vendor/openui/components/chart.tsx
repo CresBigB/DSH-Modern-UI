@@ -1,7 +1,7 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { z } from "zod/v4";
-import { bar, curve, makeFormat, polyline, stepDigits, type Format } from "./chart-math";
+import { bar, curve, makeFormat, polyline, stackAreas, type Format } from "./chart-math";
 
 type Row = Record<string, unknown>;
 type Spec = {
@@ -70,13 +70,14 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
       return [down, (down += v)] as const;
     });
   });
+  // A stacked area also splits each series where it crosses zero between two categories.
+  const layers = stacked && type === "area" ? stackAreas(rows.map((row) => series.map((s) => num(row[s])))) : null;
   const values = stacked ? spans.flatMap((row) => row.map(([, to]) => to)) : rows.flatMap((row) => series.map((s) => num(row[s])));
   const step = niceStep((Math.max(0, ...values) - Math.min(0, ...values)) / 5);
   const lo = Math.floor(Math.min(0, ...values) / step) * step;
   const hi = Math.max(lo + step, Math.ceil(Math.max(0, ...values) / step) * step);
   const ticks = Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step);
-  const digits = stepDigits(step);
-  const left = Math.max(...ticks.map((t) => format(t, true, digits).length)) * 6.4 + 12;
+  const left = Math.max(...ticks.map((t) => format(t, true, step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 4, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
   const h = Math.max(10, height - pad.top - pad.bottom);
@@ -108,7 +109,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
           <g key={t}>
             <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} className="iui-chart-grid" strokeDasharray={t === 0 ? undefined : "3 4"} />
             <text x={pad.left - 10} y={y(t) + 4} textAnchor="end" className="iui-chart-tick">
-              {format(t, true, digits)}
+              {format(t, true, step)}
             </text>
           </g>
         ))}
@@ -147,16 +148,18 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
         {(type === "line" || type === "area") &&
           series.map((s, si) => {
             const top = (i: number) => (stacked ? spans[i][si][1] : num(rows[i][s]));
-            const base = (i: number) => (stacked ? spans[i][si][0] : 0);
+            const at = ([position, value]: readonly [number, number]) => [xAt(position), y(value)] as const;
             // Stacked layers keep straight edges: two separately smoothed boundaries can cross and give a layer
-            // negative thickness, while straight ones keep every layer between its neighbours.
-            const draw = stacked ? polyline : curve;
-            const line = draw(rows.map((_, i) => [xAt(i), y(top(i))] as const));
-            // The lower edge retraces the series below (or the baseline) backwards, so stacked areas meet exactly.
-            const under = draw(rows.map((_, i) => [xAt(i), y(base(i))] as const).reverse()).replace(/^M/, "L");
+            // negative thickness, while straight ones keep every layer between its neighbours. Each band retraces
+            // the layer it rests on backwards, so stacked areas meet exactly; a single area closes on the baseline.
+            const layer = layers?.[si];
+            const line = layer ? layer.edge.map((run) => polyline(run.map(at))).join("") : curve(rows.map((_, i) => [xAt(i), y(top(i))] as const));
+            const fill = layer
+              ? layer.bands.map((band) => `${polyline(band.map(at))}Z`).join("")
+              : `${line}${curve(rows.map((_, i) => [xAt(i), y(0)] as const).reverse()).replace(/^M/, "L")}Z`;
             return (
               <g key={s}>
-                {type === "area" && rows.length > 1 && <path d={`${line}${under}Z`} fill={`url(#${gradient}-${si})`} />}
+                {type === "area" && rows.length > 1 && <path d={fill} fill={`url(#${gradient}-${si})`} />}
                 <path d={line} fill="none" stroke={seriesColor(si)} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
                 {(rows.length <= 16 || hover !== null) &&
                   rows.map((_, i) => (rows.length <= 16 || i === hover ? <circle key={i} cx={xAt(i)} cy={y(top(i))} r={i === hover ? 4.5 : 3} fill={seriesColor(si)} stroke="var(--iui-canvas)" strokeWidth={1.5} /> : null))}
@@ -172,7 +175,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
             <span key={s}>
               <i style={{ background: seriesColor(si) }} />
               {series.length > 1 ? `${s} ` : ""}
-              <b>{format(num(tip[s]), false, digits)}</b>
+              <b>{format(num(tip[s]), false, step)}</b>
             </span>
           ))}
         </div>
@@ -191,7 +194,7 @@ function axis(values: number[], zero: boolean) {
   const step = niceStep((span || Math.abs(max) || 1) / 5);
   const lo = Math.floor(min / step) * step;
   const hi = Math.max(lo + step, Math.ceil(max / step) * step);
-  return { lo, hi, ticks: Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) };
+  return { lo, hi, step, ticks: Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) };
 }
 
 /** Points with a numeric x; each series is a color. The first text key names a point in its tooltip. */
@@ -201,17 +204,17 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const name = rows[0] ? Object.keys(rows[0]).find((k) => k !== x && typeof rows[0][k] === "string") : undefined;
   const ya = axis(rows.flatMap((r) => series.map((s) => num(r[s]))), false);
   const xa = axis(rows.map((r) => num(r[x])), false);
-  const yDigits = stepDigits(ya.ticks[1] - ya.ticks[0]);
-  const left = Math.max(...ya.ticks.map((t) => format(t, true, yDigits).length)) * 6.4 + 12;
+  const left = Math.max(...ya.ticks.map((t) => format(t, true, ya.step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 8, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
   const h = Math.max(10, height - pad.top - pad.bottom);
   const px = (v: number) => pad.left + ((v - xa.lo) / (xa.hi - xa.lo)) * w;
   const py = (v: number) => pad.top + h - ((v - ya.lo) / (ya.hi - ya.lo)) * h;
-  const every = Math.max(1, Math.ceil((xa.ticks.length * 44) / w));
   // The x axis is a plain number axis: the chart's format (currency, percent) describes the series values.
   const xFormat = makeFormat("number", undefined);
-  const xDigits = stepDigits(xa.ticks[1] - xa.ticks[0]);
+  const xLabels = xa.ticks.map((t) => xFormat(t, true, xa.step));
+  // Label every nth tick so written-out numbers ("1,000,000.2") never overlap.
+  const every = Math.max(1, Math.ceil((xa.ticks.length * Math.max(44, ...xLabels.map((l) => l.length * 6.6 + 10))) / w));
   const tip = hover && rows[hover.i];
   return (
     <div className="iui-chart-plot" style={{ height }}>
@@ -219,10 +222,10 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
         {ya.ticks.map((t) => (
           <g key={`y${t}`}>
             <line x1={pad.left} x2={pad.left + w} y1={py(t)} y2={py(t)} className="iui-chart-grid" strokeDasharray="3 4" />
-            <text x={pad.left - 10} y={py(t) + 4} textAnchor="end" className="iui-chart-tick">{format(t, true, yDigits)}</text>
+            <text x={pad.left - 10} y={py(t) + 4} textAnchor="end" className="iui-chart-tick">{format(t, true, ya.step)}</text>
           </g>
         ))}
-        {xa.ticks.map((t, k) => (k % every === 0 ? <text key={`x${t}`} x={px(t)} y={height - 6} textAnchor="middle" className="iui-chart-tick">{xFormat(t, true, xDigits)}</text> : null))}
+        {xa.ticks.map((t, k) => (k % every === 0 ? <text key={`x${t}`} x={px(t)} y={height - 6} textAnchor="middle" className="iui-chart-tick">{xLabels[k]}</text> : null))}
         {series.map((s, si) =>
           rows.map((r, i) => (
             <circle key={`${si}-${i}`} cx={px(num(r[x]))} cy={py(num(r[s]))} r={hover?.i === i && hover.si === si ? 6.5 : 5} fill={seriesColor(si)} fillOpacity={0.78} stroke="var(--iui-canvas)" strokeWidth={1.5} onPointerEnter={() => setHover({ i, si })} />
@@ -232,8 +235,8 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
       {tip && hover && (
         <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(px(num(tip[x])), 70), width - 70), top: Math.max(0, py(num(tip[series[hover.si]])) - 70) }}>
           <strong>{name ? String(tip[name]) : series[hover.si]}</strong>
-          <span>{x} <b>{xFormat(num(tip[x]), false, xDigits)}</b></span>
-          <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]), false, yDigits)}</b></span>
+          <span>{x} <b>{xFormat(num(tip[x]), false, xa.step)}</b></span>
+          <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]), false, ya.step)}</b></span>
         </div>
       )}
     </div>
