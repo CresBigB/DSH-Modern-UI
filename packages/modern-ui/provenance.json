@@ -210,14 +210,14 @@
       "source": "packages/client/ui-chat/src/client/contract/turn-process.ts",
       "target": "src/vendor/chat/client/contract/turn-process.ts",
       "sourceSha256": "dce44841b376607f143df8c990b4f9e54579655a2d6adc8fead2fe7112efe7ef",
-      "targetSha256": "b919a9cb72c2e4841fa4ce6b9ea1b2d4a5e9ba9db490aecd6e3d2b58c7b9aeac",
+      "targetSha256": "02aa8e3ac245dc9b15797f4eb6ce993abc4d6479f0329fe59e2dd71fac279466",
       "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/locale.ts",
       "target": "src/vendor/chat/client/locale.ts",
       "sourceSha256": "9df06d01dba1aaa060c6f42b1b473d6fbe33a8a9e703ab69121568478e2dd1b0",
-      "targetSha256": "5b4f2b439b3ee6f9d4dfcb66d272372ca7554ad7c7076ff6765407995fbb0dc0",
+      "targetSha256": "1e62e02b594254728488999c47e38162b7a923491b580969ca3207033574c502",
       "adapted": true
     },
     {
@@ -3074,7 +3074,7 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/chat-snapshot-builder.ts",
       "target": "src/vendor/chat/client/conversation-nodes/chat-snapshot-builder.ts",
       "sourceSha256": "e3b6173efc12ce5b147d8fdf9f2cd3309f28ef002d7bac4d29480905b64dbb2d",
-      "targetSha256": "240eaa5fd470513acaf64836d9cbc3d4143474f5888b96e595d670bda7cbcb6a",
+      "targetSha256": "131d92e975d02b7dc4eaaccdc1655fa2a3836bd72bd5058bf1ce88435276d10a",
       "adapted": true
     },
     {
