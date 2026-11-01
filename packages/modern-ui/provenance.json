@@ -3585,7 +3585,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "5213756cdbfe403c57c4f6158b8862191942e922bbca376d9defa3e742b784ce",
+      "targetSha256": "35180564ff3ef9d27cfcb1d7472b377e8854402498b266523396e1c0f16577e9",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
