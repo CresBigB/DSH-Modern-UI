@@ -10,6 +10,7 @@ import {
   looksLikeOpenUI,
 } from '../../packages/modern-ui/src/vendor/intelligent/client/openui-source.ts'
 import { PRESENTATION_PROMPT, PROGRESSIVE_PROMPT } from '../../packages/modern-ui/src/vendor/intelligent/presentation-prompt.ts'
+import { hasMarkdownSection } from '../../packages/modern-ui/src/vendor/chat/client/contract/turn-process.ts'
 import { OPENUI_SYSTEM_PROMPT } from '../../packages/modern-ui/src/vendor/openui/system-prompt.generated.ts'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -120,19 +121,28 @@ describe('presentation prompt', () => {
   test('teaches progressive result delivery as its own section, not inside the component guidance', () => {
     expect(PRESENTATION_PROMPT).not.toContain('Staged answers')
     expect(PRESENTATION_PROMPT).not.toContain(PROGRESSIVE_PROMPT)
-    // The protocol fact models miss: reply text followed by tool calls does not end the turn.
-    expect(PROGRESSIVE_PROMPT).toContain('One assistant message may hold reply text followed by tool calls.')
-    expect(PROGRESSIVE_PROMPT).toContain('not the end of the turn')
-    expect(PROGRESSIVE_PROMPT).toContain('Plans, progress notes and announcements')
-    expect(PROGRESSIVE_PROMPT).toContain('Batch the tool calls that feed the same part')
-    // Delegated work keeps the official rule of one consolidated answer.
-    expect(PROGRESSIVE_PROMPT).toContain('wait for every child, then answer once')
+    // The protocol fact models miss: reply text in a message that makes tool calls is part of the answer, not its end.
+    expect(PROGRESSIVE_PROMPT).toContain('Reply text in a message that also makes tool calls reaches the reader at once')
+    expect(PROGRESSIVE_PROMPT).toContain('that text is part of the answer, not its end')
+    expect(PROGRESSIVE_PROMPT).toContain('Plans, intentions and progress notes')
+    expect(PROGRESSIVE_PROMPT).toContain('Write a part only from evidence you already have')
+    expect(PROGRESSIVE_PROMPT).toContain('correct it plainly in one sentence of the later part')
+    // Stage by stage, as the owner's trip example runs: later parts' calls wait for the message that delivers the part.
+    expect(PROGRESSIVE_PROMPT).toContain('Make together the calls that feed the next part.')
+    // The official "primary results within your final response" is met by the parts already delivered.
+    expect(PROGRESSIVE_PROMPT).toContain('never just a note that the work is done')
+    expect(PROGRESSIVE_PROMPT).toContain('While child agents you delegated to are running, deliver no part')
+    expect(PROGRESSIVE_PROMPT).toContain('In coding and editing work, report when the work is done')
     // Each part renders as its own Markdown, so a definition written in a later part would not reach it.
-    expect(PROGRESSIVE_PROMPT).toContain('ends with the reference definitions for the citations it uses')
+    expect(PROGRESSIVE_PROMPT).toContain('the reference definitions [n]: url "title" for the citations it uses at its end')
     expect(PRESENTATION_PROMPT).toContain('or at the end of each part when the answer is delivered in parts')
-    const order = ['1. Message: tool calls for the weather forecast only.', '2. Message: "## Weather"', '3. Message: "## Sights"', '4. Message: "## Food"']
-    expect(order.map(step => PROGRESSIVE_PROMPT.indexOf(step))).toEqual([...order.map(step => PROGRESSIVE_PROMPT.indexOf(step))].sort((a, b) => a - b))
+    expect(PRESENTATION_PROMPT).toContain('in its last message when the answer is delivered in parts')
+    // The heading form the prompt asks for is the one the fold keeps in view.
+    expect(PROGRESSIVE_PROMPT).toContain('Each part starts with a Markdown heading line (## Name)')
+    for (const heading of PROGRESSIVE_PROMPT.match(/"## [A-Z][a-z]+"/g) ?? []) expect(hasMarkdownSection(heading.slice(1, -1))).toBe(true)
+    const order = ['1. Message 1: no text; tool calls for the forecast.', '2. Message 2: "## Weather"', '3. Message 3: "## Sights"', '4. Message 4: "## Food"']
     expect(order.every(step => PROGRESSIVE_PROMPT.includes(step))).toBe(true)
+    expect(order.map(step => PROGRESSIVE_PROMPT.indexOf(step))).toEqual([...order.map(step => PROGRESSIVE_PROMPT.indexOf(step))].sort((a, b) => a - b))
     expect(PROGRESSIVE_PROMPT).not.toMatch(/jev|presentation_advice/i)
   })
 

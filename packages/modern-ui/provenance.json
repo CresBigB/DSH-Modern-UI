@@ -903,7 +903,7 @@
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "30821cf373bd18b29783a4d5db0045d6b51f4b4bc7d3786763de64eb263974be",
+      "targetSha256": "95a8e455d2dc70f146aabdb8ef01dcd610111ff5ad36d71b431df24b611808c5",
       "adapted": true
     },
     {
