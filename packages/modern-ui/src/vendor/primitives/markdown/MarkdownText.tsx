@@ -5,10 +5,8 @@
  * React elements and only the source tail behind them re-parses per chunk,
  * so per-chunk work tracks the tail size instead of the whole reply. Frozen
  * blocks keep their source-offset keys when they cross the freeze boundary,
- * so React reconciles instead of remounting. Known deviation while
- * streaming: a reference-style link or footnote whose definition sits on the
- * other side of the freeze boundary renders literally until the settled
- * full parse self-heals it.
+ * so React reconciles instead of remounting. Committed reference changes
+ * invalidate the parse cache once, resolving earlier references before settle.
  */
 
 import { memo, useMemo, useRef } from 'react'
@@ -16,7 +14,7 @@ import type { ReactNode } from 'react'
 import type * as Md from 'mdast'
 import clsx from 'clsx'
 import { IncrementalMarkdownParser } from './incremental.ts'
-import { parseGfm, parseGfmWithMath } from './parse.ts'
+import { parseStreamingGfm, parseGfmWithMath } from './parse.ts'
 import {
   collectReferenceTargets, createReferenceTargets, renderBlocks, renderFootnoteSection,
   wrapBlockChildren,
@@ -79,7 +77,9 @@ function renderSettled(
  * final, so the tail continues from a copy of it each frame).
  */
 class StreamingRenderer {
-  private readonly parser = new IncrementalMarkdownParser(parseGfm)
+  private referenceContext = ''
+  private referenceSignature = '[[],[]]'
+  private parser = new IncrementalMarkdownParser(text => parseStreamingGfm(text, this.referenceContext))
   private generation = -1
   private frozenCount = 0
   private frozenElements: ReactNode[] = []
@@ -117,8 +117,14 @@ class StreamingRenderer {
    */
   render(text: string): ReactNode[] {
     if (text === this.lastText) return this.lastRendered
-    const { frozen, tail, generation } = this.parser.update(text)
-    if (generation !== this.generation) {
+    if (this.lastText !== null && !text.startsWith(this.lastText)) {
+      this.referenceContext = ''
+      this.referenceSignature = '[[],[]]'
+      this.parser = new IncrementalMarkdownParser(source => parseStreamingGfm(source, this.referenceContext))
+      this.generation = -1
+    }
+    let { frozen, tail, generation } = this.parser.update(text)
+    const reset = (): void => {
       this.generation = generation
       this.frozenCount = 0
       this.frozenElements = []
@@ -129,16 +135,39 @@ class StreamingRenderer {
       this.codePositions = this.codeRenderer === undefined ? undefined : new WeakMap()
       this.fenceClosures = this.codeRenderer === undefined ? undefined : new Map()
     }
-    const newlyFrozen = frozen.slice(this.frozenCount)
-    collectReferenceTargets(newlyFrozen.map(block => block.node), this.frozenTargets)
-    // Targets visible this frame: everything frozen so far plus the current
-    // tail parse — a newly frozen block's references resolved against the
-    // same parse tree its definitions came from.
-    const frameTargets: ReferenceTargets = {
-      definitions: new Map(this.frozenTargets.definitions),
-      footnotes: new Map(this.frozenTargets.footnotes),
+    if (generation !== this.generation) reset()
+    const targetsForFrame = (): ReferenceTargets => {
+      collectReferenceTargets(frozen.slice(this.frozenCount).map(block => block.node), this.frozenTargets)
+      const targets = {
+        definitions: new Map(this.frozenTargets.definitions),
+        footnotes: new Map(this.frozenTargets.footnotes),
+      }
+      collectReferenceTargets(tail.map(block => block.node), targets)
+      return targets
     }
-    collectReferenceTargets(tail.map(block => block.node), frameTargets)
+    let frameTargets = targetsForFrame()
+    const signature = JSON.stringify([
+      [...frameTargets.definitions].map(([id, node]) => [id, node.url, node.title]),
+      // A growing footnote body is rendered from frameTargets every frame;
+      // only a new label requires old text nodes to be parsed again.
+      [...frameTargets.footnotes.keys()],
+    ], (key, value) => key === 'position' ? undefined : value)
+    if (signature !== this.referenceSignature) {
+      this.referenceSignature = signature
+      this.referenceContext = [
+        // mdast identifiers retain authored escape sequences. Escaping again
+        // would define a different label across the frozen boundary.
+        ...[...frameTargets.definitions.keys()].map(id => `[${id}]: /`),
+        ...[...frameTargets.footnotes.keys()].map(id => `[^${id}]: reference`),
+      ].join('\n\n')
+      // Old text nodes may contain unresolved references: rerendering their AST
+      // cannot resolve them. Reparse only when committed metadata changes.
+      this.parser = new IncrementalMarkdownParser(source => parseStreamingGfm(source, this.referenceContext))
+      ;({ frozen, tail, generation } = this.parser.update(text))
+      reset()
+      frameTargets = targetsForFrame()
+    }
+    const newlyFrozen = frozen.slice(this.frozenCount)
     if (newlyFrozen.length > 0) {
       const frozenContext: MarkdownRenderContext = {
         streaming: true,

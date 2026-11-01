@@ -1568,8 +1568,8 @@
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.tsx",
       "target": "src/vendor/primitives/markdown/MarkdownText.tsx",
       "sourceSha256": "d27787888fe57d91ca7cd03450e76dec4205d306680f3445d8716a2670afb65b",
-      "targetSha256": "d27787888fe57d91ca7cd03450e76dec4205d306680f3445d8716a2670afb65b",
-      "adapted": false
+      "targetSha256": "98d3f906068468d8eb0860b2e1747c85069ae99808ad0de1b387c36dd11e655c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/mathCompatibility.ts",
@@ -1582,7 +1582,7 @@
       "source": "packages/client/ui-primitives/src/markdown/parse.ts",
       "target": "src/vendor/primitives/markdown/parse.ts",
       "sourceSha256": "1fb42f6a4fa6cb3c4a1945e4ddd69198c9ea03a7cf532838d75a50d79d3caf2b",
-      "targetSha256": "2ee7e47a66691bd76ecc5c17ce209ff5a86c7dd8ddda10f3092f1d2ad71a5cf7",
+      "targetSha256": "18650b75a92fe321942f5e64c5542b7f49d686621fb4c33132ea12b5714e0a53",
       "adapted": true
     },
     {
