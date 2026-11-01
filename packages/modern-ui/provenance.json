@@ -35,8 +35,8 @@
       "source": "packages/client/ui-chat/src/client/chat/AssistantMarkdown.module.css",
       "target": "src/vendor/chat/client/chat/AssistantMarkdown.module.css",
       "sourceSha256": "03d8281183f08a287267b9bb5c9a7c0df3d54ceff693814dc276bea1154ec217",
-      "targetSha256": "03d8281183f08a287267b9bb5c9a7c0df3d54ceff693814dc276bea1154ec217",
-      "adapted": false
+      "targetSha256": "a6a0e84fdf55c1866f868d7aab70807fb07dcf5b99316b6e6227d6d8d57a0595",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx",
@@ -721,7 +721,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationMainPanel.tsx",
       "sourceSha256": "957332ceb570923cb2bf5c44650513aa97866ea9cbb635013acec91e024c2300",
-      "targetSha256": "66647ea2a18dd8f52075be2253a69d189ad32eb3ead5e8c95362478d73133f4e",
+      "targetSha256": "afa56d69b857a434ed4194bcedf43deff970602d3a5f84141bca81ca84a39334",
       "adapted": true
     },
     {
@@ -735,7 +735,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css",
       "target": "src/vendor/conversation/client/skeleton/ConversationRoot.module.css",
       "sourceSha256": "e53de4d68f1e88bb602d68bdeb8996034752c1fcbc3652ced44c0429ca9cbcc0",
-      "targetSha256": "eae15d5ede3035456e0ea30a2742b28051546c929b79972e95a8259ae8e67cb9",
+      "targetSha256": "758ab541f2ff286e5b1a202e9a890965017466e26dc3df3116f6ff38b98512fb",
       "adapted": true
     },
     {
@@ -1561,7 +1561,7 @@
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.module.css",
       "target": "src/vendor/primitives/markdown/MarkdownText.module.css",
       "sourceSha256": "86cc61d8d6bacbe4ebab5d10c672b5a0ec13e6ed7a1c6ee6aaa382dd825432d1",
-      "targetSha256": "48c0cc001201969cc112af932d26be1be5b702da6d7e3a4a9752682f2092179e",
+      "targetSha256": "1c95d9cfab3824ba4ef34b5378462a388b326d734b78d4c312530285fbf6aa12",
       "adapted": true
     },
     {

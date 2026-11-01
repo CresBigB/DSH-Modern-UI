@@ -8,6 +8,7 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "dev:layout": "node scripts/dev-layout-preview.mjs",
     "build": "node scripts/build-plugin.mjs",
     "preview": "node scripts/create-preview.mjs",
     "lint": "biome ci .",

@@ -1,4 +1,5 @@
 .root {
+  container-type: inline-size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -349,9 +350,9 @@
   flex-direction: column;
   min-height: 0;
 
-  /* Cloud-Monitor spacious workbench layout */
-  --dsh-chat-content-width: min(800px, calc(100% - 64px));
-  --dsh-composer-card-max-width: 800px;
+  /* The width-controls Factory measures the available pane and publishes the selected width. */
+  --dsh-chat-content-width: min(840px, 100%);
+  --dsh-composer-card-max-width: 840px;
   --dsh-composer-side-clearance: 32px;
   --dsh-composer-dock-inset: 0px;
 }
@@ -362,6 +363,11 @@
   --dsh-composer-card-max-width: min(calc(100% - 16px), 952px);
   --dsh-composer-side-clearance: 8px;
   --dsh-composer-dock-inset: 8px;
+}
+
+/* A split pane can be narrow even on a large monitor. Keep its gutters proportional to the pane. */
+@container (max-width: 640px) {
+  .body { --dsh-composer-side-clearance: 12px; }
 }
 
 .scrollBody {

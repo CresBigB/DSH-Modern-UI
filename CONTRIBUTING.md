@@ -4,6 +4,7 @@
 
 - Node.js 24（CI 使用 `24.22.1`），仓库用 npm 与 `package-lock.json`。
 - `npm ci --ignore-scripts` 安装依赖，`npm run build` 编译插件，`npm run preview` 生成 `.artifacts/plugin-preview`。
+- `npm run dev:layout` 构建当前插件并启动真实 DSH 布局预览，终端会打印本地地址。预览使用仓库的官方 rc.4 依赖、本地示例模型和独立的 `../.tools/conversation-layout-preview/home`，不调用外部模型、不使用日常 DSH 数据；发送任意普通消息可查看中文长文、代码和表格。Ctrl+C 停止。
 - 提交前：
   ```bash
   npm run lint
