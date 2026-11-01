@@ -3600,7 +3600,7 @@
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "f7fc49cd7aca0f764ecfc9b7da2131ff4c625a1a41c4409257835c6a22296ff1",
+      "targetSha256": "d6993968a591203c3a4f0ac506e3cf294d3331b2952fe20e833d20ae63d02492",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
