@@ -29,7 +29,8 @@ export function looksLikeOpenUI(code: string): boolean {
 export function hasOpenUIFence(text: string): boolean {
   const lines = text.split(/\r?\n/)
   for (let index = 0; index < lines.length; index++) {
-    const open = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)/.exec(lines[index])
+    // A backtick fence's info string cannot hold a backtick (CommonMark 4.5): ```x``` at line start is inline code.
+    const open = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})[ \t]*([^\s`]*)/.exec(lines[index])
     if (open === null) continue
     const [, marker, info] = open
     const close = new RegExp(`^ {0,3}${marker[0] === '`' ? '`' : '~'}{${marker.length},}[ \\t]*$`)

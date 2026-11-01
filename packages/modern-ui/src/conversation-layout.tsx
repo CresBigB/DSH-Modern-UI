@@ -172,6 +172,12 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     pending.current = null
     container?.removeAttribute('data-layout-dragging')
   }, [editBefore, container])
+  // Phones and panes too narrow for both guides show the full-width transcript whatever is chosen, so a temporary
+  // edit there could only change a number the reader never sees; end it rather than offer it.
+  const adjustable = !phone && available >= MIN_LAYOUT_WIDTH + 64
+  useEffect(() => {
+    if (editBefore !== null && available > 0 && !adjustable && drag.current === null) editing.set(null)
+  }, [editBefore, available, adjustable])
 
   const start = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
@@ -204,13 +210,13 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     savePreference({ mode: 'custom', customWidth: width }, false)
   }
 
-  if (phase !== 'active' || actual === 0 || current.mode !== 'custom' || editBefore === null) return null
+  if (phase !== 'active' || actual === 0 || current.mode !== 'custom' || editBefore === null || !adjustable) return null
   return <><div className={css.adjustment} data-conversation-width-adjustment role="group" aria-label={labels.label}
     onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); finish(true) } }}>
     <span title={labels.hint}>{labels.resize} · {Math.round(actual)}px</span>
     <Button size="sm" onClick={() => { finish(true) }}>{labels.cancel}</Button>
     <Button size="sm" variant="primary" onClick={() => { finish(false) }}>{labels.done}</Button>
-  </div>{available >= MIN_LAYOUT_WIDTH + 64 && (['left', 'right'] as const).map(side => <div key={side} className={css.handle}
+  </div>{(['left', 'right'] as const).map(side => <div key={side} className={css.handle}
     data-conversation-width-handle={side} data-side={side} role="separator" tabIndex={0}
     aria-orientation="vertical" aria-label={labels.resize} aria-valuemin={MIN_LAYOUT_WIDTH}
     aria-valuemax={Math.min(MAX_LAYOUT_WIDTH, available)} aria-valuenow={Math.round(actual)} title={labels.hint}

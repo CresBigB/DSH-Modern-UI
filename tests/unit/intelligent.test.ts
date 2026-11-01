@@ -127,11 +127,14 @@ describe('presentation prompt', () => {
     expect(PROGRESSIVE_PROMPT).toContain('Plans, intentions and progress notes')
     expect(PROGRESSIVE_PROMPT).toContain('Write a part only from evidence you already have')
     expect(PROGRESSIVE_PROMPT).toContain('correct it plainly in one sentence of the later part')
-    // Stage by stage, as the owner's trip example runs: later parts' calls wait for the message that delivers the part.
-    expect(PROGRESSIVE_PROMPT).toContain('Make together the calls that feed the next part.')
+    // Independent calls may run together across parts; only dependent calls wait, and a settled part is not held back.
+    expect(PROGRESSIVE_PROMPT).toContain('only a call that needs an earlier result waits for it')
+    expect(PROGRESSIVE_PROMPT).toContain('Do not hold a settled part for unrelated calls still to come')
     // The official "primary results within your final response" is met by the parts already delivered.
     expect(PROGRESSIVE_PROMPT).toContain('never just a note that the work is done')
-    expect(PROGRESSIVE_PROMPT).toContain('While child agents you delegated to are running, deliver no part')
+    // Only a part that rests on a child's work waits for it; stricter delegation rules elsewhere still win.
+    expect(PROGRESSIVE_PROMPT).toContain("A part that rests on work delegated to a child agent waits for that child's final report")
+    expect(PROGRESSIVE_PROMPT).toContain('where other instructions require waiting for every child before answering, follow them')
     expect(PROGRESSIVE_PROMPT).toContain('In coding and editing work, report when the work is done')
     // Each part renders as its own Markdown, so a definition written in a later part would not reach it.
     expect(PROGRESSIVE_PROMPT).toContain('the reference definitions [n]: url "title" for the citations it uses at its end')
@@ -144,6 +147,17 @@ describe('presentation prompt', () => {
     expect(order.every(step => PROGRESSIVE_PROMPT.includes(step))).toBe(true)
     expect(order.map(step => PROGRESSIVE_PROMPT.indexOf(step))).toEqual([...order.map(step => PROGRESSIVE_PROMPT.indexOf(step))].sort((a, b) => a - b))
     expect(PROGRESSIVE_PROMPT).not.toMatch(/jev|presentation_advice/i)
+  })
+
+  test('asks for a tool-given address only where one is needed, and keeps each rule on its own line', () => {
+    const pictures = PRESENTATION_PROMPT.split('\n').find(line => line.startsWith('- Pictures:')) ?? ''
+    expect(pictures).toContain('SearchImage finds such a photo by name without a tool')
+    expect(pictures).toContain('A Markdown picture or an Image component needs an address a tool returned or the user gave')
+    expect(pictures).toContain('SearchImage needs no address')
+    expect(pictures).not.toContain('whenever no tool returned a usable image')
+    // A rule glued to the end of the previous one reads as part of it.
+    expect(OPENUI_SYSTEM_PROMPT).not.toMatch(/[.:)]- [A-Z]/)
+    expect(OPENUI_SYSTEM_PROMPT).toContain('respect requests for text only.\n- This description is complete')
   })
 
   test('prefers components and streams each block section by section', () => {

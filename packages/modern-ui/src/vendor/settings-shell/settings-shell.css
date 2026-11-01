@@ -83,3 +83,73 @@
 [data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded]:active,
 [data-shortcut-modal="settings"][role="dialog"] > nav > div > button:active { transform: translateY(1px); }
 [data-modern-settings-seat][data-rail] button[aria-haspopup="dialog"][aria-expanded] { padding: 0; }
+/* Phone portrait. The official dialog keeps its desktop row (a 188px nav beside the content), which leaves the
+   options about 140px on a phone, so labels and controls stack one character per line. Below 641px the dialog
+   fills the screen and stacks: the title row with the header actions and close button pinned to its right, the
+   sections as a horizontally scrolling tab row, then the options at full width. Hooks are structural (rc.4
+   SettingsRoot: dialog > nav > [navTitle, navList > navCell]; dialog > div > [header > (actions, close), options])
+   because the module class names are hashed. */
+@media (max-width: 640px) {
+  [data-shortcut-modal="settings"][role="dialog"] {
+    flex-direction: column;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > nav {
+    flex: none;
+    width: auto;
+    gap: 10px;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 0 10px;
+    border-bottom: 0.5px solid var(--line, var(--dsw-alias-border-l2));
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > nav > [tabindex="-1"] {
+    padding: 0 20px;
+    font-size: 17px;
+    line-height: 32px;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div {
+    flex-direction: row;
+    gap: 6px;
+    padding: 0 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div::-webkit-scrollbar { display: none; }
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div > button {
+    flex: none;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > div {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > div > div:first-child {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    gap: 4px;
+    align-items: center;
+    height: 32px;
+    padding: 0;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > div > div:last-child {
+    padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Choice cubes (Appearance) keep a 180px basis that wraps them into three full-width rows; share one row. */
+  [data-shortcut-modal="settings"][role="dialog"] div:has(> button[aria-pressed] ~ button[aria-pressed]) { flex-wrap: nowrap; }
+  [data-shortcut-modal="settings"][role="dialog"] div:has(> button[aria-pressed] ~ button[aria-pressed]) > button[aria-pressed] {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 14px 6px;
+  }
+}

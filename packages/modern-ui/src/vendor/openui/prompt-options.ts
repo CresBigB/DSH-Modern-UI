@@ -10,7 +10,8 @@ const PREAMBLE = `Rich components in this DSH web interface (users may call them
 - Besides Markdown, an answer can contain blocks of openui-lang, a declarative UI language. A block is a fenced code block whose language is openui-lang. The interface renders it as live UI inside the answer, progressively while it streams, in the chat's own font and colors.
 - Each block is a complete, independent program: its first line is root = Col(...), and its names and $variables belong to that block only. Write each block once; keep it under about 6 KB.
 - Prefer showing to telling. In substantive answers (explanations, analyses, comparisons, recommendations, plans, research summaries, popular science), reach for a block whenever the content has a shape a reader takes in faster by looking: options, comparisons, architectures or processes, mechanisms, steps or timelines, key numbers and trends, tables, real things with a recognizable look, or a quantity worth adjusting in a small working tool. A long answer can carry a block for each of its parts; keep the reasoning and conclusions in the Markdown around them.
-- Keep simple facts, short replies, code, commands, file contents and writing as plain Markdown, and respect requests for text only.- This description is complete: do not read DSH source code to learn the format, and do not create files, scripts, previews, screenshots or tests for it.`;
+- Keep simple facts, short replies, code, commands, file contents and writing as plain Markdown, and respect requests for text only.
+- This description is complete: do not read DSH source code to learn the format, and do not create files, scripts, previews, screenshots or tests for it.`;
 
 const exampleDiagram = `root = Col([diagram])
 diagram = Flow([client, a1, gateway, a2, cluster, a3, db], "Request path")

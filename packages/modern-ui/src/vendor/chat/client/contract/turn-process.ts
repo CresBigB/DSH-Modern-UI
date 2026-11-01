@@ -72,7 +72,8 @@ export function hasMarkdownSection(text: string): boolean {
       if (fence.test(line)) fence = null
       continue
     }
-    const open = /^ {0,3}(`{3,}|~{3,})/.exec(line)
+    // A backtick fence's info string cannot hold a backtick (CommonMark 4.5): ```x``` at line start is inline code.
+    const open = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})/.exec(line)
     if (open !== null) {
       fence = new RegExp(`^ {0,3}${open[1][0] === '`' ? '`' : '~'}{${open[1].length},}[ \\t]*$`)
       continue
