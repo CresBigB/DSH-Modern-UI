@@ -595,7 +595,7 @@
       "source": "packages/client/ui-conversation/src/client/input/editor/view-binding.ts",
       "target": "src/vendor/conversation/client/input/editor/view-binding.ts",
       "sourceSha256": "52dae59403ac46beb94e02169b3c435d5db214ba5bfa6e0d5a40164f08cb7820",
-      "targetSha256": "b6432b00bbf14218b4159f22f3ba790d948d3e5ac36d0d233b27a399e1873e20",
+      "targetSha256": "4296c635de27654f532618337611272d98ad271f1eaa4858fd9899ad4ed4c1ab",
       "adapted": true
     },
     {
@@ -784,7 +784,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
       "target": "src/vendor/conversation/client/skeleton/InputBar.tsx",
       "sourceSha256": "81b1dc23d316e5d1eacb847d539c7676d7699e33ff969f11a09080266bfa85b1",
-      "targetSha256": "4293928a811f49fa95ca5343a396884ebb1e98dc4a7d7ba9269768a6bb9b0222",
+      "targetSha256": "bd34a4a441ff493fe5bae085b33656e92e2a0b640a151cd460a5b3f6e2e929de",
       "adapted": true
     },
     {

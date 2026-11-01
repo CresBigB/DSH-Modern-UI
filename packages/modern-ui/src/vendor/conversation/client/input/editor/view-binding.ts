@@ -50,20 +50,71 @@ export function revealDraftSelection(scrollRef: RefObject<HTMLDivElement>): void
   const scrollEl = scrollRef.current
   if (scrollEl === null || scrollEl.scrollHeight <= scrollEl.clientHeight) return
   const selection = window.getSelection()
-  if (selection === null || selection.rangeCount === 0) return
+  if (selection === null || selection.rangeCount === 0 || selection.focusNode === null) return
   const range = selection.getRangeAt(0)
-  let rect = range.getBoundingClientRect()
-  if (rect.height === 0 && rect.width === 0) {
-    // A collapsed caret at an empty line reports a zero rect in some
-    // engines; the anchor's element box is the line the caret sits on.
-    const anchor = selection.anchorNode
+  const focus = range.cloneRange()
+  focus.setStart(selection.focusNode, selection.focusOffset)
+  focus.collapse(true)
+  let focusRect = focus.getBoundingClientRect()
+  if (focusRect.height === 0 && focusRect.width === 0 && selection.focusNode instanceof Text) {
+    // Chromium can omit the collapsed rect on an empty line inside one
+    // multiline text node. Its newline character still has that line's rect.
+    if (selection.focusOffset < selection.focusNode.length) {
+      focus.setEnd(selection.focusNode, selection.focusOffset + 1)
+    } else if (selection.focusOffset > 0) {
+      // A final newline may have no following rendered line. Keep the last
+      // existing line visible instead of treating the whole span as a caret.
+      focus.setStart(selection.focusNode, selection.focusOffset - 1)
+    }
+    focusRect = focus.getBoundingClientRect()
+  }
+  if (focusRect.height === 0 && focusRect.width === 0 && selection.focusNode instanceof Element) {
+    // Lexical parks a trailing empty-line caret before its managed BR. The
+    // BR has the line box; its parent paragraph may span the entire draft.
+    const children = selection.focusNode.childNodes
+    const lineBreak = children[selection.focusOffset] ?? children[selection.focusOffset - 1]
+    if (lineBreak instanceof HTMLBRElement) {
+      focus.selectNode(lineBreak)
+      focusRect = focus.getBoundingClientRect()
+    }
+  }
+  if (focusRect.height === 0 && focusRect.width === 0) {
+    // Empty paragraph elements provide a line box even without a text rect.
+    const anchor = selection.focusNode
     const el = anchor instanceof HTMLElement ? anchor : anchor?.parentElement
     if (el === undefined || el === null) return
-    rect = el.getBoundingClientRect()
+    focusRect = el.getBoundingClientRect()
   }
+  const rangeRect = range.getBoundingClientRect()
+  const rect = rangeRect.height === 0 && rangeRect.width === 0 ? focusRect : rangeRect
+  // A range ending at the start of a line can omit that active line's box.
+  // Show both when they fit; otherwise preserve only the active endpoint.
+  const top = Math.min(rect.top, focusRect.top)
+  const bottom = Math.max(rect.bottom, focusRect.bottom)
+  const target = bottom - top <= scrollEl.clientHeight ? { top, bottom } : focusRect
   const box = scrollEl.getBoundingClientRect()
-  if (rect.bottom > box.bottom) scrollEl.scrollTop += rect.bottom - box.bottom
-  else if (rect.top < box.top) scrollEl.scrollTop -= box.top - rect.top
+  if (target.bottom > box.bottom) scrollEl.scrollTop += target.bottom - box.bottom
+  else if (target.top < box.top) scrollEl.scrollTop -= box.top - target.top
+}
+
+/**
+ * Keep the focused selection visible when the draft's height budget changes.
+ * @param editor - the Session-owned editor borrowed by this InputBar.
+ * @param scrollRef - the InputBar-owned scrollport reference.
+ * @returns the resize observer cleanup, or undefined when the element is absent.
+ */
+export function installDraftSelectionVisibility(editor: LexicalEditor, scrollRef: RefObject<HTMLDivElement>): (() => void) | undefined {
+  const scrollEl = scrollRef.current
+  if (scrollEl === null) return
+  const observer = new ResizeObserver(() => {
+    const root = editor.getRootElement()
+    if (root === null || root.ownerDocument.activeElement !== root || !scrollEl.contains(root)) return
+    const selection = root.ownerDocument.getSelection()
+    if (selection === null || !root.contains(selection.anchorNode) || !root.contains(selection.focusNode)) return
+    revealDraftSelection(scrollRef)
+  })
+  observer.observe(scrollEl)
+  return () => { observer.disconnect() }
 }
 
 /**

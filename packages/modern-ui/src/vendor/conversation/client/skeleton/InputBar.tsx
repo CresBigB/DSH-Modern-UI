@@ -13,7 +13,7 @@ import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ComposerBarProps } from '../contract/slots.ts'
 import { DraftEditor } from '../input/editor/DraftEditor.tsx'
 import {
-  focusDraftEditor, installDraftFilePicker, installDraftKeyboardDismissal, installDraftKeymap, installDraftWheel,
+  focusDraftEditor, installDraftFilePicker, installDraftKeyboardDismissal, installDraftKeymap, installDraftSelectionVisibility, installDraftWheel,
   keepDraftFocus, revealDraftSelection,
 } from '../input/editor/view-binding.ts'
 import { resolveSubmitMode } from '../input/submission-policy.ts'
@@ -145,6 +145,11 @@ export const InputBar = memo(function InputBar({
   useEffect(() => {
     return installDraftWheel(scrollRef)
   }, [])
+
+  useEffect(() => {
+    if (editor === null) return
+    return installDraftSelectionVisibility(editor, scrollRef)
+  }, [editor])
 
   const intakeFiles = useCallback((files: readonly File[], directories?: ReadonlySet<File>): void => {
     if (uploadDenied || locked || machineBusy || (subagent !== null && !continuable)
