@@ -85,8 +85,8 @@
 [data-modern-settings-seat][data-rail] button[aria-haspopup="dialog"][aria-expanded] { padding: 0; }
 /* Phone portrait. The official dialog keeps its desktop row (a 188px nav beside the content), which leaves the
    options about 140px on a phone, so labels and controls stack one character per line. Below 641px the dialog
-   fills the screen and stacks: the title row with the header actions and close button pinned to its right, the
-   sections as a horizontally scrolling tab row, then the options at full width. Hooks are structural (rc.4
+   fills the screen and stacks: the title and close button, the horizontally scrolling tabs, the header
+   actions, then the options at full width. Hooks are structural (rc.2/rc.3/rc.4
    SettingsRoot: dialog > nav > [navTitle, navList > navCell]; dialog > div > [header > (actions, close), options])
    because the module class names are hashed. */
 @media (max-width: 640px) {
@@ -108,7 +108,7 @@
     border-bottom: 0.5px solid var(--line, var(--dsw-alias-border-l2));
   }
   [data-shortcut-modal="settings"][role="dialog"] > nav > [tabindex="-1"] {
-    padding: 0 20px;
+    padding: 0 56px 0 20px;
     font-size: 17px;
     line-height: 32px;
   }
@@ -134,16 +134,61 @@
     min-height: 0;
   }
   [data-shortcut-modal="settings"][role="dialog"] > div > div:first-child {
-    position: absolute;
-    top: calc(14px + env(safe-area-inset-top, 0px));
-    right: 12px;
+    position: static;
     gap: 4px;
     align-items: center;
-    height: 32px;
-    padding: 0;
+    height: auto;
+    padding: 4px 16px 8px;
+  }
+  /* Exact official SettingsRoot / SettingsDocumentAction hooks, verified in rc.2, rc.3 and rc.4.
+     Keep the close control on the title row; actions and their errors participate in normal flow. */
+  [data-shortcut-modal="settings"][role="dialog"] .VOzbGW_close {
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: 12px;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .VOzbGW_actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .me01iq_action {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    max-width: 100%;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .me01iq_error {
+    order: 1;
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
   }
   [data-shortcut-modal="settings"][role="dialog"] > div > div:last-child {
     padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  /* FontFamilyRow and ModelsSection retain their official controllers. Only these verified
+     owner classes receive the phone layout; unrelated settings rows and fields are untouched. */
+  [data-shortcut-modal="settings"][role="dialog"] .bVCLcG_row:has(> .vnGTiq_field) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .bVCLcG_row:has(> .vnGTiq_field) > .bVCLcG_rowText {
+    padding-right: 0;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .bVCLcG_row > .vnGTiq_field {
+    flex: none;
+    width: 100%;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .zGbnIq_modelRow {
+    grid-template-columns: minmax(0, 1fr) 28px 28px;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .zGbnIq_modelRow > .zGbnIq_input {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  [data-shortcut-modal="settings"][role="dialog"] .zGbnIq_modelRow > .zGbnIq_iconButton:first-of-type {
+    grid-column: 2;
   }
   /* Choice cubes (Appearance) keep a 180px basis that wraps them into three full-width rows; share one row. */
   [data-shortcut-modal="settings"][role="dialog"] div:has(> button[aria-pressed] ~ button[aria-pressed]) { flex-wrap: nowrap; }

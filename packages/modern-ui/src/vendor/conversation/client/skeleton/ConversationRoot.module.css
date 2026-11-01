@@ -330,6 +330,17 @@
   --dsh-composer-text-max-height: 336px;
 }
 
+/* ConversationContent measures this scrollport after phone navigation and
+   session chrome. Reserve the default card's controls/stats (106px, 98px on phones), one line
+   of history (24px), and the seat's safe-area padding. Wide touch layouts also
+   reserve the floating header's inset. Keep at least one editable line. */
+@media (max-width: 640px), (pointer: coarse) {
+  .composerSeat {
+    --dsh-composer-chrome-reserve: 106px;
+    --dsh-composer-text-max-height: min(336px, max(36px, calc(var(--dsh-conversation-viewport-height, 100dvh) - var(--dsh-scrollport-top-inset, 0px) - var(--dsh-composer-chrome-reserve) - 24px - env(safe-area-inset-bottom, 0px))));
+  }
+}
+
 /* Active phase: header is column chrome outside the scrollport (not sticky);
    wide layouts float it over the transcript (see the glass header below). The
    scroll body holds the transcript and the sticky composer seat so wheel over
@@ -599,6 +610,7 @@
   }
 
   .composerSeat {
+    --dsh-composer-chrome-reserve: 98px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
