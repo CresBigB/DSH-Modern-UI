@@ -524,7 +524,13 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       }
       assert.equal(await process.getAttribute('aria-expanded'), 'true')
       await page.waitForTimeout(300)
-      for (const item of await page.locator('[data-process-activity][aria-expanded="false"]:visible').all()) await item.click()
+      // Expanding one row re-renders the list, so a locator taken before the click can point past its end; click the
+      // first folded row left until none is (as readme-screenshots.mjs does).
+      const folded = page.locator('[data-process-activity][aria-expanded="false"]:visible')
+      for (let at = 0; at < 10 && (await folded.count()); at++) {
+        await folded.first().click()
+        await page.waitForTimeout(200)
+      }
       await page.locator('[data-compat-specific-tool="result"]').waitFor()
       await page.getByText('COMPAT_TOOL_PROGRESS', { exact: true }).waitFor({ state: 'visible' })
       assert.equal(await page.locator('[data-compat-specific-tool="result"]').innerText(), 'Actual tool result')
