@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-01
+
 ### Added
 
 - 「设置 → 通用」增加「阅读 / 标准 / 宽屏 / 自定义」四个对话宽度选项，默认标准，沿用现有偏好设置行与菜单，不占用会话顶栏。只有选择「自定义」后才临时显示两侧调节线，拖拽松手即保存并隐藏；也支持方向键、Home / End、完成及取消。再次选择「自定义」可继续调整上次的宽度。偏好保存在本机浏览器，窄窗口或打开侧栏时自动收缩，恢复空间后回到原有宽度。
@@ -101,7 +103,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.0...v0.1.1
