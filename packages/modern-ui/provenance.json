@@ -595,7 +595,7 @@
       "source": "packages/client/ui-conversation/src/client/input/editor/view-binding.ts",
       "target": "src/vendor/conversation/client/input/editor/view-binding.ts",
       "sourceSha256": "52dae59403ac46beb94e02169b3c435d5db214ba5bfa6e0d5a40164f08cb7820",
-      "targetSha256": "b6432b00bbf14218b4159f22f3ba790d948d3e5ac36d0d233b27a399e1873e20",
+      "targetSha256": "c26e9dc29fe93867394452c6abbe5f2785947cc5b648444353dac3e5c9f8e3c9",
       "adapted": true
     },
     {
@@ -735,7 +735,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css",
       "target": "src/vendor/conversation/client/skeleton/ConversationRoot.module.css",
       "sourceSha256": "e53de4d68f1e88bb602d68bdeb8996034752c1fcbc3652ced44c0429ca9cbcc0",
-      "targetSha256": "758ab541f2ff286e5b1a202e9a890965017466e26dc3df3116f6ff38b98512fb",
+      "targetSha256": "fc79e7208d0977b9422213c5383d13d4a1fe6efbb06f37de7f1eb0566372687c",
       "adapted": true
     },
     {
@@ -784,7 +784,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
       "target": "src/vendor/conversation/client/skeleton/InputBar.tsx",
       "sourceSha256": "81b1dc23d316e5d1eacb847d539c7676d7699e33ff969f11a09080266bfa85b1",
-      "targetSha256": "4293928a811f49fa95ca5343a396884ebb1e98dc4a7d7ba9269768a6bb9b0222",
+      "targetSha256": "bd34a4a441ff493fe5bae085b33656e92e2a0b640a151cd460a5b3f6e2e929de",
       "adapted": true
     },
     {
@@ -1568,8 +1568,8 @@
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.tsx",
       "target": "src/vendor/primitives/markdown/MarkdownText.tsx",
       "sourceSha256": "d27787888fe57d91ca7cd03450e76dec4205d306680f3445d8716a2670afb65b",
-      "targetSha256": "d27787888fe57d91ca7cd03450e76dec4205d306680f3445d8716a2670afb65b",
-      "adapted": false
+      "targetSha256": "98d3f906068468d8eb0860b2e1747c85069ae99808ad0de1b387c36dd11e655c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/mathCompatibility.ts",
@@ -1582,7 +1582,7 @@
       "source": "packages/client/ui-primitives/src/markdown/parse.ts",
       "target": "src/vendor/primitives/markdown/parse.ts",
       "sourceSha256": "1fb42f6a4fa6cb3c4a1945e4ddd69198c9ea03a7cf532838d75a50d79d3caf2b",
-      "targetSha256": "2ee7e47a66691bd76ecc5c17ce209ff5a86c7dd8ddda10f3092f1d2ad71a5cf7",
+      "targetSha256": "df5338341cd3b386593faf3c9e97a507ac74510a1414c6772f81a8341cba4c03",
       "adapted": true
     },
     {
@@ -1967,7 +1967,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "8ecd1def2e9b76751ff826a04542a296229563a5cac28b9d34ac4facfa2b4bbc",
+      "targetSha256": "fec50394bf2649ee021acfcd5c9fe38c5c637462e202c2c93ad9bff55e2d965d",
       "adapted": true
     },
     {
