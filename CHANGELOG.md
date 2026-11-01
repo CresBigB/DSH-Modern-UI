@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-01
+
 ### Changed
 
 - 手机竖屏（640 px 及以下）的设置页重新排版：设置窗口铺满屏幕，上面是标题行（右侧是「打开配置文件」和关闭）和可以左右滑动的分区标签，下面的选项占满整个宽度；「外观」的浅色、深色、跟随系统三块并成一行。以前左边的分区栏固定 188 px，右边只剩约 140 px，标题、说明和下拉框里的字一字一行地竖着排。桌面和平板宽度不变。
@@ -133,7 +135,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.1...v0.1.2
