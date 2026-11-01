@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { hasVisualReply, isAnswerStep } from '../../packages/modern-ui/src/vendor/chat/client/contract/turn-process.ts'
+import { hasMarkdownSection, hasSectionReply, hasVisualReply, isAnswerStep } from '../../packages/modern-ui/src/vendor/chat/client/contract/turn-process.ts'
 import { ChatTurnProcessProjector } from '../../packages/modern-ui/src/vendor/chat/client/conversation-nodes/turn-process-presentation.ts'
 import { turnProcessDefinition } from '../../packages/modern-ui/src/vendor/chat/client/conversation-nodes/turn-process.ts'
 import { hasOpenUIFence } from '../../packages/modern-ui/src/vendor/intelligent/client/openui-source.ts'
@@ -44,26 +44,29 @@ describe('hasOpenUIFence', () => {
   })
 })
 
-function turn() {
+type Fixture = typeof steps
+
+function turn(list: Fixture) {
   return {
     turn: 1,
     status: 'closed',
     start: { seq: 6 },
-    steps: steps.map(data => ({ step: data.step, status: 'closed', data: { get: () => data } })),
+    steps: list.map(data => ({ step: data.step, status: 'closed', data: { get: () => data } })),
     data: { get: () => undefined },
   }
 }
 
-function buildSpec() {
-  const location = turn()
+function buildSpec(list: Fixture = steps) {
+  const location = turn(list)
+  const replies = list.filter(data => data.blocks.some(block => block.kind === 'text'))
   const context = {
     state: {
       turn: 1,
       controlAnchorSeq: 6,
-      assistantStartByStep: new Map(steps.map(data => [data.step, data.finalNode.seq - 1])),
-      messageCountByStep: new Map(steps.filter(data => data.blocks.some(block => block.kind === 'text')).map(data => [data.step, 1])),
-      messageCount: 4,
-      toolCallCount: 4,
+      assistantStartByStep: new Map(list.map(data => [data.step, data.finalNode.seq - 1])),
+      messageCountByStep: new Map(replies.map(data => [data.step, 1])),
+      messageCount: replies.length,
+      toolCallCount: list.filter(data => data.blocks.some(block => block.kind === 'tool-call')).length,
       subagentCount: 0,
     },
     start: { location: { kind: 'turn', turn: location } },
@@ -111,5 +114,61 @@ describe('staged visualizations stay outside the folded process', () => {
     expect(presentation(steps, true)?.hasExternalProcess).toBe(true)
     expect(presentation([steps[0], steps[2], steps[4]], false)?.hasExternalProcess).toBe(true)
     expect(presentation([steps[0], steps[3], steps[4]], false)?.hasExternalProcess).toBe(false)
+  })
+})
+
+describe('hasMarkdownSection', () => {
+  test('counts a heading anywhere outside code, after one lead-in sentence too', () => {
+    expect(hasMarkdownSection('## 天气\n\n三天以晴为主。')).toBe(true)
+    expect(hasMarkdownSection('天气查完了。\n\n## 天气\n\n三天以晴为主。')).toBe(true)
+    expect(hasMarkdownSection('Intro\r\n\r\n### Sights\r\nDay one outdoors.')).toBe(true)
+    // A mid-turn result table under a heading is a finished result; keeping it visible is intended.
+    expect(hasMarkdownSection('找到原因了。状态报告:\n\n## 📊 检查结果\n\n| 项目 | 状态 |\n|---|---|\n| 插件加载 | 正常 |')).toBe(true)
+  })
+
+  test('ignores plain progress notes, headings in fences or indented code, and hashes that open no heading', () => {
+    expect(hasMarkdownSection("I'll investigate this. Let me start by looking at your workspace.")).toBe(false)
+    expect(hasMarkdownSection('我来搜一下东京今天的天气。')).toBe(false)
+    expect(hasMarkdownSection('插件行已出现：\n\n```yaml\n# == @dsh-external/workflow\n- id: x\n```')).toBe(false)
+    expect(hasMarkdownSection('````markdown\n```\n## not closed by the shorter fence\n```\n````')).toBe(false)
+    expect(hasMarkdownSection('Streaming code:\n\n~~~\n## still inside')).toBe(false)
+    expect(hasMarkdownSection('    ## indented code')).toBe(false)
+    expect(hasMarkdownSection('#hashtag and ##\n#')).toBe(false)
+  })
+
+  test('only reply text counts, not reasoning', () => {
+    expect(hasSectionReply([reasoning('## Plan\n1. weather') as never, text('Searching.') as never])).toBe(false)
+    expect(hasSectionReply([text('## Weather\nSunny.') as never, tool('web_search') as never])).toBe(true)
+  })
+})
+
+describe('progressively delivered text sections stay outside the folded process', () => {
+  // Shaped after the travel plan the user described: weather, then sights, then food, each written as soon as its
+  // searches finish and before the searches for the next part, as plain Markdown without components.
+  const travel: Fixture = [
+    { step: 1, blocks: [reasoning('plan weather, sights, food'), tool('web_search')], finalNode: { seq: 12 } },
+    {
+      step: 2,
+      blocks: [reasoning('weather settled'), text('## 天气\n\n三天以晴为主，第二天有阵雨。'), tool('web_search')],
+      finalNode: { seq: 20 },
+    },
+    { step: 3, blocks: [reasoning('need opening hours'), text('再核对一下营业时间。'), tool('web_fetch')], finalNode: { seq: 28 } },
+    {
+      step: 4,
+      blocks: [reasoning('sights settled'), text('景点也定了。\n\n## 景点\n\n第一天户外，第二天美术馆。'), tool('web_search')],
+      finalNode: { seq: 36 },
+    },
+    {
+      step: 5,
+      blocks: [reasoning('food settled'), text('## 美食\n\n每天就近安排餐厅。\n\n总的来说，第一天最适合户外。')],
+      finalNode: { seq: 44 },
+    },
+  ]
+
+  test('every Step that delivers a section joins the answer; the progress note stays in the fold', () => {
+    const { spec } = buildSpec(travel)
+    expect(spec.answerStep).toBe(5)
+    expect(travel.map(data => isAnswerStep(spec, data as never))).toEqual([false, true, false, true, true])
+    expect(spec.messageCount).toBe(1)
   })
 })

@@ -238,7 +238,30 @@ test('pane resizing and phone widths fit without discarding the desktop preferen
       await page.setViewportSize({ width: size, height: 900 })
       await page.waitForFunction(size => document.querySelector('[data-column]').getBoundingClientRect().right <= size, size)
       assert.ok((await width(page)) <= size)
+      // The phone rule keeps the input card at full width; it must never end up narrower than the transcript.
+      const composer = Math.round((await page.locator('[data-composer]').boundingBox()).width)
+      assert.ok(composer >= (await width(page)), `composer ${composer}px is narrower than the transcript at ${size}px`)
     }
+  } finally {
+    await context.close()
+  }
+})
+
+test('the temporary bar follows the composer height published on the scroll box', async () => {
+  const { context, page } = await open()
+  try {
+    await chooseMode(page, 'custom')
+    const bar = page.locator('[data-conversation-width-adjustment]')
+    const gap = () => bar.evaluate(element => element.parentElement.getBoundingClientRect().bottom - element.getBoundingClientRect().bottom)
+    const before = await gap()
+    await page.locator('[data-conversation-scroll]').evaluate(scroll => {
+      scroll.style.setProperty('--dsh-composer-height', '320px')
+    })
+    await page.waitForFunction(() => {
+      const element = document.querySelector('[data-conversation-width-adjustment]')
+      return element.parentElement.getBoundingClientRect().bottom - element.getBoundingClientRect().bottom >= 336
+    })
+    assert.ok((await gap()) > before)
   } finally {
     await context.close()
   }

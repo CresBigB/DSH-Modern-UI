@@ -76,8 +76,8 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
   const current = usePreference()
   const labels = useLabels()
   const editBefore = useSyncExternalStore(editing.subscribe, editing.getSnapshot, editing.getSnapshot)
-  const [geometry, setGeometry] = useState({ available: 0, offset: 0 })
-  const { available, offset } = geometry
+  const [geometry, setGeometry] = useState({ available: 0, offset: 0, phone: false })
+  const { available, offset, phone } = geometry
   const actual = resolveLayoutWidth(current, available)
   const drag = useRef<{ x: number; initial: number; before: ConversationLayoutPreference; pointer: number } | null>(null)
   const pending = useRef<ConversationLayoutPreference | null>(null)
@@ -91,7 +91,9 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
       const clearance = Number.parseFloat(getComputedStyle(container).getPropertyValue('--dsh-composer-side-clearance')) || 0
       const available = Math.max(0, scroll.clientWidth - 2 * (clearance + 16))
       const offset = scroll.getBoundingClientRect().left - container.getBoundingClientRect().left + scroll.clientWidth / 2 - container.clientWidth / 2
-      setGeometry(previous => previous.available === available && previous.offset === offset ? previous : { available, offset })
+      // Same breakpoint as ConversationRoot's phone rule, which gives the input card the full width.
+      const phone = window.matchMedia('(max-width: 640px)').matches
+      setGeometry(previous => previous.available === available && previous.offset === offset && previous.phone === phone ? previous : { available, offset, phone })
     }
     measure()
     const observer = new ResizeObserver(measure)
@@ -99,9 +101,34 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     return () => { observer.disconnect() }
   }, [container])
 
+  // The composer seat publishes its height on the scroll box, a sibling of these controls. Mirror it onto the
+  // shared parent so the temporary bar and guides stay above a composer taller than the stylesheet fallback.
+  useLayoutEffect(() => {
+    if (container === null) return
+    const scroll = container.querySelector<HTMLElement>(':scope > [data-conversation-scroll]')
+    if (scroll === null) return
+    const previous = container.style.getPropertyValue('--dsh-composer-height')
+    const copy = () => {
+      const height = scroll.style.getPropertyValue('--dsh-composer-height')
+      if (height !== '') container.style.setProperty('--dsh-composer-height', height)
+    }
+    copy()
+    const observer = new MutationObserver(copy)
+    observer.observe(scroll, { attributes: true, attributeFilter: ['style'] })
+    return () => {
+      observer.disconnect()
+      if (previous !== '') container.style.setProperty('--dsh-composer-height', previous)
+      else container.style.removeProperty('--dsh-composer-height')
+    }
+  }, [container])
+
   useLayoutEffect(() => {
     if (container === null || available === 0) return
-    const names = ['--dsh-chat-content-width', '--dsh-composer-card-max-width', '--dsh-layout-center-offset'] as const
+    // On phones the stylesheet's full-width rule keeps the input card wider than the transcript; inline widths
+    // would override it and leave the card narrower than the text.
+    const names = phone
+      ? ['--dsh-layout-center-offset'] as const
+      : ['--dsh-chat-content-width', '--dsh-composer-card-max-width', '--dsh-layout-center-offset'] as const
     const previous = names.map(name => [name, container.style.getPropertyValue(name), container.style.getPropertyPriority(name)] as const)
     for (const name of names) container.style.setProperty(name, `${name === '--dsh-layout-center-offset' ? offset : actual}px`)
     container.dataset.conversationLayout = current.mode
@@ -112,7 +139,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
       }
       delete container.dataset.conversationLayout
     }
-  }, [container, actual, available, current.mode, offset])
+  }, [container, actual, available, current.mode, offset, phone])
 
   const clearFrame = () => {
     if (frame.current !== null) cancelAnimationFrame(frame.current)
@@ -137,6 +164,14 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     if (drag.current !== null) savePreference(drag.current.before, false)
     container?.removeAttribute('data-layout-dragging')
   }, [container])
+  // Another tab can end the edit mid-drag; the guides then unmount before finish() runs, so release the drag here.
+  useEffect(() => {
+    if (editBefore !== null || drag.current === null) return
+    clearFrame()
+    drag.current = null
+    pending.current = null
+    container?.removeAttribute('data-layout-dragging')
+  }, [editBefore, container])
 
   const start = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return

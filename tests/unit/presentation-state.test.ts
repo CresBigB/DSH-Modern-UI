@@ -8,23 +8,28 @@ import { type PresentationForm, trackPresentation } from '../../packages/modern-
  * rejects when the settings call never reaches the Host. Each write waits until the test settles it.
  */
 function hostForm(prompt: boolean) {
-  const accepted = (value: boolean) => ({ status: 'ready' as const, value: { presentation: { prompt: value, openui: true, followups: true } } })
+  const accepted = (value: boolean, progressive = false) => ({
+    status: 'ready' as const,
+    value: { presentation: { prompt: value, progressive, openui: true, followups: true } },
+  })
   const store = createSnapshotStore(accepted(prompt))
-  const writes: { value: boolean; accept: () => void; refuse: () => void; fail: () => void }[] = []
+  const writes: { path: readonly string[]; value: boolean; accept: () => void; refuse: () => void; fail: () => void }[] = []
   const form = {
     getSnapshot: store.getSnapshot,
     subscribe: store.subscribe,
     mutate: ops =>
       new Promise<boolean>((resolve, reject) => {
-        const value = (ops[0] as { value: boolean }).value
+        const { path, value } = ops[0] as { path: readonly string[]; value: boolean }
+        const current = store.getSnapshot().value.presentation
         writes.push({
+          path,
           value,
           accept: () => {
-            store.set(accepted(value))
+            store.set(path[1] === 'progressive' ? accepted(current.prompt, value) : accepted(value, current.progressive))
             resolve(true)
           },
           refuse: () => {
-            store.set(accepted(store.getSnapshot().value.presentation.prompt))
+            store.set(accepted(current.prompt, current.progressive))
             resolve(false)
           },
           fail: () => {
@@ -103,5 +108,34 @@ describe('presentation prompt switch', () => {
     state.dispose()
     changeElsewhere(false)
     expect(state.settings.getSnapshot().prompt).toBe(true)
+  })
+})
+
+describe('progressive delivery switch', () => {
+  test('writes its own config path and keeps its outcome apart from the components switch', async () => {
+    const { form, writes } = hostForm(true)
+    const state = trackPresentation(form)
+    state.setProgressive(true)
+    expect(writes.map(write => write.path)).toEqual([['presentation', 'progressive']])
+    writes[0].accept()
+    await settled()
+    expect(state.settings.getSnapshot()).toMatchObject({ prompt: true, progressive: true })
+    state.setPrompt(false)
+    writes[1].fail()
+    await settled()
+    expect(state.saveFailed.getSnapshot()).toBe(true)
+    expect(state.progressiveSaveFailed.getSnapshot()).toBe(false)
+    expect(state.settings.getSnapshot()).toMatchObject({ prompt: true, progressive: true })
+  })
+
+  test('a refused write keeps the accepted value and reports the failure on its own row', async () => {
+    const { form, writes } = hostForm(false)
+    const state = trackPresentation(form)
+    state.setProgressive(true)
+    writes[0].refuse()
+    await settled()
+    expect(state.settings.getSnapshot().progressive).toBe(false)
+    expect(state.progressiveSaveFailed.getSnapshot()).toBe(true)
+    expect(state.saveFailed.getSnapshot()).toBe(false)
   })
 })

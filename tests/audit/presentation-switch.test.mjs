@@ -47,23 +47,26 @@ function sectionsFor(config) {
 }
 
 const states = [
-  ['absent', {}, false],
-  ['off', { presentation: { prompt: false } }, false],
-  ['on', { presentation: { prompt: true } }, true],
+  ['absent', {}, []],
+  ['off', { presentation: { prompt: false, progressive: false } }, []],
+  ['components on', { presentation: { prompt: true } }, ['modern-ui:response-presentation']],
+  ['progressive on', { presentation: { progressive: true } }, ['modern-ui:progressive-results']],
+  ['both on', { presentation: { prompt: true, progressive: true } }, ['modern-ui:response-presentation', 'modern-ui:progressive-results']],
 ]
 
 for (const [label, config, expected] of states) {
-  test(`presentation prompt ${label}: system prompt section ${expected ? 'added' : 'absent'}`, () => {
+  test(`presentation switches ${label}: system prompt sections ${expected.join(', ') || 'absent'}`, () => {
     const accepted = read(host.Config(config).presentation)
-    assert.equal(accepted.prompt, expected)
+    assert.equal(accepted.prompt, expected.includes('modern-ui:response-presentation'))
+    assert.equal(accepted.progressive, expected.includes('modern-ui:progressive-results'))
     assert.equal(accepted.openui, true)
     assert.equal(accepted.followups, true)
-    assert.deepEqual(sectionsFor(config), expected ? ['modern-ui:response-presentation'] : [])
+    assert.deepEqual(sectionsFor(config), expected)
   })
 }
 
 test('a live switch change takes effect at the next assembly without remounting', () => {
-  const live = { prompt: false }
+  const live = { prompt: false, progressive: false }
   const sections = []
   const scope = {
     effect: fn => fn(),
@@ -83,26 +86,60 @@ test('a live switch change takes effect at the next assembly without remounting'
     },
     { enabled: true, presentation: { get: () => live } },
   )
-  assert.equal(sections.length, 1)
-  assert.equal(sections[0].text({}), '')
+  assert.equal(sections.length, 2)
+  const [components, progressive] = sections
+  for (const section of sections) assert.equal(section.text({}), '')
   live.prompt = true
-  assert.ok(sections[0].text({}).length > 1000)
+  assert.ok(components.text({}).length > 1000)
+  assert.equal(progressive.text({}), '')
+  live.progressive = true
+  assert.ok(progressive.text({}).length > 1000)
+  live.prompt = false
+  assert.equal(components.text({}), '')
+})
+
+test('progressive delivery follows the component guidance and precedes the persona suffix', () => {
+  const sections = []
+  const orders = { DEPLOYMENT_PERSONA_SUFFIX: 10200 }
+  const scope = {
+    effect: fn => fn(),
+    systemPrompt: {
+      section: section => {
+        sections.push(section)
+      },
+      getSectionOrder: name => orders[name],
+    },
+  }
+  host.apply(
+    {
+      inject: (deps, callback) => {
+        if (deps.every(dep => dep === 'systemPrompt')) callback(scope)
+      },
+      on: () => () => {},
+    },
+    host.Config({ presentation: { prompt: true, progressive: true } }),
+  )
+  const order = Object.fromEntries(sections.map(section => [section.name, section.order]))
+  assert.ok(order['modern-ui:response-presentation'] < order['modern-ui:progressive-results'])
+  assert.ok(order['modern-ui:progressive-results'] < orders.DEPLOYMENT_PERSONA_SUFFIX)
 })
 
 test('a disabled Modern UI entry adds no prompt even when the switch is on', () => {
-  assert.deepEqual(sectionsFor({ enabled: false, presentation: { prompt: true } }), [])
+  assert.deepEqual(sectionsFor({ enabled: false, presentation: { prompt: true, progressive: true } }), [])
 })
 
 test('the bundle patch declares the prompt off explicitly', async () => {
   const patch = await readFile(path.join(root, 'packages/modern-ui/cordis.patch.yml'), 'utf8')
   assert.match(patch, /presentation:\r?\n\s+prompt: false/)
+  assert.match(patch, /\n\s+progressive: false/)
 })
 
 test('client switches read the accepted section and keep defaults for missing fields', async () => {
   const { readPresentation, DEFAULT_PRESENTATION, presentationLocale } = await load('presentation-switches.ts')
   assert.deepEqual(readPresentation(undefined), DEFAULT_PRESENTATION)
-  assert.deepEqual(readPresentation({ prompt: true }), { prompt: true, openui: true, followups: true })
-  assert.deepEqual(readPresentation({ openui: false, followups: 'no' }), { prompt: false, openui: false, followups: true })
+  assert.deepEqual(readPresentation({ prompt: true }), { prompt: true, progressive: false, openui: true, followups: true })
+  assert.deepEqual(readPresentation({ progressive: true }), { prompt: false, progressive: true, openui: true, followups: true })
+  assert.deepEqual(readPresentation({ openui: false, followups: 'no' }), { prompt: false, progressive: false, openui: false, followups: true })
   const keys = Object.keys(presentationLocale.zh).sort()
   for (const language of ['en', 'ja', 'es', 'fr', 'de', 'ru', 'pt']) assert.deepEqual(Object.keys(presentationLocale[language]).sort(), keys)
 })
