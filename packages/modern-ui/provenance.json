@@ -1582,7 +1582,7 @@
       "source": "packages/client/ui-primitives/src/markdown/parse.ts",
       "target": "src/vendor/primitives/markdown/parse.ts",
       "sourceSha256": "1fb42f6a4fa6cb3c4a1945e4ddd69198c9ea03a7cf532838d75a50d79d3caf2b",
-      "targetSha256": "18650b75a92fe321942f5e64c5542b7f49d686621fb4c33132ea12b5714e0a53",
+      "targetSha256": "df5338341cd3b386593faf3c9e97a507ac74510a1414c6772f81a8341cba4c03",
       "adapted": true
     },
     {

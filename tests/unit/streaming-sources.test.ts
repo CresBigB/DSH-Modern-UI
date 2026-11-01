@@ -109,3 +109,33 @@ describe('streaming Markdown presentation grammar', () => {
     expect(parsed).toBeLessThan(source.length * 5)
   })
 })
+
+describe('review follow-ups', () => {
+  const linkReferences = (root: unknown): string[] => {
+    const found: string[] = []
+    const visit = (node: { type?: string; identifier?: string; children?: unknown[] }) => {
+      if (node.type === 'linkReference') found.push(node.identifier ?? '')
+      for (const child of (node.children ?? []) as (typeof node)[]) visit(child)
+    }
+    visit(root as typeof found & { children: unknown[] })
+    return found
+  }
+
+  test.each([
+    ['an open fence', 'See [1] here.\n\n```ts\ncode'],
+    ['an open tilde fence in a list', 'See [1] here.\n\n- item\n\n  ~~~\n  code'],
+    ['an open fence in a quote', 'See [1] here.\n\n> ```\n> code'],
+    ['an open HTML comment', 'See [1] here.\n\n<!-- note'],
+  ])('earlier definitions still resolve references while %s streams at the end', (_name, text) => {
+    const root = parseStreamingGfm(text, '[1]: /')
+    expect(linkReferences(root)).toEqual(['1'])
+    // The open block keeps exactly the text that has arrived.
+    expect(JSON.stringify(root)).not.toContain('[1]: /')
+  })
+
+  test('a raw destination may contain < after its first character', () => {
+    const source = '[1]: https://one.test/a<b>c/path "Lt"'
+    expect(withoutPositions(parseStreamingGfm(source))).toEqual(withoutPositions(parseGfm(source)))
+    expect(parseStreamingGfm('[1]: https://one.test/a<b>c/pa').children).toEqual([])
+  })
+})

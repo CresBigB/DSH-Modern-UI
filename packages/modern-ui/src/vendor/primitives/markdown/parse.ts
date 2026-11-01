@@ -74,7 +74,6 @@ function destinationFrontier(text: string, start: number, inline: boolean): Fron
         if (depth === 0) return inline ? 'complete' : 'invalid'
         depth--
       }
-      if (char === '<') return 'invalid'
     }
   }
   if (index === text.length) return 'pending'
@@ -218,7 +217,7 @@ export function parseStreamingGfm(text: string, references = ''): Root {
   if (references === '') return root
   // The suffix supplies only reference labels to micromark. Actual destinations
   // and footnote bodies are supplied by the document-local render targets.
-  const contextual = parseGfm(`${display}\n\n${references}`)
+  const contextual = parseGfm(`${display}${openBlockCloser(display, root)}\n\n${references}`)
   const trim = (nodes: RootContent[], originals: readonly RootContent[]): RootContent[] => {
     const byPosition = new Map(originals.map(node => [`${node.type}:${node.position?.start.offset}`, node]))
     return nodes.filter(node => (node.position?.start.offset ?? text.length) < text.length).map(node => {
@@ -231,6 +230,44 @@ export function parseStreamingGfm(text: string, references = ''): Root {
   }
   contextual.children = trim(contextual.children, root.children)
   return contextual
+}
+
+/**
+ * The closing line for a fenced code block or raw HTML block (CommonMark types 1–5) left open at the end of the
+ * text, or '' when there is none. The reference-label suffix would otherwise become content of that block and the
+ * labels would stop resolving. A container (list item, block quote) is already ended by the suffix's unindented
+ * lines, so only top-level blocks need a closer; the trim keeps the block exactly as it arrived.
+ * @param display - The masked streaming text.
+ * @param root - Its parse without the suffix.
+ * @returns The text to insert before the suffix.
+ */
+function openBlockCloser(display: string, root: Root): string {
+  const last = root.children.at(-1)
+  if (last === undefined || (last.position?.end.offset ?? 0) < display.trimEnd().length) return ''
+  const opening = display.slice(last.position?.start.offset ?? 0)
+  if (last.type === 'code') {
+    const fence = /^ {0,3}(`{3,}|~{3,})/.exec(opening)?.[1]
+    if (fence === undefined) return ''
+    const lines = opening.trimEnd().split(/\r?\n/)
+    const closing = new RegExp(`^ {0,3}${fence[0] === '`' ? '`' : '~'}{${fence.length},}[ \\t]*$`)
+    return lines.length > 1 && closing.test(lines.at(-1)!) ? '' : `\n${fence}`
+  }
+  if (last.type === 'html') {
+    const kinds: readonly (readonly [RegExp, string])[] = [
+      [/^ {0,3}<(script|pre|style|textarea)(?=[\s>]|$)/i, ''],
+      [/^ {0,3}<!--/, '-->'],
+      [/^ {0,3}<\?/, '?>'],
+      [/^ {0,3}<![A-Za-z]/, '>'],
+      [/^ {0,3}<!\[CDATA\[/, ']]>'],
+    ]
+    for (const [pattern, closer] of kinds) {
+      const match = pattern.exec(opening)
+      if (match === null) continue
+      const end = closer || `</${match[1]}>`
+      return opening.includes(end, match[0].length) ? '' : `\n${end}`
+    }
+  }
+  return ''
 }
 
 /**
