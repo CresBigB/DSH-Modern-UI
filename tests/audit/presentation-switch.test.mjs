@@ -58,7 +58,7 @@ for (const [label, config, expected] of states) {
     assert.equal(accepted.prompt, expected)
     assert.equal(accepted.openui, true)
     assert.equal(accepted.followups, true)
-    assert.deepEqual(sectionsFor(config), expected ? ['modern-ui:response-presentation'] : [])
+    assert.deepEqual(sectionsFor(config), expected ? ['modern-ui:response-presentation', 'modern-ui:progressive-results'] : [])
   })
 }
 
@@ -83,10 +83,36 @@ test('a live switch change takes effect at the next assembly without remounting'
     },
     { enabled: true, presentation: { get: () => live } },
   )
-  assert.equal(sections.length, 1)
-  assert.equal(sections[0].text({}), '')
+  assert.equal(sections.length, 2)
+  for (const section of sections) assert.equal(section.text({}), '')
   live.prompt = true
-  assert.ok(sections[0].text({}).length > 1000)
+  for (const section of sections) assert.ok(section.text({}).length > 1000)
+})
+
+test('progressive delivery follows the component guidance and precedes the persona suffix', () => {
+  const sections = []
+  const orders = { DEPLOYMENT_PERSONA_SUFFIX: 10200 }
+  const scope = {
+    effect: fn => fn(),
+    systemPrompt: {
+      section: section => {
+        sections.push(section)
+      },
+      getSectionOrder: name => orders[name],
+    },
+  }
+  host.apply(
+    {
+      inject: (deps, callback) => {
+        if (deps.every(dep => dep === 'systemPrompt')) callback(scope)
+      },
+      on: () => () => {},
+    },
+    host.Config({ presentation: { prompt: true } }),
+  )
+  const order = Object.fromEntries(sections.map(section => [section.name, section.order]))
+  assert.ok(order['modern-ui:response-presentation'] < order['modern-ui:progressive-results'])
+  assert.ok(order['modern-ui:progressive-results'] < orders.DEPLOYMENT_PERSONA_SUFFIX)
 })
 
 test('a disabled Modern UI entry adds no prompt even when the switch is on', () => {

@@ -9,7 +9,7 @@ import {
   expansionEstimate,
   looksLikeOpenUI,
 } from '../../packages/modern-ui/src/vendor/intelligent/client/openui-source.ts'
-import { PRESENTATION_PROMPT } from '../../packages/modern-ui/src/vendor/intelligent/presentation-prompt.ts'
+import { PRESENTATION_PROMPT, PROGRESSIVE_PROMPT } from '../../packages/modern-ui/src/vendor/intelligent/presentation-prompt.ts'
 import { OPENUI_SYSTEM_PROMPT } from '../../packages/modern-ui/src/vendor/openui/system-prompt.generated.ts'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -112,9 +112,28 @@ describe('presentation prompt', () => {
 
   test('keeps the citation, picture and follow-up rules after the component guidance', () => {
     expect(PRESENTATION_PROMPT.startsWith(OPENUI_SYSTEM_PROMPT)).toBe(true)
-    for (const rule of ['- Staged answers:', '- Cite externally sourced factual claims', '- Pictures:', '- Follow-up questions:', '```followups'])
+    for (const rule of ['- Cite externally sourced factual claims', '- Pictures:', '- Follow-up questions:', '```followups'])
       expect(PRESENTATION_PROMPT).toContain(rule)
     expect(PRESENTATION_PROMPT).not.toContain('ui-card')
+  })
+
+  test('teaches progressive result delivery as its own section, not inside the component guidance', () => {
+    expect(PRESENTATION_PROMPT).not.toContain('Staged answers')
+    expect(PRESENTATION_PROMPT).not.toContain(PROGRESSIVE_PROMPT)
+    // The protocol fact models miss: reply text followed by tool calls does not end the turn.
+    expect(PROGRESSIVE_PROMPT).toContain('One assistant message may hold reply text followed by tool calls.')
+    expect(PROGRESSIVE_PROMPT).toContain('not the end of the turn')
+    expect(PROGRESSIVE_PROMPT).toContain('Plans, progress notes and announcements')
+    expect(PROGRESSIVE_PROMPT).toContain('Batch the tool calls that feed the same part')
+    // Delegated work keeps the official rule of one consolidated answer.
+    expect(PROGRESSIVE_PROMPT).toContain('wait for every child, then answer once')
+    // Each part renders as its own Markdown, so a definition written in a later part would not reach it.
+    expect(PROGRESSIVE_PROMPT).toContain('ends with the reference definitions for the citations it uses')
+    expect(PRESENTATION_PROMPT).toContain('or at the end of each part when the answer is delivered in parts')
+    const order = ['1. Message: tool calls for the weather forecast only.', '2. Message: "## Weather"', '3. Message: "## Sights"', '4. Message: "## Food"']
+    expect(order.map(step => PROGRESSIVE_PROMPT.indexOf(step))).toEqual([...order.map(step => PROGRESSIVE_PROMPT.indexOf(step))].sort((a, b) => a - b))
+    expect(order.every(step => PROGRESSIVE_PROMPT.includes(step))).toBe(true)
+    expect(PROGRESSIVE_PROMPT).not.toMatch(/jev|presentation_advice/i)
   })
 
   test('prefers components and streams each block section by section', () => {

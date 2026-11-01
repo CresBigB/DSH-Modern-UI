@@ -903,7 +903,7 @@
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "887dcdf13d737103ca2da39a751fff761679e77afa054430a6efeab2265bb9b6",
+      "targetSha256": "30821cf373bd18b29783a4d5db0045d6b51f4b4bc7d3786763de64eb263974be",
       "adapted": true
     },
     {
@@ -3600,7 +3600,7 @@
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "1d110feafcfed6af1b951b8089d285e28a209388c9e531282524af1e22a93adb",
+      "targetSha256": "f7fc49cd7aca0f764ecfc9b7da2131ff4c625a1a41c4409257835c6a22296ff1",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
