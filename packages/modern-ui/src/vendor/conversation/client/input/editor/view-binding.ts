@@ -106,7 +106,14 @@ export function revealDraftSelection(scrollRef: RefObject<HTMLDivElement>): void
 export function installDraftSelectionVisibility(editor: LexicalEditor, scrollRef: RefObject<HTMLDivElement>): (() => void) | undefined {
   const scrollEl = scrollRef.current
   if (scrollEl === null) return
+  // Only a shrinking budget can hide the selection; width changes and growth (a wider window, a dragged split pane,
+  // a closing keyboard) leave the reader's scroll position alone.
+  let height = scrollEl.clientHeight
   const observer = new ResizeObserver(() => {
+    const next = scrollEl.clientHeight
+    const shrank = next < height
+    height = next
+    if (!shrank) return
     const root = editor.getRootElement()
     if (root === null || root.ownerDocument.activeElement !== root || !scrollEl.contains(root)) return
     const selection = root.ownerDocument.getSelection()

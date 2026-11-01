@@ -595,7 +595,7 @@
       "source": "packages/client/ui-conversation/src/client/input/editor/view-binding.ts",
       "target": "src/vendor/conversation/client/input/editor/view-binding.ts",
       "sourceSha256": "52dae59403ac46beb94e02169b3c435d5db214ba5bfa6e0d5a40164f08cb7820",
-      "targetSha256": "4296c635de27654f532618337611272d98ad271f1eaa4858fd9899ad4ed4c1ab",
+      "targetSha256": "c26e9dc29fe93867394452c6abbe5f2785947cc5b648444353dac3e5c9f8e3c9",
       "adapted": true
     },
     {
@@ -1967,7 +1967,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "1e5ab82283c6962602fbaeb304ad10b020ac29534d24073e30f32175b6499526",
+      "targetSha256": "fec50394bf2649ee021acfcd5c9fe38c5c637462e202c2c93ad9bff55e2d965d",
       "adapted": true
     },
     {

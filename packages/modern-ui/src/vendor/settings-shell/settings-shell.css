@@ -140,6 +140,11 @@
     height: auto;
     padding: 4px 16px 8px;
   }
+  /* No document action is mounted until its status is ready (or at all without the document plugin); an empty
+     header would leave a blank strip above the options. */
+  [data-shortcut-modal="settings"][role="dialog"] > div > div:first-child:not(:has(.VOzbGW_actions > *)) {
+    padding-block: 0;
+  }
   /* Exact official SettingsRoot / SettingsDocumentAction hooks, verified in rc.2, rc.3 and rc.4.
      Keep the close control on the title row; actions and their errors participate in normal flow. */
   [data-shortcut-modal="settings"][role="dialog"] .VOzbGW_close {
@@ -179,6 +184,8 @@
   [data-shortcut-modal="settings"][role="dialog"] .bVCLcG_row > .vnGTiq_field {
     flex: none;
     width: 100%;
+    /* The field is the primitives Input wrapper (padding and border, content-box upstream). */
+    box-sizing: border-box;
   }
   [data-shortcut-modal="settings"][role="dialog"] .zGbnIq_modelRow {
     grid-template-columns: minmax(0, 1fr) 28px 28px;

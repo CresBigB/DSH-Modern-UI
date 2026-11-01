@@ -279,7 +279,8 @@ for (const [name, anchor, focus, oversized] of [
           }
           const rect = range.getBoundingClientRect()
           const box = scroll.getBoundingClientRect()
-          scroll.scrollTop += !oversized ? rect.bottom - box.bottom : forward ? rect.bottom - (box.bottom - 40) : rect.top - (box.top + 4)
+          // A forward selection's active end sits just above the bottom edge, so any shrink hides it without the fix.
+          scroll.scrollTop += !oversized ? rect.bottom - box.bottom : forward ? rect.bottom - (box.bottom - 4) : rect.top - (box.top + 4)
           document.querySelector('[data-conversation-scroll]').scrollTop = 300
         },
         { forward: anchor < focus, oversized },
@@ -427,6 +428,33 @@ test('native Shift+Enter empty line stays visible when the viewport shrinks and 
       assert.equal(after.text, before.text)
       assert.equal(after.outerScroll, before.outerScroll)
       assert.equal(after.documentY, 0)
+    }
+    assert.deepEqual(errors, [])
+  } finally {
+    await page.close()
+  }
+})
+
+test('a width-only resize leaves the draft where the reader scrolled it', async () => {
+  // A wider window, a toggled side panel or a dragged split pane changes only the width; the budget did not shrink,
+  // so the focused draft keeps its reading position instead of jumping back to the caret.
+  const { page, errors } = await open()
+  try {
+    await select(page, 59)
+    await page.evaluate(() => {
+      document.querySelector('[data-input-scroll]').scrollTop = 0
+    })
+    await settle(page)
+    const before = await state(page)
+    assert.equal(before.scrollTop, 0)
+    assert.equal(before.focused, true)
+    for (const width of [360, 420]) {
+      await page.setViewportSize({ width, height: 900 })
+      await settle(page)
+      const after = await state(page)
+      assert.equal(after.height, before.height)
+      assert.equal(after.scrollTop, 0)
+      assert.deepEqual(after.selection, before.selection)
     }
     assert.deepEqual(errors, [])
   } finally {
