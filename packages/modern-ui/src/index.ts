@@ -43,10 +43,13 @@ const promptEnabled = (section: Volatile<Presentation> | Presentation | undefine
 
 const JEV_DEFAULTS: JevSettings = JevConfig({})
 
-/** Read the live Jev settings the same way; a missing section keeps the defaults (on, but keyless until configured). */
+/**
+ * Read the live Jev settings the same way; a missing section or field keeps the defaults (on, but keyless until
+ * configured). The Loader's schema already fills them; a plain object may carry `undefined`, which must not win.
+ */
 function jevSettings(section: Volatile<Partial<JevSettings>> | Partial<JevSettings> | undefined): JevSettings {
   const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : section as Partial<JevSettings> | undefined
-  return { ...JEV_DEFAULTS, ...value }
+  return { ...JEV_DEFAULTS, ...Object.fromEntries(Object.entries(value ?? {}).filter(([, field]) => field !== undefined)) }
 }
 
 /** Register only plugin-owned settings and additive guidance through public services. */

@@ -67,7 +67,7 @@ export const JEV_TOOL = 'jev_presentation_advice'
 /** Characters, counted as code points, the model's structure summary may have. */
 export const SUMMARY_LIMIT = 600
 
-const DESCRIPTION = `Optional second opinion from Jev, a TypeSafe model that classifies how an answer could be presented: plain text, a table, cards, steps, a chart, a flowchart, a drawing, a calculator, or several visuals. Calling it is not a prerequisite for using OpenUI components or for answering: you can choose the presentation directly from the user's request and the material you have, and answering without consulting Jev is a normal outcome. Jev sees only the user's request for this turn, which is attached automatically, and the content_summary you write; it does not see sources, files or tool results. Its reply is a partial candidate you may ignore, replace or combine with other forms; your own reading of the material and the user's wishes decides. Jev is consulted at most once per turn; calling again with the same summary repeats the earlier reply.`
+const DESCRIPTION = `Optional second opinion from Jev, a TypeSafe model that classifies how an answer could be presented: plain text, a table, cards, steps, a chart, a flowchart, a drawing, a calculator, or several visuals. Calling it is not a prerequisite for using OpenUI components or for answering: you can choose the presentation directly from the user's request and the material you have, and answering without consulting Jev is a normal outcome. It tends to help most once you have enough of the relevant material to describe the structure of what you will present; while that structure is still unclear, ask later or not at all. Jev sees only the user's request for this turn, which is attached automatically, and the content_summary you write; it does not see sources, files or tool results. Its reply is a partial candidate you may ignore, replace or combine with other forms; your own reading of the material and the user's wishes decides. Jev is consulted at most once per turn; calling again with the same summary repeats the earlier reply.`
 
 const PARAMETERS = {
   type: 'object',
@@ -81,15 +81,17 @@ const PARAMETERS = {
   additionalProperties: false,
 }
 
-/** How a call ended; the model reads only `advice`. The card shows the status and choice; confidence is for debugging. */
+/** How a call ended. The card shows the status and choice; a direct call shows the model only `advice`. */
 export type AdviceStatus = 'suggestion' | 'no_suggestion' | 'repeated' | 'already_consulted' | 'unavailable' | 'not_sent'
 
-/** The tool's canonical value. Confidence stays in the result metadata; neither the advice text nor the card shows it. */
+/**
+ * The tool's canonical value. A program calling the tool from code (`tools.mode = 'ptc'`) receives all of it, and
+ * the card metadata is projected from it, so it holds nothing the advice text does not already say: no confidence.
+ */
 export interface Advice {
   readonly status: AdviceStatus
   readonly advice: string
   readonly presentation?: Presentation
-  readonly confidence?: number
 }
 
 const OUTPUT_SCHEMA = {
@@ -98,7 +100,6 @@ const OUTPUT_SCHEMA = {
     status: { type: 'string' as const, enum: ['suggestion', 'no_suggestion', 'repeated', 'already_consulted', 'unavailable', 'not_sent'] },
     advice: { type: 'string' as const },
     presentation: { type: 'string' as const, enum: Object.keys(PRESENTATIONS) },
-    confidence: { type: 'number' as const },
   },
   required: ['status', 'advice'],
   additionalProperties: false,
@@ -126,19 +127,20 @@ export interface Decision {
 
 /**
  * The advice for one decision: "text" means Jev has nothing to add; any other choice is a partial candidate the
- * model may ignore, replace or combine. Confidence is kept beside the text, never in it: TypeSafe derives it from
- * the candidate distribution, it is not the probability that the form is right.
+ * model may ignore, replace or combine. Confidence is only checked as part of a well-formed answer and never
+ * reaches the model: TypeSafe derives it from the candidate distribution, it is not the probability that the
+ * form is right.
  * @param decision - A validated decision, or undefined when none is available.
  * @param repeated - Whether this repeats the turn's earlier reply for the same summary.
  * @returns The canonical tool value.
  */
 export function adviceFor(decision: Decision | undefined, repeated = false): Advice {
   if (decision === undefined) return unavailable('failed')
-  const { presentation, confidence } = decision
+  const { presentation } = decision
   const lead = repeated ? 'Same summary as the earlier call in this turn, so this repeats that reply. ' : ''
   const status: AdviceStatus = repeated ? 'repeated' : presentation === 'text' ? 'no_suggestion' : 'suggestion'
   const body = presentation === 'text' ? NO_EXTRA : `You could consider ${CANDIDATES[presentation]}. ${OPTIONAL}`
-  return { status, advice: `${lead}${body} ${CAPABILITY}`, presentation, confidence }
+  return { status, advice: `${lead}${body} ${CAPABILITY}`, presentation }
 }
 
 function unavailable(reason: keyof typeof UNAVAILABLE): Advice {
@@ -167,7 +169,7 @@ export function decisionFromResponse(raw: unknown): Decision | undefined {
   if (typeof answer.choice !== 'string' || !Object.hasOwn(PRESENTATIONS, answer.choice)) return undefined
   if (typeof answer.confidence !== 'number' || !(answer.confidence >= 0 && answer.confidence <= 1)) return undefined
   const probabilities = answer.probabilities
-  if (probabilities !== undefined && (probabilities === null || typeof probabilities !== 'object'
+  if (probabilities !== undefined && (probabilities === null || typeof probabilities !== 'object' || Array.isArray(probabilities)
     || Object.entries(probabilities).some(([key, value]) => !Object.hasOwn(PRESENTATIONS, key) || typeof value !== 'number' || !(value >= 0 && value <= 1)))) return undefined
   return { presentation: answer.choice as Presentation, confidence: answer.confidence }
 }
@@ -179,8 +181,16 @@ export function normalizeSummary(raw: string): string {
 
 const MESSAGE_LIMIT = 6000
 const REQUEST_MESSAGES = 4
+/** Bytes of response body read at most; an answer is well under 2 KiB, so anything near this is not one. */
+const RESPONSE_LIMIT = 64 * 1024
 // Visible ASCII only: a bearer token with spaces, line breaks or other characters is not a valid header value.
 const HEADER_SAFE = /^[\x21-\x7e]+$/
+
+/** The first MESSAGE_LIMIT UTF-16 units, without a high surrogate left over from a pair the cut split. */
+function clip(text: string): string {
+  const cut = text.slice(0, MESSAGE_LIMIT)
+  return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut
+}
 
 /**
  * What Jev reads: the user messages of the turn, newest last, then the model's description of its planned answer.
@@ -190,13 +200,35 @@ const HEADER_SAFE = /^[\x21-\x7e]+$/
  */
 export function jevConversation(request: readonly string[], summary: string): { role: 'user' | 'assistant'; content: string }[] {
   return [
-    ...request.slice(-REQUEST_MESSAGES).map(text => ({ role: 'user' as const, content: text === '' ? '(attachments without text)' : text.slice(0, MESSAGE_LIMIT) })),
+    ...request.slice(-REQUEST_MESSAGES).map(text => ({ role: 'user' as const, content: text === '' ? '(attachments without text)' : clip(text) })),
     { role: 'assistant' as const, content: `Structure of the planned answer: ${summary}` },
   ]
 }
 
 /** A failure whose message is safe to log: it never contains the request headers or the key. */
 class JevError extends Error {}
+
+/**
+ * Read a response body as text, refusing one larger than `limit` bytes, so a misbehaving endpoint cannot fill
+ * memory within the timeout.
+ */
+async function readCapped(response: Response, limit: number): Promise<string> {
+  const reader = response.body?.getReader()
+  if (reader === undefined) return ''
+  const decoder = new TextDecoder()
+  let text = ''
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return text + decoder.decode()
+    size += value.byteLength
+    if (size > limit) {
+      reader.cancel().catch(() => {})
+      throw new JevError('response too large')
+    }
+    text += decoder.decode(value, { stream: true })
+  }
+}
 
 /** Collaborators the advisor needs; the Host supplies fetch, the credentials service and a logger. */
 export interface AdvisorDeps {
@@ -231,7 +263,8 @@ const textOf = (message: { content?: readonly Block[] } | undefined): string =>
  */
 export class PresentationAdvisor {
   private readonly turns = new WeakMap<object, TurnRecord>()
-  private readonly warned = new Set<string>()
+  /** The last failure reason logged per session, so a session logs each new reason once and is forgotten with it. */
+  private readonly warned = new WeakMap<object, string>()
 
   constructor(private readonly settings: () => JevSettings, private readonly promptEnabled: () => boolean, private readonly deps: AdvisorDeps) {}
 
@@ -285,6 +318,7 @@ export class PresentationAdvisor {
     // Rejected rather than cut: a summary this long usually carries content, and none of it should leave the machine.
     const length = [...summary].length
     if (length > SUMMARY_LIMIT) return notSent(`content_summary has ${length} characters and the limit is ${SUMMARY_LIMIT}`)
+    // Only a backstop: the tool is registered in root main agents' own scopes, which no other agent's scope inherits.
     const session = call.agent?.session
     if (session === undefined || session.header.origin === 'subagent') return unavailable('main')
     const turn = this.turns.get(session)
@@ -296,16 +330,21 @@ export class PresentationAdvisor {
       key = await this.key()
       if (key !== undefined && !HEADER_SAFE.test(key)) throw new JevError('the key contains characters a request header cannot carry')
     } catch (error) {
-      this.report(error, session.id, call.signal)
+      this.report(error, session, call.signal)
       return unavailable('failed')
     }
     if (key === undefined) return unavailable('key')
+    // Cancelled while the key was read: nothing is sent, and the turn's one consultation stays unused.
+    if (call.signal.aborted) return unavailable('failed')
     // Settled synchronously after the await, so two calls can never both start a request for one turn.
     const again = this.earlier(turn, summary)
     if (again !== undefined) return again
-    const decision = this.request(key, jevConversation(turn.request, summary), session.id, call.signal)
-    turn.consultation = { summary, decision }
-    return adviceFor(await decision)
+    const consultation = { summary, decision: this.request(key, jevConversation(turn.request, summary), session, call.signal) }
+    turn.consultation = consultation
+    const decision = await consultation.decision
+    // A cancelled request answered nothing, such as a call a code run left behind when it ended; the turn may ask again.
+    if (decision === undefined && call.signal.aborted && turn.consultation === consultation) turn.consultation = undefined
+    return adviceFor(decision)
   }
 
   private earlier(turn: TurnRecord, summary: string): Promise<Advice> | undefined {
@@ -322,7 +361,7 @@ export class PresentationAdvisor {
     return key === undefined || key === '' ? undefined : key
   }
 
-  private async request(key: string, conversation: unknown, sessionId: string, signal: AbortSignal): Promise<Decision | undefined> {
+  private async request(key: string, conversation: unknown, session: object, signal: AbortSignal): Promise<Decision | undefined> {
     const settings = this.settings()
     try {
       const timeout = AbortSignal.timeout(Math.max(1, settings.timeout))
@@ -336,21 +375,25 @@ export class PresentationAdvisor {
         }),
         signal: AbortSignal.any([timeout, signal]),
       })
-      if (!response.ok) throw new JevError(`HTTP ${response.status}`)
-      const decision = decisionFromResponse(await response.json())
+      if (!response.ok) {
+        response.body?.cancel().catch(() => {})
+        throw new JevError(`HTTP ${response.status}`)
+      }
+      const decision = decisionFromResponse(JSON.parse(await readCapped(response, RESPONSE_LIMIT)))
       if (decision === undefined) throw new JevError('invalid decision')
       return decision
     } catch (error) {
-      this.report(error, sessionId, signal)
+      this.report(error, session, signal)
       return undefined
     }
   }
 
-  private report(error: unknown, sessionId: string, signal: AbortSignal): void {
-    if (signal.aborted || this.warned.has(sessionId)) return
-    this.warned.add(sessionId)
+  private report(error: unknown, session: object, signal: AbortSignal): void {
+    if (signal.aborted) return
     // Messages from fetch and the runtime can quote the Authorization header, so only our own reach the log.
     const reason = error instanceof JevError ? error.message : error instanceof Error && error.name === 'TimeoutError' ? 'timed out' : 'request failed'
+    if (this.warned.get(session) === reason) return
+    this.warned.set(session, reason)
     this.deps.warn(`jev: no presentation suggestion (${reason}); the model chooses on its own`)
   }
 }
@@ -369,8 +412,8 @@ export function jevToolDefinition(advisor: PresentationAdvisor): ToolDefinition 
       schema: OUTPUT_SCHEMA,
       render: (_args, value) => [{ type: 'text', text: (value as unknown as Advice).advice }],
       presentationMeta: (_args, value) => {
-        const { status, presentation, confidence } = value as unknown as Advice
-        return { status, ...(presentation === undefined ? {} : { presentation }), ...(confidence === undefined ? {} : { confidence }) }
+        const { status, presentation } = value as unknown as Advice
+        return { status, ...(presentation === undefined ? {} : { presentation }) }
       },
     },
     execute: (args, exec) => advisor.advise(args, exec),
@@ -401,6 +444,8 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     const fibers = new Map<Agent, Fiber>()
     let keyState: KeyState = 'none'
     let generation = 0
+    let reading: Promise<void> = Promise.resolve()
+    let active = true
 
     const drop = (agent: Agent) => {
       const fiber = fibers.get(agent)
@@ -412,7 +457,8 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     }
     const isMain = (agent: Agent) => agent.session.header.origin !== 'subagent' && scope.agents.roots().includes(agent)
     const reconcile = (agent: Agent): Fiber | undefined => {
-      if (!(keyState === 'ready' && advisor.allowed() && isMain(agent))) {
+      // Inactive once unloading began: a creation that was still reading the key must not register afterwards.
+      if (!(active && keyState === 'ready' && advisor.allowed() && isMain(agent))) {
         drop(agent)
         return undefined
       }
@@ -433,44 +479,59 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     const reconcileAll = () => {
       for (const agent of scope.agents.list()) reconcile(agent)
     }
-    const refreshKey = async () => {
+    const refreshKey = () => {
       const current = ++generation
-      const next = await advisor.keyState()
-      if (current !== generation) return
-      // The Settings row refuses such keys, but one from the environment or a .env file only shows up here.
-      if (next === 'unusable' && keyState !== 'unusable') {
-        scope.logger.warn('jev: the TypeSafe key contains spaces, line breaks or other characters a request header cannot carry; the tool stays hidden until the key is replaced')
+      reading = (async () => {
+        const next = await advisor.keyState()
+        if (current !== generation) return
+        // The Settings row refuses such keys, but one from the environment or a .env file only shows up here.
+        if (next === 'unusable' && keyState !== 'unusable') {
+          scope.logger.warn('jev: the TypeSafe key contains spaces, line breaks or other characters a request header cannot carry; the tool stays hidden until the key is replaced')
+        }
+        keyState = next
+        reconcileAll()
+      })()
+    }
+    /** Settle once the newest key read is applied, including one started while waiting. */
+    const keyRead = async () => {
+      for (let seen = reading; ; seen = reading) {
+        await seen
+        if (seen === reading) return
       }
-      keyState = next
-      reconcileAll()
     }
 
+    // Switches apply at once with the last known key; the key is then read again and applied in turn.
     sync = () => {
       reconcileAll()
-      void refreshKey()
+      refreshKey()
     }
     scope.on('agent/created', async ({ agent }) => {
-      // Awaited so the first request of a new session already lists the tool; a new main session also re-reads the key.
+      // A new main session reads the key first, so its first request reflects the key as it is now; a subagent
+      // never gets the tool and is not held up. Awaited so that request already lists the tool.
+      if (isMain(agent)) {
+        refreshKey()
+        await keyRead()
+      }
       await reconcile(agent)
-      if (isMain(agent)) void refreshKey()
       return undefined
     })
     scope.on('agent/disposed', ({ agent }) => {
       drop(agent)
     })
     scope.on('credentials/reference-updated', (ref) => {
-      if (String(ref) === settings().credential) void refreshKey()
+      if (String(ref) === settings().credential) refreshKey()
     })
     scope.on('session/event', (session, event) => {
       advisor.observe(session, event)
     })
     scope.effect(() => async () => {
       sync = undefined
+      active = false
       generation++
       const all = [...fibers.values()]
       fibers.clear()
       await Promise.all(all.map(fiber => fiber.dispose()))
     }, 'jev: tool registrations')
-    void refreshKey()
+    refreshKey()
   })
 }
