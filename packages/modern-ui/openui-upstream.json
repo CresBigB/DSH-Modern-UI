@@ -39,7 +39,7 @@
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "4b6cf249fac8a1caa386a6054891d94212e2dd1c5c069f85ceca7359b1d0f43c",
+      "targetSha256": "3ae6645eacb7ee0d6c038effe92aa81728b010bb321cf3863f4190201e033841",
       "adapted": true
     },
     {
@@ -159,7 +159,7 @@
       "source": "src/lib/components/theme.css",
       "target": "src/vendor/openui/components/theme.css",
       "sourceSha256": "ed324d7b3238bf2692caf3a5f805d24f259ded61dbbfdf175b353da6a284efde",
-      "targetSha256": "1639923efb445071a987fec3fc60b0e4b3fca9a0f87eadf2ecb21f8f56951425",
+      "targetSha256": "3c544d6db465359a8dfa14558c43d349adf54010d17d1cec761524598bb9a0ae",
       "adapted": true
     },
     {

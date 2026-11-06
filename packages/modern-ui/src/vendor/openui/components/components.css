@@ -35,14 +35,20 @@
     min-width: 0;
     width: 100%;
     padding: 20px;
-    border: 1px solid var(--iui-border);
+    border: 1px solid transparent;
     border-radius: var(--iui-radius-xl);
-    background: var(--iui-canvas);
+    background: var(--iui-card-bg);
+    box-shadow: var(--iui-card-shadow);
     font-size: 14px;
     line-height: 1.55;
   }
-  .iui-card-soft { border-color: transparent; background: var(--iui-surface); padding: 20px; }
-  .iui-card .iui-card { border-radius: var(--iui-radius-lg); padding: 16px; }
+  .iui-card-soft { border-color: transparent; background: var(--iui-surface); box-shadow: none; padding: 20px; }
+  /* A card inside a card is a quiet filled panel, not a second lifted tile. */
+  .iui-card .iui-card { border-radius: var(--iui-radius-lg); padding: 16px; background: var(--iui-surface); box-shadow: none; }
+  /* Header row: the icon sits on a small rounded base, its caption is the card's label. */
+  .iui-card > .iui-row:first-child > .iui-icon:first-child { width: 26px; height: 26px; border-radius: var(--iui-radius-sm); corner-shape: superellipse(1.5); background: var(--iui-chip); color: var(--iui-ink); }
+  .iui-card > .iui-row:first-child > .iui-icon:first-child > svg { width: 14px; height: 14px; }
+  .iui-card > .iui-row:first-child:has(> .iui-icon:first-child) > .iui-caption { font-size: 13px; line-height: 18px; }
   /* A small or medium title that opens a card reads as the card title: 14/20 Medium, with a 13/18 secondary subtitle. */
   .iui-card > :is(.iui-title-sm, .iui-title-md):first-child, .iui-card > .iui-row:first-child :is(.iui-title-sm, .iui-title-md) { font-size: 14px; line-height: 20px; font-weight: 500; }
   .iui-card > :is(.iui-title-sm, .iui-title-md):first-child + :is(.iui-caption, .iui-text), .iui-card > .iui-row:first-child :is(.iui-title-sm, .iui-title-md) + :is(.iui-caption, .iui-text) { margin-top: 2px; color: var(--iui-muted); font-size: 13px; line-height: 18px; }
@@ -95,6 +101,14 @@
   .iui-list-bullet:not(.iui-timeline):not(.iui-list-wide) > li { grid-template-columns: 14px minmax(0, 1fr); column-gap: 8px; }
   .iui-list-none > li { grid-template-columns: minmax(0, 1fr); }
   .iui-list-none .iui-list-marker:empty { display: none; }
+  /* A short custom marker (a check, an emoji) keeps its own column instead of a row above the title. */
+  .iui-list-none:not(.iui-list-wide) > li:has(> .iui-list-marker-text) { grid-template-columns: 24px minmax(0, 1fr); column-gap: 10px; }
+  .iui-list-none:not(.iui-list-wide) .iui-list-marker-text { justify-content: center; }
+  /* Inside a card a plain list reads as rows on the tile, split by hairlines. */
+  .iui-card > .iui-list-none:not(.iui-timeline) { gap: 0; }
+  .iui-card > .iui-list-none:not(.iui-timeline) > li { padding-block: 10px; border-top: 1px solid var(--iui-border); }
+  .iui-card > .iui-list-none:not(.iui-timeline) > li:first-child { padding-top: 2px; border-top: 0; }
+  .iui-card > .iui-list-none:not(.iui-timeline) > li:last-child { padding-bottom: 0; }
   .iui-list-wide > li { grid-template-columns: 76px minmax(0, 1fr); column-gap: 16px; }
   .iui-list-rich { padding-bottom: 4px; }
   .iui-list-marker { display: flex; align-items: center; justify-content: center; height: 1.55em; color: var(--iui-muted); }
@@ -263,6 +277,12 @@
 
   /* A framed table: 14px corners, a surface header row, hover rows. */
   .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); }
+  /* A table on a card drops its own frame: rows sit on the tile, the header is a muted caption row. */
+  .iui-card .iui-table-scroll { border: 0; border-radius: 0; }
+  .iui-card .iui-table th { background: transparent; color: var(--iui-muted); font-size: 12px; font-weight: 400; }
+  .iui-card .iui-table :is(th, td):first-child { padding-left: 0; }
+  .iui-card .iui-table :is(th, td):last-child { padding-right: 0; }
+  .iui-card .iui-table tbody tr:hover { background: transparent; }
   .iui-table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
   .iui-table th, .iui-table td { padding: 13px 16px; border-bottom: 1px solid var(--iui-border); text-align: left; vertical-align: middle; }
   .iui-table th { padding-block: 11px; background: var(--iui-surface); color: var(--iui-ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
@@ -416,7 +436,10 @@
   .iui-flow > .iui-caption + .iui-title { margin-top: var(--iui-space-tight); }
 
   /* Inside a card or a grid cell, titles are card-sized (18/24) and body text is 15/22. */
-  :is(.iui-card, .iui-grid > .iui-flow, .iui-carousel-item > .iui-flow) > :is(.iui-title-lg, .iui-title-xl, .iui-title-2xl, .iui-title-3xl) { font-size: 18px; line-height: 24px; letter-spacing: -0.3px; }
+  :is(.iui-card, .iui-grid > .iui-flow, .iui-carousel-item > .iui-flow) > :is(.iui-title-lg, .iui-title-xl) { font-size: 18px; line-height: 24px; letter-spacing: -0.3px; }
+  /* 2xl and 3xl are the big figure of a stat card; its caption sits right under it. */
+  .iui-card > :is(.iui-title-2xl, .iui-title-3xl) { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .iui-card.iui-flow > :is(.iui-title-2xl, .iui-title-3xl) + .iui-caption { margin-top: var(--iui-space-tight); }
   :is(.iui-card, .iui-grid > .iui-flow, .iui-carousel-item > .iui-flow) > .iui-text:not(.iui-text-xs, .iui-text-sm, .iui-text-lg) { font-size: 15px; line-height: 22px; }
 
   /* Media row: a photo beside text. The photo is a fixed 4:3, a third of the row
