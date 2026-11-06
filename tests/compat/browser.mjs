@@ -83,6 +83,14 @@ export async function captureWindow(page, filename) {
 
 export async function runBrowserChecks({ state, output, executablePath, checkHost, application }) {
   assert.ok(state?.cli && state?.node && state?.home && state?.profile, 'Pass an actually installed state')
+  const hostShipsDatedModelLabel = (() => {
+    try {
+      createRequire(state.cli).resolve('@deepseek-ai/dsh-client-ui-deepseek-model-label-1017/package.json')
+      return true
+    } catch {
+      return false
+    }
+  })()
   assert.ok(!(application && checkHost), 'Host callbacks need the CLI Host origin')
   output = path.resolve(output)
   await mkdir(output, { recursive: true })
@@ -498,11 +506,14 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       await page.locator('[data-compat-toggle-label]').click()
       await page.locator('[data-compat-model-label]').waitFor({ state: 'detached' })
       const runtime = JSON.parse(await page.locator('[data-compat-client-report]').textContent())
-      assert.ok(
-        runtime.slots['conversation.input.model.label'].some(row => row.locale === 'deepseek-model-label-1017'),
-        JSON.stringify(runtime.slots['conversation.input.model.label']),
-      )
-      return runtime.slots['conversation.input.model.label']
+      // The dated official DeepSeek label ships through 0.2.1; 0.2.2 removed the package, so only check it where it exists.
+      if (hostShipsDatedModelLabel) {
+        assert.ok(
+          runtime.slots['conversation.input.model.label'].some(row => row.locale === 'deepseek-model-label-1017'),
+          JSON.stringify(runtime.slots['conversation.input.model.label']),
+        )
+      }
+      return { datedOfficialLabel: hostShipsDatedModelLabel, entries: runtime.slots['conversation.input.model.label'] }
     })
     await check('official-plan-action', async () => {
       await send('/plan on')
