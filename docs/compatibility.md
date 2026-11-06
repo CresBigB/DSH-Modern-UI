@@ -6,6 +6,7 @@
 
 | 插件版本 | 官方宿主 | 状态 | 平台 | 日期 |
 | --- | --- | --- | --- | --- |
+| 下一版（未发布） | `0.2.2-rc.1` | 范围内未验证；canary 9 层全部通过（含候选社区组合 dsh-context 0.75.1、dsh-better-sidebar 0.28.0），一行 npm 安装通过。只有 Linux 证据，写进 `verifiedHosts` 会让安装器拒绝其他平台，待多平台 CI 证据后再写入 | Linux x64（CI） | 2026-11-06 |
 | 0.1.6 | `0.2.1-rc.4` | 已验证（默认新装） | Linux x64/arm64、macOS x64/arm64、Windows x64 | 2026-11-02 |
 | 0.1.6 | `0.2.1-rc.3` | 已验证 | Linux x64、Windows x64 | 2026-11-02 |
 | 0.1.6 | `0.2.1-rc.2` | 已验证 | Linux x64、Windows x64 | 2026-11-02 |
@@ -44,7 +45,7 @@ Desktop 不在 npm，canary 覆盖不到；每个 Desktop 版本单独运行 `te
 
 [`scripts/distribution/compatibility.json`](../scripts/distribution/compatibility.json) 是版本、平台、官方 URL/SRI、私有运行时和社区组合的唯一清单。构建从它生成插件 engines/peers/compatibleHost、默认 community-lock 和预览元数据。
 
-- 插件声明宿主范围 `hostRange` = `>=0.2.1-rc.2 <0.3.0-0`，写进 `engines.dsh`、`dsh.compatibleHost` 与全部 `@deepseek-ai/dsh-*` peers。安装器、canary 和 pnpm 的 peer 检查按 npm 规则判断，范围内的预发布版只限 `0.2.1-*`；`0.2.2-alpha.*` 之类的其他预发布版不在范围内。官方宿主加载插件时只看 `engines.dsh`，并把预发布版算进范围（`includePrerelease`），所以经 `dsh plugin add` 安装时，`0.2.2-alpha.*` 等其他 `0.2.x` 预发布宿主也会放行，`knownBroken` 拦不住；上界写成 `<0.3.0-0` 是为了让宿主同样拒绝 `0.3.0-alpha.*`。
+- 插件声明宿主范围 `hostRange` = `>=0.2.1-rc.2 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0`，写进 `engines.dsh`、`dsh.compatibleHost` 与全部 `@deepseek-ai/dsh-*` peers。安装器、canary 和 pnpm 的 peer 检查按 npm 规则判断，范围内的预发布版只限 `0.2.1-*` 和从 rc.1 起的 `0.2.2-rc.*`（第二段比较集专门放行这一条预发布线）；`0.2.2-alpha.*`、`0.2.3-*` 之类的其他预发布版不在范围内，下一条预发布线要再加一段。官方宿主加载插件时只看 `engines.dsh`，并把预发布版算进范围（`includePrerelease`），所以经 `dsh plugin add` 安装时，`0.2.2-alpha.*` 等其他 `0.2.x` 预发布宿主也会放行，`knownBroken` 拦不住；上界写成 `<0.3.0-0` 是为了让宿主同样拒绝 `0.3.0-alpha.*`。
 - `verifiedHosts`（rc.4、rc.3、rc.2）是跑过完整兼容套件、带官方 SRI 与社区组合的版本；默认新装仍为 rc.4。
 - 范围内但未验证的版本（例如未来的 `0.2.1` 正式版）可以安装：安装器打印警告，从 npm registry 元数据取官方 tgz 的完整性，只开放已验证宿主出现过的平台，不附装社区插件。
 - 安装器对 `knownBroken` 中的版本与范围外的版本（`0.3.0` 起、更早的 rc）直接拒绝。
