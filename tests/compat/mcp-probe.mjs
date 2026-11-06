@@ -6,6 +6,23 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import * as mcp from '@iroha1145/dsh-modern-ui/mcp-client'
 
+/**
+ * Run one tool call on either Host tool API: rc.4 executes a single call, 0.2.2 executes a batch of model calls
+ * through the selected executor and returns their settled results.
+ * @param {object} tools - the Host tool registry.
+ * @param {{ callId: string, name: string, arguments: object, agent?: object, signal: AbortSignal }} call - the call.
+ * @returns {Promise<object>} the call's tool result.
+ */
+async function executeTool(tools, { callId, name, arguments: args, agent, signal }) {
+  if (typeof tools.selectExecutor !== 'function') return tools.execute({ callId, name, arguments: args, ...(agent === undefined ? {} : { agent }), signal })
+  const batch = await tools.execute({
+    calls: [{ type: 'tool-call', id: callId, name, arguments: JSON.stringify(args) }],
+    ...(agent === undefined ? {} : { agent }),
+    signal,
+  })
+  return batch.results.find(row => row.callId === callId).result
+}
+
 export const inject = ['tools', 'webServer', 'profileContext']
 export function apply(ctx, config) {
   let busy = false
@@ -87,7 +104,7 @@ export function apply(ctx, config) {
         const firstPid = (await events()).filter(row => row.event === 'start').at(-1).pid
         results.push({ name: 'discovery', passed: true, tools: schemas.map(row => row.name) })
         const execute = (name, signal = new AbortController().signal) =>
-          ctx.tools.execute({ callId: `compat-${name}-${Date.now()}`, name: prefix + name, arguments: { text: 'retained value' }, signal })
+          executeTool(ctx.tools, { callId: `compat-${name}-${Date.now()}`, name: prefix + name, arguments: { text: 'retained value' }, signal })
         const success = await execute('echo')
         assert.equal(success.isError, false)
         assert.ok(success.content.some(block => block.type === 'text' && block.text === 'echo:retained value'))

@@ -4,6 +4,23 @@ import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
+/**
+ * Run one tool call on either Host tool API: rc.4 executes a single call, 0.2.2 executes a batch of model calls
+ * through the selected executor and returns their settled results.
+ * @param {object} tools - the Host tool registry.
+ * @param {{ callId: string, name: string, arguments: object, agent?: object, signal: AbortSignal }} call - the call.
+ * @returns {Promise<object>} the call's tool result.
+ */
+async function executeTool(tools, { callId, name, arguments: args, agent, signal }) {
+  if (typeof tools.selectExecutor !== 'function') return tools.execute({ callId, name, arguments: args, ...(agent === undefined ? {} : { agent }), signal })
+  const batch = await tools.execute({
+    calls: [{ type: 'tool-call', id: callId, name, arguments: JSON.stringify(args) }],
+    ...(agent === undefined ? {} : { agent }),
+    signal,
+  })
+  return batch.results.find(row => row.callId === callId).result
+}
+
 export const inject = ['configEditor', 'pluginManager', 'web', 'tools', 'workspaceController', 'sessionController', 'agents', 'commands', 'webServer']
 export function apply(ctx, config) {
   let agent
@@ -74,7 +91,7 @@ export function apply(ctx, config) {
           report.commandsHaveNoRetiredWebSwitch = true
           if (enabled) {
             const invoke = (name, args) =>
-              ctx.tools.execute({ callId: `compat-web-${randomUUID()}`, name, arguments: args, agent, signal: new AbortController().signal })
+              executeTool(ctx.tools, { callId: `compat-web-${randomUUID()}`, name, arguments: args, agent, signal: new AbortController().signal })
             const search = await invoke('web_search', { queries: ['controlled fixture'] })
             assert.equal(search.isError, phase === 'provider-disabled')
             assert.match(JSON.stringify(search), phase === 'provider-disabled' ? /WEB_PROVIDER_CONFIGURED_MISSING/ : /CONTROLLED_SEARCH_MARKER/)
