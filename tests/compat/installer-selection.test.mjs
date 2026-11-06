@@ -53,7 +53,8 @@ for (const version of supportedHostVersions) {
 
 test('host range follows SemVer precedence and the npm prerelease rule', () => {
   for (const version of supportedHostVersions) assert.ok(satisfiesRange(version, hostRange))
-  for (const version of ['0.2.1-rc.5', '0.2.1-rc.10', '0.2.1', '0.2.2', '0.2.9', '0.2.2-rc.1', '0.2.2-rc.12']) assert.ok(satisfiesRange(version, hostRange), version)
+  for (const version of ['0.2.1-rc.5', '0.2.1-rc.10', '0.2.1', '0.2.2', '0.2.9', '0.2.2-rc.1', '0.2.2-rc.12'])
+    assert.ok(satisfiesRange(version, hostRange), version)
   // 0.2.2 prereleases are opted in from rc.1 by their own comparator set; its alphas and the next line stay out.
   for (const version of ['0.2.1-rc.1', '0.2.1-alpha.5', '0.2.2-alpha.2', '0.2.2-alpha.3', '0.2.3-rc.1', '0.3.0', '0.3.0-rc.1', '0.2.0', '1.0.0', 'latest']) {
     assert.equal(satisfiesRange(version, hostRange), false, version)
