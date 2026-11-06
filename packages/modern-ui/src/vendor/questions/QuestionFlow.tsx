@@ -192,13 +192,17 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
   // arrives after another Client settled the event, without telling anyone.
   // The draft therefore survives until the projection closes the card, and a
   // card that flips to continued while a submission is in flight re-arms the
-  // controls so the same draft can go through the Remote path.
-  const sentVia = useRef<'waterfall' | null>(null)
+  // controls so the same draft can go through the Remote path. A dropped
+  // cancellation re-arms them without asking for a resubmission: nothing the
+  // reader wrote was lost, and the continued card already says it can still be
+  // answered.
+  const sentVia = useRef<'answer' | 'cancel' | null>(null)
   useEffect(() => {
-    if (sentVia.current !== 'waterfall' || card.state !== 'continued') return
+    if (sentVia.current === null || card.state !== 'continued') return
+    const sent = sentVia.current
     sentVia.current = null
     setBusy(null)
-    setError({ key: 'error.resubmit' })
+    setError(sent === 'answer' ? { key: 'error.resubmit' } : null)
   }, [card.state])
   useEffect(() => {
     if (card.closed) actions.clear(pending.key)
@@ -309,7 +313,8 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
     }
     setBusy('cancel')
     setError(null)
-    sentVia.current = 'waterfall'
+    // A cancellation only travels through the waterfall.
+    sentVia.current = 'cancel'
     void pending.dismiss()
       .catch((cause: unknown) => {
         sentVia.current = null
@@ -373,7 +378,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
     // The external-store render can lag the carrier as a timed call continues.
     // Read the channel used by answer() in this same event turn.
     const channel = pending.snapshot().channel
-    sentVia.current = channel === 'waterfall' ? 'waterfall' : null
+    sentVia.current = channel === 'waterfall' ? 'answer' : null
     void pending.answer(answer)
       .then(() => {
         if (channel !== 'rpc') return

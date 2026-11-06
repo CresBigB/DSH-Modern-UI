@@ -14,12 +14,20 @@ import type { CotTranslationPreferences, CotTranslationSnapshot } from './vendor
 import { TranslationBody, type TranslationBodyInjected } from './vendor/translation/client/TranslationBody.tsx'
 import { en, ja, es, fr, de, ru, pt, NS, zh } from './vendor/translation/client/locales.ts'
 
+// Until the first snapshot arrives the reasoning slot is not registered, so the reader has no control that could ask
+// again; a failed first read retries on its own a few times, and any later invalidation still retries after that.
+const FIRST_READ_RETRIES = 6
+const FIRST_READ_RETRY_MS = 2_000
+
 async function registerUi(ctx: Context, lifetime: AbortController): Promise<void> {
   let readTask: Promise<RemoteResult<CotTranslationSnapshot>> | undefined
   let updating: Promise<void> | undefined
   let acceptSnapshot: ((snapshot: CotTranslationSnapshot) => void) | undefined
   let revision = 0, lastReadRevision = -1, acceptedRevision = -1
+  let retryTimer: ReturnType<typeof setTimeout> | undefined
+  let retries = 0
   const isDisposed = (): boolean => lifetime.signal.aborted || ctx.fiber.uid === null
+  lifetime.signal.addEventListener('abort', () => { clearTimeout(retryTimer) }, { once: true })
   ctx.effect(() => async () => {
     lifetime.abort()
     await Promise.allSettled([readTask, updating])
@@ -56,12 +64,24 @@ async function registerUi(ctx: Context, lifetime: AbortController): Promise<void
           acceptedRevision = lastReadRevision
         }
       } catch (_error) {
-        if (!isDisposed()) ctx.logger.warn('cot-translation: could not refresh Host preferences and request limits')
+        if (!isDisposed()) {
+          ctx.logger.warn('cot-translation: could not refresh Host preferences and request limits')
+          if (acceptSnapshot === undefined) retryFirstRead()
+        }
       }
     })().finally(() => {
       updating = undefined
       if (revision !== lastReadRevision && !isDisposed()) refresh()
     })
+  }
+  function retryFirstRead(): void {
+    if (retryTimer !== undefined || retries >= FIRST_READ_RETRIES) return
+    const delay = FIRST_READ_RETRY_MS * 2 ** retries
+    retries += 1
+    retryTimer = setTimeout(() => {
+      retryTimer = undefined
+      if (acceptSnapshot === undefined) refresh()
+    }, delay)
   }
   const scope = ctx.configForms.get<CotTranslationPreferences>('cot-translation')
   ctx.effect(() => scope.subscribe(invalidate))

@@ -71,7 +71,8 @@ export function formatCacheHitPercent(
 ): string | null {
   if (promptTokens === 0) return null
   const missedInputTokens = promptTokens - cacheReadTokens
-  if (missedInputTokens === 0) return '100'
+  // A gateway can report more cached than prompt tokens; the gap search below needs a positive gap.
+  if (missedInputTokens <= 0) return '100'
 
   const roundedUnits = roundedPercentUnits(cacheReadTokens, promptTokens, decimalPlaces)
   const fullHitUnits = decimalPlaces === 0 ? 100 : 1_000

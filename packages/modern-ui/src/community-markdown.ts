@@ -111,10 +111,10 @@ export function installCommunityMarkdown(ctx: Context): void {
       }
       const scan = (node: Node) => {
         if (!(node instanceof view.Element)) return
+        // closest() includes the node itself, so a block that was added whole is attached here once.
         const block = node.closest<HTMLElement>('.md-code-block')
         if (block) attach(block)
         node.querySelectorAll<HTMLElement>(BLOCKS).forEach(attach)
-        if (node.matches(BLOCKS)) attach(node as HTMLElement)
       }
       scan(document.body)
       const observer = new view.MutationObserver(records => {

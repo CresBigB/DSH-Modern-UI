@@ -434,8 +434,9 @@ function Browser({ state, listing, t, face, hooks, language, onInstall, openPack
     { id: 'published', label: t('sortPublished') },
     ...declarations.sortKeys.map(item => ({ id: `key:${item.id}`, label: item.title })),
   ]
-  // The Controller drops a sort key the index no longer declares, and relevance follows the text.
-  const sortName = (sortOptions.find(option => option.id === sortMenuId(sort)) as { label: string }).label
+  // The Controller drops a sort key the index no longer declares, and relevance follows the text; a query that
+  // briefly names a key the shown results do not declare still renders, under the default order's name.
+  const sortName = sortOptions.find(option => option.id === sortMenuId(sort))?.label ?? t('sortDefault')
   const directed = sort.kind === 'published' || sort.kind === 'key'
   const chooseSort = (id: string): void => {
     setMenu(null)

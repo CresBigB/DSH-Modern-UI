@@ -33,15 +33,22 @@ export function installOfficialControls(ctx: Context): void {
       }
       scan(body)
       const observer = new view.MutationObserver(records => {
+        // Streaming answers add nodes on every chunk; only a removal or a changed switch can retire a motion.
+        let retire = false
         for (const record of records) {
           if (record.type === 'attributes') {
+            retire = true
             const element = record.target as HTMLButtonElement
             if (element.matches(SWITCH)) {
               attach(element)
               motions.get(element)?.to(element.getAttribute('aria-checked') === 'true')
             }
-          } else record.addedNodes.forEach(scan)
+          } else {
+            record.addedNodes.forEach(scan)
+            retire ||= record.removedNodes.length > 0
+          }
         }
+        if (!retire) return
         for (const [element, motion] of motions) {
           if (element.isConnected && element.matches(SWITCH)) continue
           motion.dispose()

@@ -138,6 +138,22 @@ function isNonPublicIpLiteral(hostname) {
 	return isIP(unbracketed) !== 0 && !isPublicIpAddress(unbracketed);
 }
 /**
+* Whether a hostname names this machine or its local network by its form alone: `localhost` and `*.localhost`
+* (RFC 6761), mDNS `*.local`, `*.home.arpa` (RFC 8375), `*.internal`, and a single-label name, which a resolver
+* completes with the local search domain.
+*
+* A proxied hop is resolved by the proxy, and resolving the name here first cannot stand in for that: a fake-IP
+* resolver answers every name with a reserved address. A proxy on this machine would still reach these names'
+* services, so they are refused by name. A public name that resolves to a private address stays the proxy's to judge.
+*
+* @param hostname - a URL's hostname that is not an IP literal.
+* @returns true when the name can only reach this machine or the local network.
+*/
+function isLocalHostname(hostname) {
+	const name = hostname.toLowerCase().replace(/\.$/, "");
+	return !name.includes(".") || /(?:^|\.)(?:localhost|local|home\.arpa|internal)$/.test(name);
+}
+/**
 * Fetch through an agent whose lookup callback returns only the already validated address set. The
 * URL hostname remains intact for HTTP Host and TLS SNI.
 *
@@ -487,6 +503,7 @@ var HttpFetchProvider = class {
 		};
 		try {
 			const route = proxyRouteFor(url);
+			if (route.proxied && isIP(stripIpv6Brackets(url.hostname)) === 0 && isLocalHostname(url.hostname)) throw new WebError(`URL hostname "${url.hostname}" names a local host`, "WEB_BLOCKED_URL");
 			if (route.proxied && !isNonPublicIpLiteral(url.hostname)) return await publicHttpNetwork.requestVia(route.proxy, url, headers, signal);
 			const addresses = await this.resolveAddresses(url.hostname, signal);
 			return await publicHttpNetwork.request(url, addresses, headers, signal);

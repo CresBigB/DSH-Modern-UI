@@ -110,7 +110,7 @@ export function ChatView({
   const openError = useSession(s => s.openError)
   const hasMore = useSession(s => s.hasMore)
   const loadingOlder = useSession(s => s.loadingOlder)
-  const [fileOpenError, setFileOpenError] = useState<{ path: string; message: string } | null>(null)
+  const [fileOpenError, setFileOpenError] = useState<{ path: string; options?: OpenFileOptions; message: string } | null>(null)
   const [fileOpenBusy, setFileOpenBusy] = useState(false)
   // Close/retry must ignore a settlement that started before the latest
   // gesture; otherwise a cancelled in-flight refusal reopens the dialog.
@@ -129,6 +129,8 @@ export function ChatView({
         if (id !== fileOpenRequest.current) return
         setFileOpenError({
           path,
+          // A retry opens the same line and column the link named.
+          options,
           message: openFailureMessage(
             error,
             t('fileOpen.unknown'),
@@ -265,7 +267,7 @@ export function ChatView({
           message={fileOpenError.message}
           busy={fileOpenBusy}
           onClose={closeFileOpenError}
-          onRetry={() => { requestOpenFile(fileOpenError.path) }}
+          onRetry={() => { requestOpenFile(fileOpenError.path, fileOpenError.options) }}
           t={t}
         />
       )}

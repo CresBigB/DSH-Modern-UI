@@ -53,7 +53,7 @@
       "source": "src/lib/components/extra.tsx",
       "target": "src/vendor/openui/components/extra.tsx",
       "sourceSha256": "586d1a898eb6405fea4fab136b3ca0a4db626b559a17ee9125b4232de312ae1d",
-      "targetSha256": "b6039ffa7862af145573d9f39e6eead016e83a0b908d6bfd5c5305115b989a60",
+      "targetSha256": "4a21eeb962da18228f9fb6ba42a1ac553c6beed9f92da796edb9ccd3356ca56b",
       "adapted": true
     },
     {
@@ -82,7 +82,7 @@
       "source": "src/lib/components/html-view.tsx",
       "target": "src/vendor/openui/components/html-view.tsx",
       "sourceSha256": "39bc4730a8fd87dacbde2f3b16ec13d1882f1e085f511a9b0dbe3b3a4167cecf",
-      "targetSha256": "8ed87055f2048782bf03ea8690a60b3b3b58aa9e073e387b264c35a4a6ab4b1b",
+      "targetSha256": "e8f74cebafadfe88d4c1ffac1d8feeef357584ee6ecbd66455373ba327123ba1",
       "adapted": true
     },
     {

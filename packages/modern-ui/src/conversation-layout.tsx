@@ -98,6 +98,8 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(scroll)
+    // The side clearance follows a container query on the pane; observe it too, not only the scroll box.
+    if (scroll !== container) observer.observe(container)
     return () => { observer.disconnect() }
   }, [container])
 
@@ -222,7 +224,9 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     aria-valuemax={Math.min(MAX_LAYOUT_WIDTH, available)} aria-valuenow={Math.round(actual)} title={labels.hint}
     onPointerDown={start} onPointerMove={event => { move(event, side) }}
     onPointerUp={event => { move(event, side); finish(false) }} onPointerCancel={() => { finish(true) }}
-    onLostPointerCapture={() => { finish(false) }} onKeyDown={event => { key(event, side) }}
+    // pointerup and pointercancel finish first; a capture lost without either (the window lost focus mid-drag)
+    // is not a release, so it restores the width from before the drag.
+    onLostPointerCapture={() => { if (drag.current !== null) finish(true) }} onKeyDown={event => { key(event, side) }}
     onWheel={event => {
       if (event.ctrlKey || event.deltaY === 0) return
       const scroll = container?.querySelector<HTMLElement>(':scope > [data-conversation-scroll]')

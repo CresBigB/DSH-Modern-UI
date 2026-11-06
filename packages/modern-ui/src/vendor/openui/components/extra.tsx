@@ -16,6 +16,12 @@ const slot = z.union([z.string(), children]);
 type Render = (value: unknown) => ReactNode;
 const renderSlot = (value: unknown, renderNode: Render) =>
   typeof value === "string" || typeof value === "number" ? inline(String(value)) : renderNode(Array.isArray(value) ? value.flat() : value);
+// Elements a component trigger may draw that take focus and clicks of their own.
+const CONTROLS = 'button, a[href], input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])';
+// A native button turns Enter and Space into the click the trigger catches, and a field takes them as text; any other
+// control (a Pressable is a focusable div) acts on the keys itself, so the trigger takes them first.
+const keysAreItsOwn = (element: Element) =>
+  ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) || (element as HTMLElement).isContentEditable === true;
 
 // Carousel
 export const Carousel = defineComponent({
@@ -103,6 +109,18 @@ export const Popover = defineComponent({
     const button = useRef<HTMLElement>(null);
     const panel = useRef<HTMLDivElement>(null);
     const body = useRef<HTMLDivElement>(null);
+    // A component trigger that draws its own control (a Button) opens the panel through that control, which then
+    // neither runs its action nor sits inside a second focusable wrapper.
+    const [control, setControl] = useState<HTMLElement | null>(null);
+    useLayoutEffect(() => {
+      const found = typeof props.trigger === "string" ? null : button.current?.querySelector<HTMLElement>(CONTROLS) ?? null;
+      setControl((current) => (current === found ? current : found));
+    });
+    useLayoutEffect(() => {
+      if (!control) return;
+      control.setAttribute("aria-haspopup", "dialog");
+      control.setAttribute("aria-expanded", String(open));
+    }, [control, open]);
     // Measured before the first paint, and again whenever the viewport, the trigger or the content changes size.
     useLayoutEffect(() => {
       if (!open) return;
@@ -124,27 +142,57 @@ export const Popover = defineComponent({
       if (!open) return;
       const close = (event: Event) => {
         const target = event.target as Node;
-        if (event.type === "keydown" ? (event as KeyboardEvent).key === "Escape" : !panel.current?.contains(target) && !button.current?.contains(target)) setOpen(false);
+        if (!panel.current?.contains(target) && !button.current?.contains(target)) setOpen(false);
+      };
+      // The panel takes its own Escape, so the composer or a panel around the answer does not also close; a modal
+      // dialog opened above it keeps the key.
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== "Escape" || (event.target as Element | null)?.closest?.('[role="dialog"][aria-modal="true"]')) return;
+        event.stopPropagation();
+        const focused = panel.current?.contains(document.activeElement) === true;
+        setOpen(false);
+        if (focused) (control ?? button.current)?.focus();
       };
       // Scrolling the page moves the trigger away; scrolling inside the panel (a table, code) does not.
       const onScroll = (event: Event) => {
         if (!panel.current?.contains(event.target as Node)) setOpen(false);
       };
       document.addEventListener("pointerdown", close);
-      document.addEventListener("keydown", close);
+      document.addEventListener("keydown", onKeyDown, true);
       window.addEventListener("scroll", onScroll, true);
       return () => {
         document.removeEventListener("pointerdown", close);
-        document.removeEventListener("keydown", close);
+        document.removeEventListener("keydown", onKeyDown, true);
         window.removeEventListener("scroll", onScroll, true);
       };
-    }, [open]);
+    }, [open, control]);
     return (
       <>
         {typeof props.trigger === "string" ? (
           <button ref={button as RefObject<HTMLButtonElement>} type="button" className="iui-popover-trigger" aria-expanded={open} onClick={() => setOpen(!open)}>
             {props.trigger}
           </button>
+        ) : control ? (
+          // The trigger's own control is the button: its click, and the keys that would run its action, are caught
+          // before they reach it.
+          <span
+            ref={button as RefObject<HTMLSpanElement>}
+            className="iui-popover-trigger"
+            onClickCapture={(event) => {
+              event.stopPropagation();
+              setOpen(!open);
+            }}
+            onKeyDownCapture={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              const target = (event.target as Element).closest(CONTROLS);
+              if (target === null || keysAreItsOwn(target)) return;
+              event.preventDefault();
+              event.stopPropagation();
+              setOpen(!open);
+            }}
+          >
+            {renderSlot(props.trigger, renderNode)}
+          </span>
         ) : (
           // A component trigger may hold its own button, and a button cannot contain another one.
           <span
@@ -189,13 +237,17 @@ export const Code = defineComponent({
   component: function CodeView({ props }) {
     const text = useUiText();
     const [copied, setCopied] = useState(false);
+    const reset = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    useEffect(() => () => clearTimeout(reset.current), []);
     const code = str(props.code);
     // The shared copy falls back to a selection where the Clipboard API is missing (plain-HTTP LAN pages).
     const copy = () =>
       void copyText(code).then((ok) => {
         if (!ok) return;
         setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        // A second copy restarts the confirmation instead of letting the first one's timer cut it short.
+        clearTimeout(reset.current);
+        reset.current = setTimeout(() => setCopied(false), 1500);
       });
     return (
       <div className="iui-codeblock">

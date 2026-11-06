@@ -66,7 +66,7 @@ const result = await build({
   tsconfigRaw: {},
   stdin: {
     contents:
-      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget } from './vendor/intelligent/client/openui-budget.ts'; export { createParser } from '@openuidev/react-lang'; export { expansionEstimate } from './vendor/intelligent/client/openui-source.ts'",
+      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget, STEP_LIMIT } from './vendor/intelligent/client/openui-budget.ts'; export { createParser } from '@openuidev/react-lang'; export { expansionEstimate } from './vendor/intelligent/client/openui-source.ts'",
     resolveDir: source,
     loader: 'tsx',
   },
@@ -101,7 +101,7 @@ const result = await build({
 const loaded = new Module(path.join(source, 'openui-block.test.cjs'))
 loaded.paths = Module._nodeModulePaths(repo)
 loaded._compile(result.outputFiles[0].text, loaded.id)
-const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget, createParser, expansionEstimate } = loaded.exports
+const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget, STEP_LIMIT, createParser, expansionEstimate } = loaded.exports
 
 /** Mount one block with a recording composer; `update` re-renders it with new stream state. */
 async function mount(code, { streaming = false, closed = true, composer = '' } = {}) {
@@ -628,6 +628,16 @@ test('a block over budget while it streams gets a fresh attempt when its fence c
   await view.unmount()
 })
 
+test('a reset budget starts its fresh attempt from zero, before the count that tripped it is cleared', () => {
+  const budget = new ExpansionBudget()
+  assert.equal(budget.step(STEP_LIMIT + 1), false)
+  // The re-render a reset notifies runs in the same task as the steps that tripped the limit.
+  budget.reset()
+  assert.equal(budget.exceeded(), false)
+  assert.equal(budget.step(1), true)
+  assert.equal(budget.exceeded(), false)
+})
+
 test('an Image whose address fails shows a placeholder and never searches with its alt text', async () => {
   fetches = []
   const view = await mount('root = Col([Image("https://example.invalid/private.png", "INTERNAL_TEST_caption")])')
@@ -726,7 +736,8 @@ test('a stacked bar rounds the outer segment of its upward and of its downward s
 test('a popover with a component trigger nests no button and stays open while its own content scrolls', async () => {
   const view = await mount('root = Col([Popover(Button("Open"), [Text("detail")]), Popover([Badge("info")], [Text("more")])])')
   assert.equal(view.host.querySelector('button button'), null)
-  const trigger = view.host.querySelectorAll('[role="button"].iui-popover-trigger')[1]
+  const trigger = view.host.querySelectorAll('.iui-popover-trigger')[1]
+  assert.equal(trigger.getAttribute('role'), 'button')
   await click(trigger)
   const panel = () => document.querySelector('.iui-popover')
   assert.ok(panel(), 'opens')
@@ -738,6 +749,74 @@ test('a popover with a component trigger nests no button and stays open while it
     document.dispatchEvent(new dom.window.Event('scroll'))
   })
   assert.equal(panel(), null, 'scrolling the page closes it')
+  await view.unmount()
+})
+
+test('a Button trigger opens its popover instead of proposing its label, and Escape closes only the popover', async () => {
+  const view = await mount('root = Col([Popover(Button("Details"), [Text("detail")])])')
+  const control = button(view.host, 'Details')
+  // The Button is the one focus stop: no role="button" wrapper around it.
+  assert.equal(view.host.querySelector('[role="button"].iui-popover-trigger'), null)
+  assert.equal(control.getAttribute('aria-expanded'), 'false')
+  await click(control)
+  const panel = () => document.querySelector('.iui-popover')
+  assert.ok(panel(), 'opens')
+  assert.deepEqual(view.calls.setDraft, [], 'the label is not proposed to the composer')
+  assert.equal(control.getAttribute('aria-expanded'), 'true')
+  let outside = 0
+  const listener = () => {
+    outside += 1
+  }
+  document.addEventListener('keydown', listener)
+  await act(async () => {
+    control.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  })
+  document.removeEventListener('keydown', listener)
+  assert.equal(panel(), null, 'Escape closes it')
+  assert.equal(outside, 0, 'the Escape does not reach other listeners')
+  await click(control)
+  assert.ok(panel(), 'reopens')
+  await click(control)
+  assert.equal(panel(), null, 'a second click closes it')
+  assert.deepEqual(view.calls.setDraft, [])
+  await view.unmount()
+})
+
+test('a Pressable trigger opens its popover from the keyboard without running its own action', async () => {
+  const view = await mount('root = Col([Popover(Pressable([Text("Details")], @ToAssistant("UNEXPECTED")), [Text("detail")])])')
+  const control = view.host.querySelector('.iui-pressable')
+  const panel = () => document.querySelector('.iui-popover')
+  // The Pressable is the one focus stop, and it carries the popover state.
+  assert.equal(view.host.querySelector('[role="button"].iui-popover-trigger'), null)
+  assert.equal(control.getAttribute('aria-expanded'), 'false')
+  const press = async key => {
+    await act(async () => {
+      control.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
+    })
+  }
+  await press('Enter')
+  assert.ok(panel(), 'Enter opens it')
+  assert.equal(control.getAttribute('aria-expanded'), 'true')
+  await press(' ')
+  assert.equal(panel(), null, 'Space closes it')
+  await click(control)
+  assert.ok(panel(), 'a click opens it')
+  assert.deepEqual(view.calls.setDraft, [], 'the action is not proposed to the composer')
+  assert.deepEqual(view.calls.insertText, [])
+  await view.unmount()
+})
+
+test('an HtmlView posts the current theme when its frame loads, so a switch made before then reaches the page', async () => {
+  const view = await mount('root = Col([HtmlView("<p>x</p>")])')
+  const frame = view.host.querySelector('iframe')
+  const posted = []
+  frame.contentWindow.postMessage = message => posted.push(message)
+  await act(async () => {
+    frame.dispatchEvent(new dom.window.Event('load'))
+  })
+  assert.equal(posted.length, 1)
+  assert.equal(posted[0].type, 'dsh:openui-html-view:v1')
+  assert.equal(typeof posted[0].palette?.fg, 'string')
   await view.unmount()
 })
 

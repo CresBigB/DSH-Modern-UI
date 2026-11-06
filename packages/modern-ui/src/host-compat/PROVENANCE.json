@@ -9,7 +9,7 @@
       "source": "packages/experimental/translator/src/deepseek.ts",
       "target": "translator/deepseek.ts",
       "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87",
-      "targetSha256": "beec03b87a930696978e891328ba959531e3187765f6bcc5a1c2f1eeebbb7e0e",
+      "targetSha256": "7fca51acbddcd770b797916acb46ce3da8d47a0a508957f95900e5df93488ce1",
       "adapted": true
     },
     {
@@ -149,7 +149,7 @@
       "source": "npm:@deepseek-ai/dsh-web-fetch-http@0.2.1-rc.4/lib/index.js",
       "sourceSha256": "489fef91b0c11c063029ea7aed27b312817570b9c3177aeaa44983b9a25aedcd",
       "target": "web-fetch-http/index.mjs",
-      "targetSha256": "cb5f3004e39328c0777eeab3c39969d34d982dfec3eedcb1544e1f4b3f6d424c",
+      "targetSha256": "104d08adb95cb61b2c426c8df8764771dffd7cf51701323e54b6f41f352d9554",
       "adapted": true,
       "description": "Published HTTP provider with a distinct plugin name and a plugin-owned Undici proxy-dispatcher lifecycle. Public-IP, DNS pinning, NAT64 and redirect checks remain in the attributed source."
     }
@@ -157,7 +157,7 @@
   "authored": [
     {
       "target": "plugin-documents/index.ts",
-      "targetSha256": "cf537e7f66d0cdc631e6025c5f52cc0c67fabcfcf245d31af5b79b256b24eaeb",
+      "targetSha256": "0aeec8d6449fcaabba98c2bb9784ae05fc12a3375931b2d2633b3af16000aa14",
       "description": "Original authenticated owner-only document/image routes, official-inventory authorization, separate installed-bundle/market read limits and sources, local rereads and request lifecycle around the attributed read-only utility/cache modules."
     }
   ],

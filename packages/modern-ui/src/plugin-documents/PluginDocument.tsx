@@ -7,13 +7,21 @@ import type {} from './locales.ts'
 export type DocumentTarget = { readonly kind: 'bundle'; readonly name: string; readonly version?: string }
   | { readonly kind: 'market'; readonly name: string; readonly url: string; readonly version: string }
 export type DocumentTranslate = PropsLocale<'modern-plugin-documents'>['t']
-type ReadState = { readonly key: string; readonly value: PluginDetail } | { readonly key: string; readonly failure: string }
+type DocumentProps = { target: DocumentTarget; language: string; t: DocumentTranslate }
+type ReadState = { readonly value: PluginDetail } | { readonly failure: string }
 const FAILURE_KEYS = { 'too-large': 'detailTooLarge', network: 'detailNetwork', denied: 'detailDenied',
   'git-unavailable': 'detailGitUnavailable', invalid: 'detailInvalid' } as const
 
-/** Read a listed package's document; each mounted language/target owns its request. */
-export function PluginDocument({ target, language, t }: { target: DocumentTarget; language: string; t: DocumentTranslate }) {
+/** Read a listed package's document; each target and language is read by an instance of its own. */
+export function PluginDocument(props: DocumentProps) {
+  const { target, language } = props
+  // A retry belongs to the document it was asked for: another target or language, and coming back to this one later,
+  // start without it and read the cache again.
   const key = JSON.stringify([target.kind, target.name, target.version, target.kind === 'market' ? target.url : '', language])
+  return <DocumentRead key={key} {...props} />
+}
+
+function DocumentRead({ target, language, t }: DocumentProps) {
   const [read, setRead] = useState<ReadState>()
   const [retry, setRetry] = useState(0)
   useEffect(() => {
@@ -33,17 +41,17 @@ export function PluginDocument({ target, language, t }: { target: DocumentTarget
         if (value.status !== 'none' && (value.status !== 'found' || typeof value.markdown !== 'string' || typeof value.document !== 'string')) {
           throw new Error('invalid')
         }
-        if (!controller.signal.aborted) setRead({ key, value })
+        if (!controller.signal.aborted) setRead({ value })
       }).catch((error: unknown) => {
-        if (!controller.signal.aborted) setRead({ key, failure: error instanceof Error ? error.message : 'network' })
+        if (!controller.signal.aborted) setRead({ failure: error instanceof Error ? error.message : 'network' })
       })
     return () => controller.abort()
-  }, [key, retry])
-  const accepted = read?.key === key ? read : undefined
-  const found = accepted !== undefined && 'value' in accepted && accepted.value.status === 'found' ? accepted.value : undefined
-  const state: DetailDocumentState = accepted === undefined ? { status: 'loading' }
-    : 'failure' in accepted ? { status: 'error', message: t(FAILURE_KEYS[accepted.failure as keyof typeof FAILURE_KEYS] ?? 'detailFailed') }
-      : accepted.value.status === 'none' ? { status: 'none' } : { status: 'found', markdown: accepted.value.markdown }
+    // The instance is keyed by target and language, so only a retry reads again.
+  }, [retry])
+  const found = read !== undefined && 'value' in read && read.value.status === 'found' ? read.value : undefined
+  const state: DetailDocumentState = read === undefined ? { status: 'loading' }
+    : 'failure' in read ? { status: 'error', message: t(FAILURE_KEYS[read.failure as keyof typeof FAILURE_KEYS] ?? 'detailFailed') }
+      : read.value.status === 'none' ? { status: 'none' } : { status: 'found', markdown: read.value.markdown }
   const labels = useDetailDocumentLabels({ title: t('detailTitle'), loading: t('detailLoading'), retry: t('retry'),
     copy: t('copy'), copied: t('copied'), codeBlock: t('codeBlock.title'), wrap: t('codeBlock.wrap'), unwrap: t('codeBlock.unwrap'),
     collapseCode: t('codeBlock.collapse'), expandCode: t('codeBlock.expand'), footnotes: t('footnotes') })

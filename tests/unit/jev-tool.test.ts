@@ -361,6 +361,54 @@ describe('PresentationAdvisor', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
+  test('calls sharing a summary share the request, which stops only once every one of them is cancelled', async () => {
+    let settle: (response: Response) => void = () => {}
+    const recorded = jev(
+      (_body, init) =>
+        new Promise((resolve, reject) => {
+          settle = resolve
+          init.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+        }),
+    )
+    const warn = vi.fn()
+    const { instance } = advisor({ fetch: recorded.fetch, config: () => settings({ timeout: 60_000 }), warn })
+    const live = session()
+    openTurn(instance, live, user('compare redis and memcached'))
+    const first = new AbortController()
+    const started = instance.advise({ content_summary: summary }, call(live, first.signal))
+    await vi.waitFor(() => expect(recorded.calls).toHaveLength(1))
+    const second = new AbortController()
+    const joined = instance.advise({ content_summary: summary }, call(live, second.signal))
+    // The call that started the request is cancelled; the one waiting with it is not, so the request goes on.
+    first.abort('run_code settled')
+    expect((await started).status).toBe('unavailable')
+    expect(recorded.calls[0].init.signal?.aborted).toBe(false)
+    settle(json(answer('table')))
+    expect(await joined).toMatchObject({ status: 'repeated', presentation: 'table' })
+    expect(recorded.calls).toHaveLength(1)
+
+    // Once every waiting call is cancelled, the request stops and the turn may ask again.
+    const other = session('s2')
+    openTurn(instance, other, user('pick a chart'))
+    const a = new AbortController()
+    const b = new AbortController()
+    const left = instance.advise({ content_summary: summary }, call(other, a.signal))
+    await vi.waitFor(() => expect(recorded.calls).toHaveLength(2))
+    const right = instance.advise({ content_summary: summary }, call(other, b.signal))
+    // The call that started the request finishes before the one that joined it is cancelled.
+    a.abort('cancelled')
+    expect((await left).status).toBe('unavailable')
+    expect(recorded.calls[1].init.signal?.aborted).toBe(false)
+    b.abort('cancelled')
+    expect(recorded.calls[1].init.signal?.aborted).toBe(true)
+    expect((await right).status).toBe('unavailable')
+    const again = instance.advise({ content_summary: summary }, call(other))
+    await vi.waitFor(() => expect(recorded.calls).toHaveLength(3))
+    settle(json(answer('bar_chart')))
+    expect((await again).status).toBe('suggestion')
+    expect(warn).not.toHaveBeenCalled()
+  })
+
   test('a session logs each new failure reason once, rather than only its first failure', async () => {
     const warn = vi.fn()
     let reply = (_init: RequestInit): Promise<Response> | Response => json({ error: 'nope' }, 500)
