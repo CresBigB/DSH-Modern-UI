@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-11-06
+
 ### Changed
 
 - 「收到任务消息」这类由通知触发的回合，开头那张灰色卡片改成和「思考」一样的一行：图标、标题、来源说明和时间，点开后正文挂在细线下面。
@@ -155,7 +157,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.3...v0.1.4
