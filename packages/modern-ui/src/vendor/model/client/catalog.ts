@@ -11,6 +11,25 @@ export interface ModelCatalogState {
   error: string | null
 }
 
+/**
+ * Hosts from 0.2.2 forward emit `llm/models-updated(provider)` when an adapter's advertised catalog
+ * changes. The rc.4 typings do not list the key, and older Hosts never emit it, so the subscription
+ * is a local listener that stays silent there. This is the one place the key is declared.
+ */
+interface ModelsUpdatedRemote {
+  $on(event: 'llm/models-updated', listener: (provider: string) => void): () => void
+}
+
+/**
+ * Reload the catalog whenever the Host reports a changed model listing.
+ * @param ctx - context whose `remote` forwards Host events; the listener is owned by its fiber.
+ * @param catalog - catalog invalidated and reloaded on each event.
+ * @returns disposer for this subscription.
+ */
+export function refreshOnModelsUpdated(ctx: ClientContext, catalog: Pick<ModelCatalogDirectory, 'refresh'>): () => void {
+  return (ctx.remote as unknown as ModelsUpdatedRemote).$on('llm/models-updated', () => { catalog.refresh() })
+}
+
 /** Loads at most one model catalog for the current Host generation. */
 export class ModelCatalogDirectory {
   /** Current shared catalog value and load lifecycle. */

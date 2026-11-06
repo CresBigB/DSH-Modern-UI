@@ -6,7 +6,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { WeakMapWithValues } from '@deepseek-ai/dsh-util-values'
-import { ModelCatalogDirectory } from './catalog.ts'
+import { ModelCatalogDirectory, refreshOnModelsUpdated } from './catalog.ts'
 import { ModelDirectory } from './directory.ts'
 
 interface LiveState {
@@ -29,6 +29,7 @@ export class ModelDirectoryResolver extends Service {
       for (const directory of this.live.directories.values) directory.resetConnected()
     })
     ctx.remote.$on('llm/adapters-updated', () => { this.catalog.refresh() })
+    refreshOnModelsUpdated(ctx, this.catalog)
     ctx.remote.$on('settings/document-updated', () => { this.catalog.refresh() })
     ctx.remote.$on('credentials/record-updated', () => { this.catalog.refresh() })
     ctx.remote.$on('credentials/reference-updated', () => { this.catalog.refresh() })

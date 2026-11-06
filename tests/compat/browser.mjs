@@ -674,6 +674,22 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       )
       return request
     })
+    await check('historical-image-after-reload', async () => {
+      // A reload drops the submission preview, so the transcript image must come back through
+      // Session.readAttachment, whose argument changed between 0.2.1 and 0.2.2.
+      const before = page.url()
+      await page.reload()
+      await page.getByText('COMPAT_ATTACHMENTS_ACCEPTED', { exact: true }).waitFor({ timeout: 30000 })
+      const image = page.locator('img[src^="blob:"], img[src^="data:image/"]').last()
+      await image.waitFor({ timeout: 30000 })
+      await image.scrollIntoViewIfNeeded()
+      await page.waitForFunction(element => element.complete && element.naturalWidth > 0, await image.elementHandle(), {
+        timeout: 30000,
+      })
+      const decoded = await image.evaluate(element => ({ width: element.naturalWidth, height: element.naturalHeight }))
+      assert.equal(page.url(), before)
+      return decoded
+    })
     await check('real-stream-stop-cancellation', async () => {
       await send('COMPAT_STOP')
       await page

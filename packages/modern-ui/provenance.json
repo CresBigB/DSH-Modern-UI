@@ -399,8 +399,9 @@
       "source": "packages/client/ui-conversation/src/client/conversation/historical-images.ts",
       "target": "src/vendor/conversation/client/conversation/historical-images.ts",
       "sourceSha256": "76e5431532ad5a996d0f1f198dc3ed787240c54175eeeefc33b868fee8197aeb",
-      "targetSha256": "76e5431532ad5a996d0f1f198dc3ed787240c54175eeeefc33b868fee8197aeb",
-      "adapted": false
+      "targetSha256": "4ae54160c8c195815ca5984c10c78ec30337ac90aef0bdb45b8e2dbde9b1d8d5",
+      "adapted": true,
+      "adaptation": "Durable image reads go through src/host-contract.ts: 0.2.1 Sessions take the attachment id, 0.2.2 Sessions take the complete ImageAttachmentRef; the shape follows the release the Host publishes in its boot graph."
     },
     {
       "source": "packages/client/ui-conversation/src/client/conversation/interaction-registry.ts",
@@ -1505,8 +1506,9 @@
       "source": "packages/client/ui-primitives/src/markdown/file-link.ts",
       "target": "src/vendor/primitives/markdown/file-link.ts",
       "sourceSha256": "5739f469133c873ecc97256f6de026b50425a4f0a9f75c662d3b6b26516d26c0",
-      "targetSha256": "5739f469133c873ecc97256f6de026b50425a4f0a9f75c662d3b6b26516d26c0",
-      "adapted": false
+      "targetSha256": "28c9b858c19290f42cce22b37c9cb41b7f6d0530edb4f8e5bc6a099f511a0b39",
+      "adapted": true,
+      "adaptation": "Re-copied from official 0.2.2-rc.1 packages/client/ui-primitives/src/markdown/file-link.ts (line/column suffixes and ranges; an invalid locator still opens the file) plus a one-line origin comment; keeps the rc.4 refusal of UNC and protocol-relative paths, which the official copy now accepts, so a click cannot make a Windows Host reach a network share. The bundled parser serves every supported Host."
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
@@ -1582,8 +1584,9 @@
       "source": "packages/client/ui-primitives/src/markdown/parse.ts",
       "target": "src/vendor/primitives/markdown/parse.ts",
       "sourceSha256": "1fb42f6a4fa6cb3c4a1945e4ddd69198c9ea03a7cf532838d75a50d79d3caf2b",
-      "targetSha256": "df5338341cd3b386593faf3c9e97a507ac74510a1414c6772f81a8341cba4c03",
-      "adapted": true
+      "targetSha256": "708946ff33ca8557f003922963d2ecdedb0e81ca52585cbcb45db6915eca34a2",
+      "adapted": true,
+      "adaptation": "Folds the official 0.2.2-rc.1 windows-path-destinations.ts extension into this file (Windows-path link destinations keep every backslash) instead of adding a vendored copy."
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/preview-placement.ts",
@@ -3585,7 +3588,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "35180564ff3ef9d27cfcb1d7472b377e8854402498b266523396e1c0f16577e9",
+      "targetSha256": "025002d6b88b4e546e12e132ca7196a54ce6f239a0ac894daa2a62ed06e4aa06",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3712,6 +3715,11 @@
       "target": "src/vendor/intelligent/client/openui-budget.ts",
       "targetSha256": "3ad8dabcb8d80f7636e11df39ffa4c21cc414726c35e1471cf726c6424cf73e1",
       "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library, the counters for the build-time patched evaluator and parser of @openuidev/lang-core (loops, built lists, objects and text, what each loop pass produces, component props, parsed nodes) and the parse limit, which stop an over-budget parse, evaluation or render in the @openuidev/react-lang runtime."
+    },
+    {
+      "target": "src/host-contract.ts",
+      "targetSha256": "008253a2fd8b9b9fb4437934eb0305e79e396716ce8b5f63dc0d2e737fa3b8bd",
+      "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2)."
     }
   ],
   "adapters": [
@@ -4038,7 +4046,7 @@
     },
     {
       "target": "src/vendor/model/client/catalog.ts",
-      "targetSha256": "751568938f6918a8e7734b44ab003bdf53e9390d7264dab6501fb582558a955d",
+      "targetSha256": "9b54d2a33d0c2b3b16663372b2faac4de10473d2cbfe6a073cf0fb77216ae114",
       "sources": [
         {
           "source": "packages/client/ui-model-selection/src/client/catalog.ts",
@@ -4049,7 +4057,7 @@
           "sourceSha256": "18f6e74e203d50f66c8e30552d52e070d06941514cb0e72b149683c092a3ba2a"
         }
       ],
-      "description": "Client-only shared catalog state. Existing TypeScript is checked against the published rc.4 browser artifact region lib/types/client/catalog.js (ModelCatalogDirectory, captured lines 710-801). Official Host catalog/Session Remote execution remains external."
+      "description": "Client-only shared catalog state. Existing TypeScript is checked against the published rc.4 browser artifact region lib/types/client/catalog.js (ModelCatalogDirectory, captured lines 710-801). Official Host catalog/Session Remote execution remains external. Also exports refreshOnModelsUpdated: 0.2.2 Hosts emit llm/models-updated when an adapter catalog changes; older Hosts never emit it."
     },
     {
       "target": "src/vendor/model/client/directory.ts",
@@ -4068,14 +4076,14 @@
     },
     {
       "target": "src/vendor/model/client/service.ts",
-      "targetSha256": "38d8a2403ebd02bd831b5ddc91bfbfed7d6b4ce73797edbc1967770222841349",
+      "targetSha256": "d6e93a92955afddd29ddd6582f3dda35b8620e76d4d10d927260b27b08a711f5",
       "sources": [
         {
           "source": "npm:@deepseek-ai/dsh-client-ui-model-selection@0.2.1-rc.4/lib/client.js",
           "sourceSha256": "18f6e74e203d50f66c8e30552d52e070d06941514cb0e72b149683c092a3ba2a"
         }
       ],
-      "description": "Minimal TypeScript adaptation of the published rc.4 browser artifact region lib/types/client/service.js (ModelDirectoryResolver, captured lines 985-1041): directoryFor and catalog/event lifecycle only. Legacy-only catalogStore/loadCatalog APIs and duplicate public Context declarations are omitted. No runtime import from the disabled official browser entry remains."
+      "description": "Minimal TypeScript adaptation of the published rc.4 browser artifact region lib/types/client/service.js (ModelDirectoryResolver, captured lines 985-1041): directoryFor and catalog/event lifecycle only. Legacy-only catalogStore/loadCatalog APIs and duplicate public Context declarations are omitted. No runtime import from the disabled official browser entry remains. Also refreshes on llm/models-updated (0.2.2 Hosts; older Hosts never emit it)."
     }
   ],
   "translations": [

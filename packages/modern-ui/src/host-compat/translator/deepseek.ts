@@ -72,9 +72,24 @@ function nativeOwner(ctx: Context, provider: PaidTranslationProvider): NativeOwn
   if (directory === undefined || directory.settingsPath.length !== 0) return undefined
   const entry = [...loader.entries()].find(row => row.options.id === directory.settingsNs && row.options.name === OWNER_PACKAGES[provider])
   if (entry?.fiber?.state !== FiberState.ACTIVE) return undefined
+  const config = activeConfigOf(entry.fiber)
+  if (config === undefined || config === null) return undefined
+  // Lifecycle events carry the plugin context's own fiber, not the handle the loader returned.
+  const fiber = entry.fiber.ctx.fiber
   return provider === 'deepseek-account'
-    ? { llm, fiber: entry.fiber, provider, config: entry.fiber.config as AccountNativeConfig }
-    : { llm, fiber: entry.fiber, provider, config: entry.fiber.config as OfficialNativeConfig }
+    ? { llm, fiber, provider, config: config as AccountNativeConfig }
+    : { llm, fiber, provider, config: config as OfficialNativeConfig }
+}
+
+/**
+ * Read the validated config a native owner currently runs with.
+ * Cordis 4.1 keeps the raw input in `config` and the validated, volatile-aware value in
+ * `effectiveConfig`; earlier releases validate into `config` and have no `effectiveConfig`.
+ * @param fiber - the owner's loader fiber.
+ * @returns the running config; undefined while a 4.1 fiber has none in effect.
+ */
+function activeConfigOf(fiber: Fiber): unknown {
+  return 'effectiveConfig' in fiber ? fiber.effectiveConfig : fiber.config
 }
 
 function unchanged(ctx: Context, provider: PaidTranslationProvider, previous: EligibleOwner): NativeOwner | undefined {
