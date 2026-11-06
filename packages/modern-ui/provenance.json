@@ -4865,7 +4865,7 @@
     {
       "namespace": "modern-presentation",
       "target": "src/presentation-parity.ts",
-      "targetSha256": "b7f4069a8104b2aec5dedde9afe468b7f7c660d85c1ac6e648ab9d692f5fb0e1",
+      "targetSha256": "dd2efe5cbcd3f68d227709c07b4af5ca2f16387b93aa0020524fa62664b6fd16",
       "languages": [
         "zh",
         "en",

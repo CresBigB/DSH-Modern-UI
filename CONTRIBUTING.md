@@ -29,6 +29,7 @@
 
 - 不放宽 OpenUI 组件边界（见 [SECURITY.md](SECURITY.md)）；不引入对宿主的 monkey patch。
 - `packages/modern-ui/src/vendor/` 里从官方 DSH 源码复制来的拷贝只减不增：可以删掉不再需要的拷贝、改为使用官方公开导出，但不新增；删掉文件时同步删掉它在 `provenance.json` 里的条目，其余记录不删不简化。第三方上游的拷贝（`vendor/openui/` 的 OpenUI 组件库、厂商标志）各自用 `*-upstream.json` 记录来源与逐文件哈希，改动后同步刷新。
+- 改了 `packages/modern-ui/src` 下登记过的文件，要刷新它在各清单里的 `targetSha256`；原样副本（`adapted: false`）改动后改为 `adapted: true`。`provenance.json` 的 `host` 段和 `src/host-compat/PROVENANCE.json` 记的是同一批文件，两处都要改。`tests/unit/provenance-digests.test.ts` 会逐条核对摘要与文件的原始字节。
 - 安装依赖用 `npm ci --ignore-scripts`（CI 同样如此）：`@openuidev/lang-core` 的安装脚本默认会发一次匿名安装统计，也可以设 `DO_NOT_TRACK=1` 关掉。改了 `vendor/openui/` 的组件或提示词选项后运行 `npm run prompt:openui`。
 - 用户可见的改动写进 [CHANGELOG.md](CHANGELOG.md) 的 `Unreleased`。
 - 提交信息格式：`feat|fix|docs|chore|test(scope): 中文描述`，一个工作包一个分支。首次格式化提交记在 `.git-blame-ignore-revs`，本地可用 `git config blame.ignoreRevsFile .git-blame-ignore-revs`。
