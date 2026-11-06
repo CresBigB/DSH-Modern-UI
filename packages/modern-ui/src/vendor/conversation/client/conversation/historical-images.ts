@@ -5,6 +5,7 @@ import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-con
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { bytesToBase64 } from '@deepseek-ai/dsh-util-crypto'
 import { WeakMapWithValues } from '@deepseek-ai/dsh-util-values'
+import { type AttachmentReadProtocol, attachmentReadProtocol, hostReleaseVersion, readImageAttachment } from '../../../../host-contract.ts'
 
 interface ImageUrlEntry {
   readonly binding: SessionBinding
@@ -18,13 +19,26 @@ export class HistoricalImageCache {
   private readonly scopeDisposers = new WeakMapWithValues<SessionBinding, () => void>()
   private readonly urls = new Set<string>()
   private disposed = false
+  private protocol: AttachmentReadProtocol | undefined
 
   /**
    * @param ctx - Owning ui-conversation fiber.
    * @param sessions - Session Controller object layer.
    */
-  constructor(ctx: Context, private readonly sessions: ISessions) {
+  constructor(private readonly ctx: Context, private readonly sessions: ISessions) {
     ctx.effect(() => () => { this.dispose() }, 'ui-conversation historical image cache')
+  }
+
+  /** The running Host's read argument shape: an id before 0.2.2, the complete reference from 0.2.2. */
+  private readProtocol(): AttachmentReadProtocol {
+    if (this.protocol !== undefined) return this.protocol
+    const version = hostReleaseVersion(this.ctx)
+    const protocol = attachmentReadProtocol(version)
+    if (protocol === undefined) {
+      console.warn(`[modern-ui] Host release ${version ?? '(none published)'} has no known image read contract; reading by attachment id.`)
+    }
+    this.protocol = protocol ?? 'attachment-id'
+    return this.protocol
   }
 
   /**
@@ -105,7 +119,7 @@ export class HistoricalImageCache {
     entry: ImageUrlEntry,
     attachment: ImageAttachmentRef,
   ): Promise<string> {
-    return entry.binding.session.readAttachment(attachment.attachmentId)
+    return readImageAttachment(entry.binding.session, this.readProtocol(), attachment)
       .then((result) => {
         if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
         this.assertLive(key, entry)

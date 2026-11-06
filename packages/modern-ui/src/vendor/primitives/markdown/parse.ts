@@ -8,15 +8,44 @@
  * math block once settled, by design).
  */
 
-import type { Root, RootContent } from 'mdast'
+import type { Definition, Image, Link, Root, RootContent } from 'mdast'
+import type { CompileContext, Extension, Token } from 'mdast-util-from-markdown'
 import { recoverLocalImages } from './local-image-syntax.ts'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { mathFromMarkdown } from 'mdast-util-math'
+import { decodeString } from 'micromark-util-decode-string'
 import { gfm } from 'micromark-extension-gfm'
 import { math } from 'micromark-extension-math'
 import { cjkFriendlyStrong } from './cjkFriendlyStrong.ts'
 import { mathCompatibility } from './mathCompatibility.ts'
+
+/**
+ * Ported from official 0.2.2-rc.1 ui-primitives/src/markdown/windows-path-destinations.ts.
+ * A raw destination is a Windows path when it has a backslash and no URL
+ * scheme, and either has no `/` or has a backslash before a letter or digit,
+ * which CommonMark cannot read as an escape. A drive letter is not a scheme.
+ */
+function isWindowsPath(raw: string): boolean {
+  return raw.includes('\\') && !/^[a-z][a-z\d+.-]+:/iu.test(raw)
+    && (!raw.includes('/') || /\\[\p{L}\p{N}]/u.test(raw))
+}
+
+function exitDestination(this: CompileContext, token: Token): void {
+  const parsed = this.resume()
+  const raw = this.sliceSerialize(token)
+  const node = this.stack.at(-1) as Link | Image | Definition
+  // Doubling each backslash makes every one literal; character references still decode.
+  node.url = isWindowsPath(raw) ? decodeString(raw.replaceAll('\\', '\\\\')) : parsed
+}
+
+/**
+ * Keeps every backslash in a Windows-path destination literal (`D:\repo\.github`
+ * would otherwise lose the one before `.`); other destinations parse unchanged.
+ */
+function windowsPathDestinations(): Extension {
+  return { exit: { resourceDestinationString: exitDestination, definitionDestinationString: exitDestination } }
+}
 
 /** GFM strikethrough requires `~~`; a single `~` stays literal, as in ranges such as `10~20`. */
 const gfmOptions = { singleTilde: false }
@@ -30,7 +59,7 @@ const gfmOptions = { singleTilde: false }
 export function parseGfm(text: string): Root {
   return recoverLocalImages(fromMarkdown(text, {
     extensions: [gfm(gfmOptions), cjkFriendlyStrong()],
-    mdastExtensions: [gfmFromMarkdown()],
+    mdastExtensions: [gfmFromMarkdown(), windowsPathDestinations()],
   }), text)
 }
 
@@ -285,6 +314,6 @@ export function parseGfmWithMath(text: string): Root {
     // `$115.36亿` paired with the next `$` and swallowed bold markers; the guarded
     // single-dollar construct in `mathCompatibility()` replaces it.
     extensions: [gfm(gfmOptions), cjkFriendlyStrong(), math({ singleDollarTextMath: false }), mathCompatibility()],
-    mdastExtensions: [gfmFromMarkdown(), mathFromMarkdown()],
+    mdastExtensions: [gfmFromMarkdown(), mathFromMarkdown(), windowsPathDestinations()],
   }), text)
 }

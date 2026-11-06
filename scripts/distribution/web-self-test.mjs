@@ -16,19 +16,56 @@ function statusRequest(url, headers) {
   })
 }
 
-const SKIPPED_BUNDLE = /^dsh: skipping profile bundle "([^"\n]+)": .*$/gm
+const QUOTED = '"(?:[^"\\\\\\n]|\\\\.)*"'
+const SKIPPED_BUNDLE = new RegExp(`^dsh: skipping profile bundle (${QUOTED}): ([^\\n]*)$`, 'gm')
+const DISABLED_PLUGIN = new RegExp(`^dsh: disabling profile plugin (?:row (${QUOTED})|(.+?)): ((?:Plugin |its )[^\\n]*)$`, 'gm')
+const MAX_REASON = 400
+
+function unquote(text) {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
+}
+
+function categorize(reason) {
+  if (/is incompatible with dsh|reaches an incompatible plugin/.test(reason)) return 'compatibility'
+  if (/Bundle supports Host platforms/.test(reason)) return 'platform'
+  if (/cannot resolve profile bundle/.test(reason)) return 'missing'
+  if (/cannot be validated/.test(reason)) return 'unvalidated'
+  return 'load-failure'
+}
 
 /**
- * Classify the official startup output. A profile copied from an existing data home may
- * select bundles the pinned release no longer ships; the official loader skips those with
- * one warning line and still boots, so that line is reported rather than treated as failure.
- * Every other error or inactive-entry report remains fatal.
+ * Classify the official startup output. The official loader reports a selected profile entry it
+ * does not load with one line and still boots: `skipping profile bundle "<name>": <reason>` for a
+ * bundle (rc4 and 0.2.2-rc.1), `disabling profile plugin row "<id>": <reason>` or
+ * `disabling profile plugin <module>: <reason>` for a plugin row (rc4 and 0.2.2-rc.1).
+ * Only a bundle that no longer resolves (a copied profile selecting a package this release does
+ * not ship) is a harmless removal and lands in `skippedBundles`. Every other skip keeps its name,
+ * category and reason in `unverified`: those entries the user selected are NOT running, so the
+ * install is reported with a warning instead of being claimed as fully verified. Other error lines
+ * remain fatal through `problem`.
+ * @param {string} text combined stdout and stderr of the startup.
+ * @returns {{skippedBundles: string[], unverified: {kind: 'bundle'|'plugin', name: string, category: string, reason: string}[], problem: boolean}}
  */
-export function auditStartupOutput(text) {
-  const skippedBundles = [...text.matchAll(SKIPPED_BUNDLE)].map(match => match[1])
-  const remainder = text.replace(SKIPPED_BUNDLE, '')
+export function auditStartupOutput(raw) {
+  const text = raw.replace(/\r\n/g, '\n')
+  const skippedBundles = new Set()
+  const unverified = []
+  const record = (kind, name, reason) => {
+    const category = categorize(reason)
+    if (kind === 'bundle' && category === 'missing') return void skippedBundles.add(name)
+    const trimmed = reason.length > MAX_REASON ? `${reason.slice(0, MAX_REASON)}...` : reason
+    if (!unverified.some(item => item.kind === kind && item.name === name && item.reason === trimmed))
+      unverified.push({ kind, name, category, reason: trimmed })
+  }
+  for (const match of text.matchAll(SKIPPED_BUNDLE)) record('bundle', unquote(match[1]), match[2])
+  for (const match of text.matchAll(DISABLED_PLUGIN)) record('plugin', match[1] === undefined ? match[2] : unquote(match[1]), match[3])
+  const remainder = text.replace(SKIPPED_BUNDLE, '').replace(DISABLED_PLUGIN, '')
   const problem = /entr(?:y|ies) did not activate|ValidationError|(?:Type|Reference|Syntax)?Error:|startup[^\n]*fail/i.test(remainder)
-  return { skippedBundles: [...new Set(skippedBundles)], problem }
+  return { skippedBundles: [...skippedBundles], unverified, problem }
 }
 
 // The official URL is announced before the Loader startup audit. A listening port alone
@@ -82,6 +119,8 @@ export async function webSelfTest(state, env) {
       // Do not persist process-token URLs or configuration values in installer output.
       throw new Error('Official Web startup audit reported inactive or invalid entries; selection retained')
     }
+    for (const item of audit.unverified)
+      console.warn(`Warning: the official Host did not load ${item.kind} ${item.name} (${item.category}); it is unverified and not running: ${item.reason}`)
     let response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10000) })
     const cookie = response.headers
       .getSetCookie()
@@ -132,6 +171,13 @@ export async function webSelfTest(state, env) {
         ? {
             skippedBundlesNote:
               'The copied profile selects bundles this official release does not ship; the official loader skipped them. Remove them from the profile package.json dsh.profile.bundles to silence the warning.',
+          }
+        : {}),
+      unverified: audit.unverified,
+      ...(audit.unverified.length
+        ? {
+            unverifiedNote:
+              'The official Host refused or could not load these selected entries, so they are not running and were not verified. Update them to a version that supports this Host, remove them from the profile, or grant an exact-version exemption yourself (dsh plugin allow-version).',
           }
         : {}),
       fullBrowserAcceptance: 'required separately',

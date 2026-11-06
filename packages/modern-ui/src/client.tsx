@@ -13,7 +13,7 @@ import type { ModelPickerSettings } from './vendor/model/model-settings.ts'
 import { registerModelPickerSettings } from './vendor/model/client/settings/register.ts'
 import { registerReasoningDeclaration, PI_AI_NAMESPACE } from './vendor/settings-models/client/register.ts'
 import { EFFORT_SHORT } from './vendor/model/client/profiles.ts'
-import { ModelCatalogDirectory } from './vendor/model/client/catalog.ts'
+import { ModelCatalogDirectory, refreshOnModelsUpdated } from './vendor/model/client/catalog.ts'
 import { installPluginStyles } from './styles.ts'
 import { AgentsView } from './vendor/subagent/client/agent-tree/AgentsView.tsx'
 import { SubagentHeaderLineage, SubagentCatalogAction } from './vendor/subagent/client/SubagentHeaderLineage.tsx'
@@ -99,6 +99,7 @@ function installPresentation(ctx: Context): void {
   const catalog = new ModelCatalogDirectory(ctx)
   ctx.on('connection/reset', () => catalog.resetGeneration())
   ctx.remote.$on('llm/adapters-updated', () => catalog.refresh())
+  refreshOnModelsUpdated(ctx, catalog)
   ctx.remote.$on('settings/document-updated', () => catalog.refresh())
   ctx.remote.$on('credentials/record-updated', () => catalog.refresh())
   ctx.remote.$on('credentials/reference-updated', () => catalog.refresh())

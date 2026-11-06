@@ -9,7 +9,7 @@
       "source": "packages/experimental/translator/src/deepseek.ts",
       "target": "translator/deepseek.ts",
       "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87",
-      "targetSha256": "efc5a4c9067b5d9fe1c92938d57ed32eb3841bfe231efba42ca7dd0838b430a3",
+      "targetSha256": "beec03b87a930696978e891328ba959531e3187765f6bcc5a1c2f1eeebbb7e0e",
       "adapted": true
     },
     {
