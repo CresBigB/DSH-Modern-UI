@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-11-07
+
 ### Fixed
 
 - 宿主启动时读取思维链翻译的设置和上限失败，整个会话都没有翻译按钮，只能等设置变更或重连；现在会在后台重试（2 秒起，逐次加倍，共 6 次）。
@@ -204,7 +206,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.5...v0.1.6
