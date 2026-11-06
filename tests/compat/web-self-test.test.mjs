@@ -22,6 +22,15 @@ test('a bundle the release no longer ships stays a harmless removal', () => {
   expect(audit).toEqual({ skippedBundles: ['@deepseek-ai/dsh-gone'], unverified: [], problem: false })
 })
 
+test('an unresolved community bundle is reported as not running, not as a harmless removal', () => {
+  const audit = auditStartupOutput(
+    'dsh: skipping profile bundle "dsh-community-thing": Error: dsh: cannot resolve profile bundle "dsh-community-thing" from the dsh installation or /p/web\n',
+  )
+  expect(audit.problem).toBe(false)
+  expect(audit.skippedBundles).toEqual([])
+  expect(audit.unverified).toEqual([expect.objectContaining({ kind: 'bundle', name: 'dsh-community-thing', category: 'missing' })])
+})
+
 test('a bundle refused for version support is unverified with name, category and reason', () => {
   const audit = auditStartupOutput(incompatibleBundle)
   expect(audit.problem).toBe(false)

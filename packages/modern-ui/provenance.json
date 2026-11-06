@@ -399,7 +399,7 @@
       "source": "packages/client/ui-conversation/src/client/conversation/historical-images.ts",
       "target": "src/vendor/conversation/client/conversation/historical-images.ts",
       "sourceSha256": "76e5431532ad5a996d0f1f198dc3ed787240c54175eeeefc33b868fee8197aeb",
-      "targetSha256": "af0c5582bf070c17b996c458f4e9fd13a48759bec17fd739daaaabd71289e34d",
+      "targetSha256": "4ae54160c8c195815ca5984c10c78ec30337ac90aef0bdb45b8e2dbde9b1d8d5",
       "adapted": true,
       "adaptation": "Durable image reads go through src/host-contract.ts: 0.2.1 Sessions take the attachment id, 0.2.2 Sessions take the complete ImageAttachmentRef; the shape follows the release the Host publishes in its boot graph."
     },

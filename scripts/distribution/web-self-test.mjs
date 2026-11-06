@@ -42,8 +42,8 @@ function categorize(reason) {
  * does not load with one line and still boots: `skipping profile bundle "<name>": <reason>` for a
  * bundle (rc4 and 0.2.2-rc.1), `disabling profile plugin row "<id>": <reason>` or
  * `disabling profile plugin <module>: <reason>` for a plugin row (rc4 and 0.2.2-rc.1).
- * Only a bundle that no longer resolves (a copied profile selecting a package this release does
- * not ship) is a harmless removal and lands in `skippedBundles`. Every other skip keeps its name,
+ * Only an official `@deepseek-ai/` bundle that no longer resolves (a copied profile selecting a
+ * package this release does not ship) is a harmless removal and lands in `skippedBundles`. Every other skip keeps its name,
  * category and reason in `unverified`: those entries the user selected are NOT running, so the
  * install is reported with a warning instead of being claimed as fully verified. Other error lines
  * remain fatal through `problem`.
@@ -56,7 +56,9 @@ export function auditStartupOutput(raw) {
   const unverified = []
   const record = (kind, name, reason) => {
     const category = categorize(reason)
-    if (kind === 'bundle' && category === 'missing') return void skippedBundles.add(name)
+    // Only an official package the pinned release stopped shipping is a harmless removal; an unresolved
+    // community bundle the user selected is reported like any other entry that is not running.
+    if (kind === 'bundle' && category === 'missing' && name.startsWith('@deepseek-ai/')) return void skippedBundles.add(name)
     const trimmed = reason.length > MAX_REASON ? `${reason.slice(0, MAX_REASON)}...` : reason
     if (!unverified.some(item => item.kind === kind && item.name === name && item.reason === trimmed))
       unverified.push({ kind, name, category, reason: trimmed })
@@ -165,7 +167,9 @@ export async function webSelfTest(state, env) {
         entry: 'official CLI process start through readiness and HTTP checks; excludes manager integrity scan',
         cacheConditions: 'new process, installed package files already present; OS file cache not flushed',
       },
-      startupAudit: 'no inactive/invalid entries observed after readiness',
+      startupAudit: audit.unverified.length
+        ? 'no fatal startup errors observed after readiness; some selected entries were not loaded (see unverified)'
+        : 'no inactive/invalid entries observed after readiness',
       skippedBundles: audit.skippedBundles,
       ...(audit.skippedBundles.length
         ? {

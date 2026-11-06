@@ -20,6 +20,7 @@ export class HistoricalImageCache {
   private readonly urls = new Set<string>()
   private disposed = false
   private protocol: AttachmentReadProtocol | undefined
+  private warnedUnknownRelease = false
 
   /**
    * @param ctx - Owning ui-conversation fiber.
@@ -34,11 +35,16 @@ export class HistoricalImageCache {
     if (this.protocol !== undefined) return this.protocol
     const version = hostReleaseVersion(this.ctx)
     const protocol = attachmentReadProtocol(version)
-    if (protocol === undefined) {
+    if (protocol !== undefined) {
+      this.protocol = protocol
+      return protocol
+    }
+    // Not cached: the module service may simply not be reachable yet, so a later read asks again.
+    if (!this.warnedUnknownRelease) {
+      this.warnedUnknownRelease = true
       console.warn(`[modern-ui] Host release ${version ?? '(none published)'} has no known image read contract; reading by attachment id.`)
     }
-    this.protocol = protocol ?? 'attachment-id'
-    return this.protocol
+    return 'attachment-id'
   }
 
   /**
