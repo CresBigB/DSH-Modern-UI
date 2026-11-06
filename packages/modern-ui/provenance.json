@@ -217,7 +217,7 @@
       "source": "packages/client/ui-chat/src/client/locale.ts",
       "target": "src/vendor/chat/client/locale.ts",
       "sourceSha256": "9df06d01dba1aaa060c6f42b1b473d6fbe33a8a9e703ab69121568478e2dd1b0",
-      "targetSha256": "1e62e02b594254728488999c47e38162b7a923491b580969ca3207033574c502",
+      "targetSha256": "1232578008a1fb96f8776c83124ce6c34793a4c42ddca0e5852ef3ffc62e11c2",
       "adapted": true
     },
     {
@@ -2843,14 +2843,14 @@
       "source": "packages/client/ui-chat/src/client/chat/TurnTriggerNodeView.module.css",
       "target": "src/vendor/chat/client/chat/TurnTriggerNodeView.module.css",
       "sourceSha256": "57fc29e5dfc0fb6db531786a00614cf8605eed8820400f44c228e876a2c2a489",
-      "targetSha256": "57fc29e5dfc0fb6db531786a00614cf8605eed8820400f44c228e876a2c2a489",
-      "adapted": false
+      "targetSha256": "10232acc2b28969f9182e43ce746d364a187c1612f5d628548d7383e61424264",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnTriggerNodeView.tsx",
       "target": "src/vendor/chat/client/chat/TurnTriggerNodeView.tsx",
       "sourceSha256": "52e4d1e567edb65e848bd2e174b68934636631e29350ad044c1d7439ff9e654f",
-      "targetSha256": "000214c4a15d1bf048822cb449328d54e8859a77295edfb67708d42088b8cbe9",
+      "targetSha256": "3d15062f4a1753862fa2f7fd346b640ee56530dcd58e75a23378298031ba1a78",
       "adapted": true
     },
     {
@@ -2948,8 +2948,8 @@
       "source": "packages/client/ui-chat/src/client/chat/turn-trigger.ts",
       "target": "src/vendor/chat/client/chat/turn-trigger.ts",
       "sourceSha256": "ce9332beb985db4f46ae60f253a83d47994b2e3def108672988546867f77db5a",
-      "targetSha256": "ce9332beb985db4f46ae60f253a83d47994b2e3def108672988546867f77db5a",
-      "adapted": false
+      "targetSha256": "10fa5ba3eb038dcebb0b36e687647bb1e85bb1f610cee49110d06e7e4629e7cb",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/use-chat-navigation.ts",
