@@ -39,7 +39,7 @@
 
 每天的 [Upstream canary](.github/workflows/upstream-canary.yml) 对 `hostRange` 内最新的未验证预发布版和正式版跑 `tests/compat/run.mjs` 与 `tests/compat/npm-install.e2e.mjs`，失败时开 issue `upstream: <版本> 兼容失败`。比已验证宿主新、但落在范围外的最新版本也会排进 canary：它在范围检查处立即失败，这个 issue 不是兼容结论，而是提醒按下面第 4 步评估要不要扩大 `hostRange`；扩大后再手动运行 canary（`host` 填该版本）验证。安装器不给未验证宿主附装社区插件；canary 则把默认宿主的社区组合作为候选装上（结果 JSON 的 `communityCandidate`），通过即说明该组合可以写进新宿主的 `communityPlugins`。
 
-canary 同时对每个宿主跑 `node scripts/vendor-drift.mjs --host <版本>`，列出 `provenance.json` 记录的上游源文件里哪些被这个版本改了（报告进步骤摘要、artifact 和失败 issue）。npm 包不带 `src/`，所以源码取自上游 GitHub tag `dsh-v<版本>` 的源码归档；`npm:` 来源取自 npm registry。报告分两段：
+canary 同时对每个宿主跑 `node scripts/vendor-drift.mjs --host <版本>`，列出 `provenance.json` 记录的上游源文件里哪些被这个版本改了（报告进步骤摘要、artifact 和失败 issue）。宿主替代插件（翻译、MCP 客户端、网页抓取、插件文档）另有一份来源清单，canary 再跑一次 `--provenance packages/modern-ui/src/host-compat/PROVENANCE.json`，报告在 artifact 的 `host-drift.md`。npm 包不带 `src/`，所以源码取自上游 GitHub tag `dsh-v<版本>` 的源码归档；`npm:` 来源取自 npm registry。报告分两段：
 
 - **相对上一个已验证宿主**：新 rc 兼容失败时先看这里，通常只有几个文件。
 - **相对 vendor 抓取基线**（`provenance.json#commit`）：vendored 拷贝累计没跟上的全部改动。「需人工合并」包括本地改写过的和抓取时已带旧 Modern 补丁的；「可直接重新复制」只有未打补丁的原样副本，重新复制后要同步 `provenance.json` 的两个摘要；「两侧都没有」是旧补丁新增的文件。
