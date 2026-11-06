@@ -291,7 +291,17 @@ function ProjectRow({
       data-row-key={`workspace:${group.key}`}
       role="treeitem"
       aria-expanded={row.expanded}
+      // Like a session row, the header takes focus; Enter, Space and the tree's arrows fold it.
+      tabIndex={0}
       onClick={onToggle}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+        const fold = event.key === 'Enter' || event.key === ' '
+          || (event.key === 'ArrowRight' && !row.expanded) || (event.key === 'ArrowLeft' && row.expanded)
+        if (!fold) return
+        event.preventDefault()
+        onToggle()
+      }}
       draggable={drag !== undefined}
       onDragStart={drag === undefined
         ? undefined
@@ -542,7 +552,14 @@ export function SearchResultItem({
       role="treeitem"
       aria-selected={selected}
       aria-description={result.archived ? t('toast.archivedNotOpenable') : undefined}
+      tabIndex={0}
       onClick={() => { onOpen(result.id) }}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+        event.preventDefault()
+        onOpen(result.id)
+      }}
     >
       <span className={css.searchResultHeading}>
         {/* Like session rows, the leading slot owns every row marker; on
@@ -654,6 +671,8 @@ export function SessionNodeItem({
   // detail-1 press on this title since the window last lost focus.
   const renameArmed = useRef(false)
   const disarmRename = useRef(() => { renameArmed.current = false }).current
+  // A press arms the rename until the window next loses focus; a row removed before then drops its listener.
+  useEffect(() => () => { window.removeEventListener('blur', disarmRename) }, [disarmRename])
   const marquee = useTitleMarquee(titleRef)
   useEffect(() => {
     if (onReveal === undefined) return

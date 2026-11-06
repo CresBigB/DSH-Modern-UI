@@ -95,6 +95,9 @@ export class ExpansionBudget {
   reset(): void {
     if (!this.#exceeded) return
     this.#exceeded = false
+    // The re-render this notifies can run before the queued microtask clears the count that tripped the limit;
+    // the attempt starts from zero. A pending microtask (#counting) still clears the count after it.
+    this.#steps = 0
     this.#notify()
   }
 

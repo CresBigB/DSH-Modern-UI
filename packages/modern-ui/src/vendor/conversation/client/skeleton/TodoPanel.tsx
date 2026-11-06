@@ -103,7 +103,8 @@ export function TodoPanel({ todos, t }: TodoPanelProps) {
         {!collapsed && (
           <ul className={css.list}>
             {todos.map((item, index) => (
-              <li key={item.content} className={css.item} data-status={item.status}>
+              // Two todos can share their text; the position keeps their keys apart.
+              <li key={`${String(index)}:${item.content}`} className={css.item} data-status={item.status}>
                 <span className={css.glyph} role="img" aria-label={statusLabel(item.status, t)}>
                   {item.status === 'completed' ? (
                     <span className={css.checkBadge}>

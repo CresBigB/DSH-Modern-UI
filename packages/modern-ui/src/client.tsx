@@ -14,6 +14,7 @@ import { registerModelPickerSettings } from './vendor/model/client/settings/regi
 import { registerReasoningDeclaration, PI_AI_NAMESPACE } from './vendor/settings-models/client/register.ts'
 import { EFFORT_SHORT } from './vendor/model/client/profiles.ts'
 import { ModelCatalogDirectory, refreshOnModelsUpdated } from './vendor/model/client/catalog.ts'
+import { ModelDirectoryResolver } from './vendor/model/client/service.ts'
 import { installPluginStyles } from './styles.ts'
 import { AgentsView } from './vendor/subagent/client/agent-tree/AgentsView.tsx'
 import { SubagentHeaderLineage, SubagentCatalogAction } from './vendor/subagent/client/SubagentHeaderLineage.tsx'
@@ -82,6 +83,25 @@ export async function apply(ctx: Context): Promise<void> {
   for (const owner of owners) await owner.await()
 }
 
+/**
+ * The catalog the model picker settings show. The model owner's resolver already loads it and reloads it on every
+ * Host model event; a second directory would repeat each of those catalog reads.
+ * @param ctx - the presentation context, which injects `modelDirectories`.
+ * @returns the resolver's catalog, or an own one when another owner provides the service.
+ */
+function modelCatalog(ctx: Context): ModelCatalogDirectory {
+  const directories: unknown = ctx.modelDirectories
+  if (directories instanceof ModelDirectoryResolver) return directories.catalog
+  const catalog = new ModelCatalogDirectory(ctx)
+  ctx.on('connection/reset', () => catalog.resetGeneration())
+  ctx.remote.$on('llm/adapters-updated', () => catalog.refresh())
+  refreshOnModelsUpdated(ctx, catalog)
+  ctx.remote.$on('settings/document-updated', () => catalog.refresh())
+  ctx.remote.$on('credentials/record-updated', () => catalog.refresh())
+  ctx.remote.$on('credentials/reference-updated', () => catalog.refresh())
+  return catalog
+}
+
 function installPresentation(ctx: Context): void {
   installQuotes(ctx)
   installPresentationParity(ctx)
@@ -96,13 +116,7 @@ function installPresentation(ctx: Context): void {
   ctx.inject(['uiWorkspace', 'uiSession', 'uiConversation', 'connection', 'sidebarRight'], applyChat)
   const form = ctx.configForms.get<ModelPickerSettings>(MODEL_PICKER_NAMESPACE)
   const t = ctx.locale.bind('modern-model')
-  const catalog = new ModelCatalogDirectory(ctx)
-  ctx.on('connection/reset', () => catalog.resetGeneration())
-  ctx.remote.$on('llm/adapters-updated', () => catalog.refresh())
-  refreshOnModelsUpdated(ctx, catalog)
-  ctx.remote.$on('settings/document-updated', () => catalog.refresh())
-  ctx.remote.$on('credentials/record-updated', () => catalog.refresh())
-  ctx.remote.$on('credentials/reference-updated', () => catalog.refresh())
+  const catalog = modelCatalog(ctx)
   registerModelPickerSettings(ctx, {
     form,
     catalog: catalog.store,

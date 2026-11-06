@@ -15,13 +15,15 @@ const FAILURE_KEYS = { 'too-large': 'detailTooLarge', network: 'detailNetwork', 
 export function PluginDocument({ target, language, t }: { target: DocumentTarget; language: string; t: DocumentTranslate }) {
   const key = JSON.stringify([target.kind, target.name, target.version, target.kind === 'market' ? target.url : '', language])
   const [read, setRead] = useState<ReadState>()
-  const [retry, setRetry] = useState(0)
+  // A retry refreshes only the document it was asked for; another target or language reads the cache again.
+  const [retry, setRetry] = useState<{ readonly key: string; readonly count: number }>({ key, count: 0 })
+  const attempt = retry.key === key ? retry.count : 0
   useEffect(() => {
     const controller = new AbortController()
     const url = new URL('api/modern-ui/plugin-document', document.baseURI)
     for (const [name, value] of Object.entries(target)) if (value !== undefined) url.searchParams.set(name, value)
     url.searchParams.set('language', language)
-    if (retry > 0) url.searchParams.set('refresh', 'true')
+    if (attempt > 0) url.searchParams.set('refresh', 'true')
     void fetch(url, { signal: controller.signal, credentials: 'same-origin', headers: { accept: 'application/json' } })
       .then(async response => {
         if (!response.ok) {
@@ -38,7 +40,7 @@ export function PluginDocument({ target, language, t }: { target: DocumentTarget
         if (!controller.signal.aborted) setRead({ key, failure: error instanceof Error ? error.message : 'network' })
       })
     return () => controller.abort()
-  }, [key, retry])
+  }, [key, attempt])
   const accepted = read?.key === key ? read : undefined
   const found = accepted !== undefined && 'value' in accepted && accepted.value.status === 'found' ? accepted.value : undefined
   const state: DetailDocumentState = accepted === undefined ? { status: 'loading' }
@@ -53,5 +55,5 @@ export function PluginDocument({ target, language, t }: { target: DocumentTarget
     url.searchParams.set('path', destination)
     return url.href
   } }, [found?.document])
-  return <DetailDocument state={state} labels={labels} images={images} onRetry={() => { setRead(undefined); setRetry(value => value + 1) }} />
+  return <DetailDocument state={state} labels={labels} images={images} onRetry={() => { setRead(undefined); setRetry(value => ({ key, count: value.key === key ? value.count + 1 : 1 })) }} />
 }

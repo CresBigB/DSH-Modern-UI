@@ -18,7 +18,8 @@ export class ModelDirectoryResolver extends Service {
   static inject = ['sessions', 'remote', 'remote.session']
 
   private readonly live: LiveState = { directories: new WeakMapWithValues() }
-  private readonly catalog: ModelCatalogDirectory
+  /** The one Host-generation catalog; the model picker settings read it too instead of loading a second copy. */
+  readonly catalog: ModelCatalogDirectory
 
   constructor(ctx: Context) {
     super(ctx, 'modelDirectories')

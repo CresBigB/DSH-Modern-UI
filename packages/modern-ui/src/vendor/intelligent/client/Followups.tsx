@@ -1,5 +1,5 @@
 /** Related questions the assistant proposes at the end of an answer; a click asks one as the next message. */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { IconChevronRightOutlineRegular } from '@iroha1145/dsh-modern-ui/primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -29,15 +29,18 @@ export function Followups({ code, closed, inputActions, useInput, useSession, us
   const allowed = useAccess('session/prompt')
   const [insertionRejected, setInsertionRejected] = useState(false)
   const [asked, setAsked] = useState<ReadonlySet<string>>(() => new Set())
+  // Read synchronously, so a second click handled before the re-render cannot send the question again.
+  const sent = useRef(new Set<string>())
   if (!closed || questions.length === 0 || !writable || !allowed) return null
   const ask = (question: string): void => {
-    if (busy || asked.has(question)) return
+    if (busy || sent.current.has(question)) return
     setInsertionRejected(false)
     if (!composerFree) {
       // The editor may reject an insertion if its state changed since this render.
       setInsertionRejected(!inputActions.insertText(question, inputActions.captureInsertion()))
       return
     }
+    sent.current.add(question)
     inputActions.setDraft(question)
     inputActions.submit()
     setAsked(previous => new Set(previous).add(question))

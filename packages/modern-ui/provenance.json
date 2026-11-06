@@ -799,7 +799,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/TodoPanel.tsx",
       "target": "src/vendor/conversation/client/skeleton/TodoPanel.tsx",
       "sourceSha256": "39199c4c794d405c76a34933621295bb33a8aed0576ba247a852cdbf2c2fc602",
-      "targetSha256": "01aeaaa8bae327d2ab20f96832bd15e343d052b1028932201d8c9fdc309bad40",
+      "targetSha256": "3f316e3c73c4a8c4f9fa94e7da9bc241305964de91e568df50170b99caa60f2b",
       "adapted": true
     },
     {
@@ -883,7 +883,7 @@
       "source": "packages/client/ui-intelligent-ui/src/client/Followups.tsx",
       "target": "src/vendor/intelligent/client/Followups.tsx",
       "sourceSha256": "9a8a12c14b40c9fe1f625c775b1ce370d0ef7ec41c02d5311b35c64c8bd88e8c",
-      "targetSha256": "204e8caf79009452c01352c219aaf6e7084f7bfc9ad209ce9117730aa02ddc8b",
+      "targetSha256": "c2e3a55fdb65f9977ed93a6340b9348747e18f4d6012ce166d6f6c998d38f28c",
       "adapted": true
     },
     {
@@ -1499,7 +1499,7 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
       "target": "src/vendor/primitives/markdown/CodeBlock.tsx",
       "sourceSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "targetSha256": "b0916d0ca091468a3809540ff7f9ccf381fdcdf4d6f8751e5e3ecb1673c75f1f",
+      "targetSha256": "525856b955874df780d506291e761e8bd2cc3dc0670818d742447c71ba5226ad",
       "adapted": true
     },
     {
@@ -1514,8 +1514,9 @@
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
       "target": "src/vendor/primitives/markdown/highlight.ts",
       "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "targetSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "adapted": false
+      "targetSha256": "e60a81393e1eb28e3f0f43832e291eed43214daff37e21c20aede4e0443db001",
+      "adapted": true,
+      "adaptation": "A lazy grammar whose import fails is forgotten, so a later render can import it again instead of staying plain for the session."
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/incremental.ts",
@@ -2096,7 +2097,7 @@
       "source": "packages/client/ui-subagent/src/client/SubagentHeaderLineage.tsx",
       "target": "src/vendor/subagent/client/SubagentHeaderLineage.tsx",
       "sourceSha256": "afa5759290fb47365c5f0838cfcbd048b8480f5f190f84ea2584f46202d21417",
-      "targetSha256": "dbab4cce01f3157f3cc0cde9c3b00c042260a8d132ef5a92a35d43f7843bbf9a",
+      "targetSha256": "78c4f378a434518d0b18a4553e60765e469771ee5edc66b09308daa36c91e38d",
       "adapted": true
     },
     {
@@ -2502,8 +2503,9 @@
       "source": "packages/experimental/client-ui-cot-translation/src/client/translation.ts",
       "target": "src/vendor/translation/client/translation.ts",
       "sourceSha256": "6440adfa86ca0238bf8a0c4185ce117f094f8155f83de35e4a1cd3195fe8cb4f",
-      "targetSha256": "6440adfa86ca0238bf8a0c4185ce117f094f8155f83de35e4a1cd3195fe8cb4f",
-      "adapted": false
+      "targetSha256": "6de4c45f548d55e4a65fe956c461e2c44ca793dc88152296699aaae211dbeb84",
+      "adapted": true,
+      "adaptation": "reasoningFragments steps back from a high surrogate only when the cut stays above zero, so a one-character limit cannot loop on empty fragments."
     },
     {
       "source": "packages/experimental/client-ui-cot-translation/src/client/TranslationBody.tsx",
@@ -2579,7 +2581,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/Rows.tsx",
       "target": "src/vendor/workspace/client/rows/Rows.tsx",
       "sourceSha256": "d8b7103c28e8aa8b3dd444992a30552e392a7f164966819e62466cae6bcf60f6",
-      "targetSha256": "71045a2797682efdce1ca3d16b9d9123081882542dfbc18bba671c26b665ee56",
+      "targetSha256": "e8d91a1861e6f2b2e21e9b199e03dd96018254a0f1a4ca2bc5c69ee51f99051a",
       "adapted": true
     },
     {
@@ -2769,7 +2771,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatView.tsx",
       "target": "src/vendor/chat/client/chat/ChatView.tsx",
       "sourceSha256": "87d8cfab43277202f623bbe2b54a1f3ea6847786d425596e806d915b4710e936",
-      "targetSha256": "e802f4b0a2dc952ff42ea1178994d8171ce3edaf03e59d366f0e1ca5bc065e33",
+      "targetSha256": "eec93514c7761146c26800bed54068640ef82c290f3471a4a8a3b929e28e9333",
       "adapted": true
     },
     {
@@ -2930,8 +2932,9 @@
       "source": "packages/client/ui-chat/src/client/chat/token-format.ts",
       "target": "src/vendor/chat/client/chat/token-format.ts",
       "sourceSha256": "143a024cbec7ad51a8e0b15db5ea68a6c994bd584b6530b8ce3fb9c5c9e8646f",
-      "targetSha256": "143a024cbec7ad51a8e0b15db5ea68a6c994bd584b6530b8ce3fb9c5c9e8646f",
-      "adapted": false
+      "targetSha256": "3f32a45ea5807b8199e05e3b4c9456c54e6b33eacfcf0b38a90b53ffd74a1ccd",
+      "adapted": true,
+      "adaptation": "formatCacheHitPercent treats more cached than prompt tokens as a full hit; the gap search below it loops forever on a negative gap."
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/turn-assistant.ts",
@@ -3469,7 +3472,7 @@
       "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.tsx",
       "sourceSha256": "6082724fbb6332113c2574c8f7066160cb773cd7c3e4ba6a0d173c1463ada918",
       "target": "src/vendor/plugin-market/DiscoverSection.tsx",
-      "targetSha256": "6bdba3c9bc6ed1db54994c796d0582c36aaffd8a8a734b22db8a4a80c700274a",
+      "targetSha256": "034f00811796eb5e98ad062552068e26da76ad86cb974b133bc2cdeb72ff92d8",
       "adapted": true
     },
     {
@@ -3511,7 +3514,7 @@
       "source": "packages/client/ui-user-questions/src/client/QuestionComposer.tsx",
       "sourceSha256": "53a88b7a0034d0a460b44b08e86754710a1d3c9496e761d9b2d41798be884db1",
       "target": "src/vendor/questions/QuestionFlow.tsx",
-      "targetSha256": "48eab58cfca90b66347641ca24b3a525b14b3e25a15af633077e13bb60ee03d9",
+      "targetSha256": "857a3258f1baae7ae6735cb6825eff107a9894ea905b307cb34c17afc1cd1785",
       "adapted": true
     },
     {
@@ -3588,7 +3591,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "025002d6b88b4e546e12e132ca7196a54ce6f239a0ac894daa2a62ed06e4aa06",
+      "targetSha256": "b6edcf89775df2af45373e2dc830550115b9925b59eb8d00b4e8a7a7af6ad952",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3598,7 +3601,7 @@
     },
     {
       "target": "src/community-markdown.ts",
-      "targetSha256": "3a03dafea1dbf8a0ad827d6b7b9e70855e68b461e74afa59609acc8b8e8af2a3",
+      "targetSha256": "f1f7588537be1b2838fc2be4449c6b93d3cd5a29139195a637f81d989b4f61e9",
       "description": "Original reversible code-disclosure DOM adapter for the observed dsh-better-sidebar 0.28.0 public preview markup. No community controller, viewer, editor or library code is copied."
     },
     {
@@ -3608,7 +3611,7 @@
     },
     {
       "target": "src/official-controls.ts",
-      "targetSha256": "0e3e908a4ca17c8ed5c5cbd2e143af113253144817ed4f1d6c775c17f0811695",
+      "targetSha256": "9ecc6a1f06169855c8b7ea489ede239721c2fbc7e4236c36f2405a8ba5d523e8",
       "description": "Original reversible exact-class rc.4 style/DOM adapter. It observes official controlled switch state through the attributed Feel solver without replacing official handlers or services."
     },
     {
@@ -3618,7 +3621,7 @@
     },
     {
       "target": "src/plugin-documents/PluginDocument.tsx",
-      "targetSha256": "0ffee1c49ca45f391e1483e1699340f11fe6e00aa165dcf487fae4663e442497",
+      "targetSha256": "5f353455a45900692328b028ae788f0bc1a9058ed5c8824a47cdc05526145ab9",
       "description": "Original authenticated document/image request, cancellation and retry wrapper over the attributed DetailDocument presenter."
     },
     {
@@ -3688,7 +3691,7 @@
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "fe50d93c61bd81169cb2e010d9607ba794f677460e3b5588fe02a412d8affd3b",
+      "targetSha256": "db96d2c237e9452e56d92f8b973bd20b8a984bc267ab48db72fd0ade32cabec5",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
@@ -3713,7 +3716,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-budget.ts",
-      "targetSha256": "3ad8dabcb8d80f7636e11df39ffa4c21cc414726c35e1471cf726c6424cf73e1",
+      "targetSha256": "a66767d1c7bf48a4277b838f765615f8d1d927f5ede024c8788fe894c4e6d295",
       "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library, the counters for the build-time patched evaluator and parser of @openuidev/lang-core (loops, built lists, objects and text, what each loop pass produces, component props, parsed nodes) and the parse limit, which stop an over-budget parse, evaluation or render in the @openuidev/react-lang runtime."
     },
     {
@@ -4076,7 +4079,7 @@
     },
     {
       "target": "src/vendor/model/client/service.ts",
-      "targetSha256": "d6e93a92955afddd29ddd6582f3dda35b8620e76d4d10d927260b27b08a711f5",
+      "targetSha256": "88c68834c32fc269442df66baa7dc0fcb578c8dff1d6225130abefc39ac5e632",
       "sources": [
         {
           "source": "npm:@deepseek-ai/dsh-client-ui-model-selection@0.2.1-rc.4/lib/client.js",
@@ -4887,7 +4890,7 @@
         "source": "packages/experimental/translator/src/deepseek.ts",
         "target": "translator/deepseek.ts",
         "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87",
-        "targetSha256": "efc5a4c9067b5d9fe1c92938d57ed32eb3841bfe231efba42ca7dd0838b430a3",
+        "targetSha256": "7fca51acbddcd770b797916acb46ce3da8d47a0a508957f95900e5df93488ce1",
         "adapted": true
       },
       {
@@ -5027,7 +5030,7 @@
         "source": "npm:@deepseek-ai/dsh-web-fetch-http@0.2.1-rc.4/lib/index.js",
         "sourceSha256": "489fef91b0c11c063029ea7aed27b312817570b9c3177aeaa44983b9a25aedcd",
         "target": "web-fetch-http/index.mjs",
-        "targetSha256": "cb5f3004e39328c0777eeab3c39969d34d982dfec3eedcb1544e1f4b3f6d424c",
+        "targetSha256": "104d08adb95cb61b2c426c8df8764771dffd7cf51701323e54b6f41f352d9554",
         "adapted": true,
         "description": "Published HTTP provider with a distinct plugin name and a plugin-owned Undici proxy-dispatcher lifecycle. Public-IP, DNS pinning, NAT64 and redirect checks remain in the attributed source."
       }
@@ -5035,7 +5038,7 @@
     "authored": [
       {
         "target": "plugin-documents/index.ts",
-        "targetSha256": "cf537e7f66d0cdc631e6025c5f52cc0c67fabcfcf245d31af5b79b256b24eaeb",
+        "targetSha256": "0aeec8d6449fcaabba98c2bb9784ae05fc12a3375931b2d2633b3af16000aa14",
         "description": "Original authenticated owner-only document/image routes, official-inventory authorization, separate installed-bundle/market read limits and sources, local rereads and request lifecycle around the attributed read-only utility/cache modules."
       }
     ],

@@ -252,7 +252,17 @@ export interface AdvisedCall {
   readonly signal: AbortSignal
 }
 
-type TurnRecord = { readonly request: string[]; consultation?: { readonly summary: string; readonly decision: Promise<Decision | undefined> } }
+/**
+ * The turn's one request to Jev. Calls with the same summary share it, so it owns its cancellation: it stops only
+ * once every call waiting on it was cancelled, never because the call that started it was.
+ */
+type Consultation = {
+  readonly summary: string
+  readonly cancelled: AbortSignal
+  /** Wait for the decision on behalf of one call; a cancelled call stops waiting at once. */
+  readonly join: (signal: AbortSignal) => Promise<Decision | undefined>
+}
+type TurnRecord = { readonly request: string[]; consultation?: Consultation }
 type Block = { readonly type?: unknown; readonly text?: unknown }
 
 const textOf = (message: { content?: readonly Block[] } | undefined): string =>
@@ -323,7 +333,7 @@ export class PresentationAdvisor {
     if (session === undefined || session.header.origin === 'subagent') return unavailable('main')
     const turn = this.turns.get(session)
     if (turn === undefined) return unavailable('turn')
-    const earlier = this.earlier(turn, summary)
+    const earlier = this.earlier(turn, summary, call.signal)
     if (earlier !== undefined) return earlier
     let key: string | undefined
     try {
@@ -337,21 +347,44 @@ export class PresentationAdvisor {
     // Cancelled while the key was read: nothing is sent, and the turn's one consultation stays unused.
     if (call.signal.aborted) return unavailable('failed')
     // Settled synchronously after the await, so two calls can never both start a request for one turn.
-    const again = this.earlier(turn, summary)
+    const again = this.earlier(turn, summary, call.signal)
     if (again !== undefined) return again
-    const consultation = { summary, decision: this.request(key, jevConversation(turn.request, summary), session, call.signal) }
+    const consultation = this.consult(key, jevConversation(turn.request, summary), summary, session)
     turn.consultation = consultation
-    const decision = await consultation.decision
+    const decision = await consultation.join(call.signal)
     // A cancelled request answered nothing, such as a call a code run left behind when it ended; the turn may ask again.
-    if (decision === undefined && call.signal.aborted && turn.consultation === consultation) turn.consultation = undefined
+    if (decision === undefined && consultation.cancelled.aborted && turn.consultation === consultation) turn.consultation = undefined
     return adviceFor(decision)
   }
 
-  private earlier(turn: TurnRecord, summary: string): Promise<Advice> | undefined {
+  private earlier(turn: TurnRecord, summary: string, signal: AbortSignal): Promise<Advice> | undefined {
     const consultation = turn.consultation
     if (consultation === undefined) return undefined
     if (consultation.summary !== summary) return Promise.resolve(ALREADY_CONSULTED)
-    return consultation.decision.then(decision => (decision === undefined ? unavailable('failed') : adviceFor(decision, true)))
+    return consultation.join(signal).then(decision => (decision === undefined ? unavailable('failed') : adviceFor(decision, true)))
+  }
+
+  private consult(key: string, conversation: unknown, summary: string, session: object): Consultation {
+    const controller = new AbortController()
+    const decision = this.request(key, conversation, session, controller.signal)
+    let waiting = 0
+    const join = (signal: AbortSignal): Promise<Decision | undefined> => {
+      if (signal.aborted) return Promise.resolve(undefined)
+      waiting += 1
+      return new Promise(resolve => {
+        const leave = () => {
+          resolve(undefined)
+          waiting -= 1
+          if (waiting === 0) controller.abort(signal.reason)
+        }
+        signal.addEventListener('abort', leave, { once: true })
+        void decision.then(value => {
+          signal.removeEventListener('abort', leave)
+          resolve(value)
+        })
+      })
+    }
+    return { summary, cancelled: controller.signal, join }
   }
 
   private async key(): Promise<string | undefined> {

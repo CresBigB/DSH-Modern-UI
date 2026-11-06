@@ -26,7 +26,8 @@ export function reasoningFragments(text: string, running: boolean, maxTextChars:
     let remaining = text.slice(start, match?.index ?? text.length)
     while (remaining.length > maxTextChars) {
       let cut = maxTextChars
-      if (/[\uD800-\uDBFF]/.test(remaining.charAt(cut - 1))) cut -= 1
+      // A one-character limit cannot keep a surrogate pair together; every fragment must consume text.
+      if (cut > 1 && /[\uD800-\uDBFF]/.test(remaining.charAt(cut - 1))) cut -= 1
       const whitespace = remaining.slice(0, cut).search(/\s+\S*$/)
       if (whitespace > 0) cut = whitespace
       const source = remaining.slice(0, cut)

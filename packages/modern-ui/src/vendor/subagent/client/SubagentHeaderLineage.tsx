@@ -579,6 +579,11 @@ function CatalogDropdown({
           ? () => {
             cancelHoverOpen()
             cancelHoverClose()
+            // A click pins a hover-opened menu; a second click on a pinned menu closes it.
+            if (open && pinnedRef.current) {
+              changeOpen(false)
+              return
+            }
             pinnedRef.current = true
             if (!open) changeOpen(true)
           }

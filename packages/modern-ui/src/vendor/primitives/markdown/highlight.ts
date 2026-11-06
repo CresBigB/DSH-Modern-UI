@@ -401,6 +401,9 @@ function ensureGrammar(resolved: string): boolean {
       highlighter().loadLanguageSync(mod.default)
       loadCount += 1
       for (const listener of listeners) listener()
+    }).catch(() => {
+      // The fence stays plain; forget the request so a later render can import the grammar again.
+      requested.delete(resolved)
     })
   }
   return false

@@ -201,6 +201,15 @@ export async function translateWithDeepSeek(ctx: Context, spec: PaidTranslationS
     timeout.signal.throwIfAborted()
     const assembler = new BlockAssembler()
     let terminal: FinishReason | undefined
+    // The deltas' own byte lengths bound the assembled text's from above (a pair split across two deltas counts as two
+    // replacement characters), so the whole text is measured only when that bound passes the limit or a block ends.
+    let bound = 0
+    const measure = (): void => {
+      bound = Buffer.byteLength(assembledText(assembler), 'utf8')
+      if (bound > config.maxResponseBytes) {
+        throw new TranslationError('TRANSLATION_RESPONSE_LIMIT', 'Native Flash translation exceeds the configured response limit')
+      }
+    }
     for await (const chunk of prepared.stream(options)) {
       timeout.signal.throwIfAborted()
       if ((chunk.type === 'block-start' && chunk.blockType !== 'text')
@@ -210,11 +219,10 @@ export async function translateWithDeepSeek(ctx: Context, spec: PaidTranslationS
       }
       assembler.push(chunk)
       if (chunk.type === 'finish') terminal = chunk.reason
-      const text = assembledText(assembler)
-      if (Buffer.byteLength(text, 'utf8') > config.maxResponseBytes) {
-        throw new TranslationError('TRANSLATION_RESPONSE_LIMIT', 'Native Flash translation exceeds the configured response limit')
-      }
+      if (chunk.type === 'text-delta') bound += Buffer.byteLength(chunk.text, 'utf8')
+      if (chunk.type === 'block-end' || bound > config.maxResponseBytes) measure()
     }
+    measure()
     timeout.signal.throwIfAborted()
     if (terminal?.kind === 'error') throw new TranslationError('TRANSLATION_REQUEST_FAILED', 'Native Flash translation request failed')
     if (terminal?.kind !== 'stop') throw new TranslationError('TRANSLATION_INVALID_RESPONSE', 'Native Flash translation did not finish normally')

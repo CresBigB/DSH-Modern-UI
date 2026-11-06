@@ -83,6 +83,19 @@ const pure = new Set([
   '@deepseek-ai/dsh-llm/assistant-stream',
 ])
 const openuiTargets = { chrome: 111 << 16, safari: (16 << 16) | (2 << 8), firefox: 121 << 16 }
+// Resources a stylesheet may inline; anything else fails the build instead of shipping under a wrong type.
+const inlinedTypes = {
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+}
 const stylePlugin = {
   name: 'modern-ui-owned-resources',
   setup(builder) {
@@ -96,10 +109,13 @@ const stylePlugin = {
       // Keep font resources inside the precompiled artifact, with no external checkout paths.
       const matches = [...source.matchAll(/url\(([^)]+)\)/g)]
       for (const match of matches) {
-        const relative = match[1].replace(/['"]/g, '')
+        const relative = match[1].trim().replace(/['"]/g, '')
         if (/^(data:|https?:|#)/.test(relative)) continue
-        const bytes = await readFile(path.resolve(path.dirname(args.path), relative))
-        const mime = relative.endsWith('.woff2') ? 'font/woff2' : relative.endsWith('.woff') ? 'font/woff' : 'font/ttf'
+        // A query or fragment (font cache busting, an SVG sprite id) is not part of the file name.
+        const file = relative.replace(/[?#].*$/s, '')
+        const mime = inlinedTypes[path.extname(file).toLowerCase()]
+        if (mime === undefined) throw new Error(`${args.path}: cannot inline ${relative}; add its type to inlinedTypes`)
+        const bytes = await readFile(path.resolve(path.dirname(args.path), file))
         source = source.replace(match[0], `url(data:${mime};base64,${bytes.toString('base64')})`)
       }
       const filename = path.relative(pkg, args.path).replaceAll('\\', '/')

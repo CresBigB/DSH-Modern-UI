@@ -104,6 +104,9 @@ export function CodeBlock({
     if (streaming !== true) {
       const previous = lineCacheRef.current
       if (previous !== null && previous.code === trimmed && previous.lang === lang) {
+        // The settled fence keeps the streamed lines; the session's tokenizer caches are no longer needed, and a
+        // fence that streams again starts a new session (settledRef).
+        sessionRef.current = null
         settledRef.current = true
         return previous.body
       }

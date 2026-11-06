@@ -150,7 +150,9 @@ export class PluginDocuments {
         const directory = source.path ?? ''
         if (repository?.url === reference.url && repository.directory === directory) repository = undefined
         location = { files: repositoryFiles(reference, source.commit, this.repositoryOptions), dir: directory, repository }
-      } else if (source.registry === undefined || PUBLIC_REGISTRIES.has(new URL(source.registry).host)) {
+      // The index parser checks the address; one that still does not parse is treated as a private registry.
+      } else if (source.registry === undefined
+        || (URL.canParse(source.registry) && PUBLIC_REGISTRIES.has(new URL(source.registry).host))) {
         location = this.npmLocation('market', name, version, repository ?? 'manifest')
       } else location = { dir: '', repository }
     } else throw new DetailFailure('invalid', 'Unknown plugin document kind')

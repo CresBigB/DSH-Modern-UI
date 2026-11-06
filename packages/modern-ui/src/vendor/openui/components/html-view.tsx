@@ -136,9 +136,11 @@ export const HtmlView = defineComponent({
       () => (ready && theme.current.palette ? outerDocument(innerDocument(html, theme.current.scheme, theme.current.palette), token, title) : null),
       [html, ready, token, title],
     );
-    useEffect(() => {
-      if (palette) frame.current?.contentWindow?.postMessage({ type: KIND, token, palette, scheme }, "*");
-    }, [palette, scheme, token]);
+    const postTheme = () => {
+      const current = theme.current;
+      if (current.palette) frame.current?.contentWindow?.postMessage({ type: KIND, token, palette: current.palette, scheme: current.scheme }, "*");
+    };
+    useEffect(postTheme, [palette, scheme, token]);
     // Content that sizes itself to the viewport (100vh) grows with every resize; three same-sized growths right
     // after a resize mark it, and the view stops growing instead of climbing to the maximum.
     const growth = useRef({ height: AUTO_START, at: 0, delta: 0, streak: 0, frozen: false });
@@ -185,7 +187,9 @@ export const HtmlView = defineComponent({
         ) : streaming || !srcDoc ? (
           <div className="iui-html-view-wait">{text.preparingView}</div>
         ) : (
-          <iframe ref={frame} title={title} sandbox="allow-scripts" allow={DENIED} srcDoc={srcDoc} referrerPolicy="no-referrer" />
+          // A switch while the page streamed, or one posted before the frames listened, is in neither the built
+          // document nor a delivered message. The outer load waits for the inner page, so both listen by now.
+          <iframe ref={frame} title={title} sandbox="allow-scripts" allow={DENIED} srcDoc={srcDoc} referrerPolicy="no-referrer" onLoad={postTheme} />
         )}
       </div>
     );
