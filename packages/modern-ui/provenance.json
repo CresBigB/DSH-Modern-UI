@@ -3621,7 +3621,7 @@
     },
     {
       "target": "src/plugin-documents/PluginDocument.tsx",
-      "targetSha256": "5f353455a45900692328b028ae788f0bc1a9058ed5c8824a47cdc05526145ab9",
+      "targetSha256": "8ca69f76a987e29de89915255504d66957ed3890c641d767a5ff54e10e2272fa",
       "description": "Original authenticated document/image request, cancellation and retry wrapper over the attributed DetailDocument presenter."
     },
     {

@@ -53,7 +53,7 @@
       "source": "src/lib/components/extra.tsx",
       "target": "src/vendor/openui/components/extra.tsx",
       "sourceSha256": "586d1a898eb6405fea4fab136b3ca0a4db626b559a17ee9125b4232de312ae1d",
-      "targetSha256": "a50ae740b96f33710eca76d453e847aa507831171be51518f37a6289b0889977",
+      "targetSha256": "4a21eeb962da18228f9fb6ba42a1ac553c6beed9f92da796edb9ccd3356ca56b",
       "adapted": true
     },
     {

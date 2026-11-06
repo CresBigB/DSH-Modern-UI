@@ -782,6 +782,30 @@ test('a Button trigger opens its popover instead of proposing its label, and Esc
   await view.unmount()
 })
 
+test('a Pressable trigger opens its popover from the keyboard without running its own action', async () => {
+  const view = await mount('root = Col([Popover(Pressable([Text("Details")], @ToAssistant("UNEXPECTED")), [Text("detail")])])')
+  const control = view.host.querySelector('.iui-pressable')
+  const panel = () => document.querySelector('.iui-popover')
+  // The Pressable is the one focus stop, and it carries the popover state.
+  assert.equal(view.host.querySelector('[role="button"].iui-popover-trigger'), null)
+  assert.equal(control.getAttribute('aria-expanded'), 'false')
+  const press = async key => {
+    await act(async () => {
+      control.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
+    })
+  }
+  await press('Enter')
+  assert.ok(panel(), 'Enter opens it')
+  assert.equal(control.getAttribute('aria-expanded'), 'true')
+  await press(' ')
+  assert.equal(panel(), null, 'Space closes it')
+  await click(control)
+  assert.ok(panel(), 'a click opens it')
+  assert.deepEqual(view.calls.setDraft, [], 'the action is not proposed to the composer')
+  assert.deepEqual(view.calls.insertText, [])
+  await view.unmount()
+})
+
 test('an HtmlView posts the current theme when its frame loads, so a switch made before then reaches the page', async () => {
   const view = await mount('root = Col([HtmlView("<p>x</p>")])')
   const frame = view.host.querySelector('iframe')

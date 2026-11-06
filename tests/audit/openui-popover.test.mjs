@@ -139,3 +139,28 @@ test('the panel follows a smaller viewport and content that grows after it opens
     await context.close()
   }
 })
+
+test('a control trigger toggles once per key in a real browser, whether it is a native button or a Pressable', async () => {
+  const context = await browser.newContext({ viewport: { width: 800, height: 600 } })
+  const page = await context.newPage()
+  try {
+    await page.goto(url)
+    await page.waitForFunction(() => typeof window.show === 'function')
+    const response =
+      'root = Col([Popover(Button("Native"), [Text("first")]), Popover(Pressable([Text("Tile")], @ToAssistant("UNEXPECTED")), [Text("second")])])'
+    await page.evaluate(([offset, code]) => window.show(offset, code), [40, response])
+    const panels = () => page.locator('.iui-popover').count()
+    for (const control of [page.getByRole('button', { name: 'Native' }), page.locator('.iui-pressable')]) {
+      await control.focus()
+      // A native button turns Enter into a click; the Pressable acts on the key. Either way the panel toggles once.
+      await page.keyboard.press('Enter')
+      assert.equal(await panels(), 1, 'Enter opens it')
+      assert.equal(await control.getAttribute('aria-expanded'), 'true')
+      await page.keyboard.press(' ')
+      assert.equal(await panels(), 0, 'Space closes it')
+      assert.equal(await control.getAttribute('aria-expanded'), 'false')
+    }
+  } finally {
+    await context.close()
+  }
+})

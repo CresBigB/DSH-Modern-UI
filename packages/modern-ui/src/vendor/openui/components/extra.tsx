@@ -18,6 +18,10 @@ const renderSlot = (value: unknown, renderNode: Render) =>
   typeof value === "string" || typeof value === "number" ? inline(String(value)) : renderNode(Array.isArray(value) ? value.flat() : value);
 // Elements a component trigger may draw that take focus and clicks of their own.
 const CONTROLS = 'button, a[href], input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])';
+// A native button turns Enter and Space into the click the trigger catches, and a field takes them as text; any other
+// control (a Pressable is a focusable div) acts on the keys itself, so the trigger takes them first.
+const keysAreItsOwn = (element: Element) =>
+  ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) || (element as HTMLElement).isContentEditable === true;
 
 // Carousel
 export const Carousel = defineComponent({
@@ -169,11 +173,20 @@ export const Popover = defineComponent({
             {props.trigger}
           </button>
         ) : control ? (
-          // The trigger's own control is the button: the click is caught before it reaches the control's action.
+          // The trigger's own control is the button: its click, and the keys that would run its action, are caught
+          // before they reach it.
           <span
             ref={button as RefObject<HTMLSpanElement>}
             className="iui-popover-trigger"
             onClickCapture={(event) => {
+              event.stopPropagation();
+              setOpen(!open);
+            }}
+            onKeyDownCapture={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              const target = (event.target as Element).closest(CONTROLS);
+              if (target === null || keysAreItsOwn(target)) return;
+              event.preventDefault();
               event.stopPropagation();
               setOpen(!open);
             }}

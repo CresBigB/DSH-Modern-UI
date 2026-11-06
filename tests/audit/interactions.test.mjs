@@ -49,7 +49,7 @@ const result = await build({
               : args.path.endsWith('useModalLayer.ts')
                 ? 'export function useModalLayer() {} export function isBehindModal() { return false }'
                 : args.path.endsWith('DetailDocument.tsx')
-                  ? `const React = require('react'); export const useDetailDocumentLabels = x => x; export const DetailDocument = ({state}) => React.createElement('output', null, JSON.stringify(state));`
+                  ? `const React = require('react'); export const useDetailDocumentLabels = x => x; export const DetailDocument = ({state, onRetry}) => React.createElement('output', null, JSON.stringify(state), React.createElement('button', {'data-retry': '', onClick: onRetry}));`
                   : 'export const IconCloseOutlineRegular = () => null; export const IconCheckOutlineRegular = () => null;',
         }))
         builder.onLoad({ filter: /\.module\.css$/ }, () => ({ contents: 'export default new Proxy({}, { get: (_, key) => key })', loader: 'js' }))
@@ -181,6 +181,36 @@ test('L4 non-JSON HTTP error retains the network document message', async () => 
   try {
     await tick()
     assert.equal(JSON.parse(mounted.container.textContent).message, 'detailNetwork')
+  } finally {
+    await mounted.dispose()
+    globalThis.fetch = old
+  }
+})
+
+test('L4 a document retry refreshes only that document, including after switching to another language and back', async () => {
+  const old = globalThis.fetch
+  const reads = []
+  globalThis.fetch = async url => {
+    const params = new URL(url).searchParams
+    reads.push([params.get('language'), params.get('refresh')])
+    return new Response('{}', { status: 502 })
+  }
+  const document = language => h(ui.PluginDocument, { target: { kind: 'bundle', name: 'test' }, language, t: x => x })
+  const mounted = await mount(document('zh'))
+  try {
+    await tick()
+    await act(async () => mounted.container.querySelector('[data-retry]').click())
+    await tick()
+    for (const language of ['en', 'zh']) {
+      await act(async () => mounted.root.render(document(language)))
+      await tick()
+    }
+    assert.deepEqual(reads, [
+      ['zh', null],
+      ['zh', 'true'],
+      ['en', null],
+      ['zh', null],
+    ])
   } finally {
     await mounted.dispose()
     globalThis.fetch = old
