@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-11-06
+
 ### Changed
 
 - 可视化回答里的卡片参照 [paper widgets](https://uberdesigner.ai/t/paper-widgets) 的小卡样式重排，配色沿用原版：
@@ -176,7 +178,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.4...v0.1.5
