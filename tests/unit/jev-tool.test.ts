@@ -395,11 +395,12 @@ describe('PresentationAdvisor', () => {
     const left = instance.advise({ content_summary: summary }, call(other, a.signal))
     await vi.waitFor(() => expect(recorded.calls).toHaveLength(2))
     const right = instance.advise({ content_summary: summary }, call(other, b.signal))
+    // The call that started the request finishes before the one that joined it is cancelled.
     a.abort('cancelled')
+    expect((await left).status).toBe('unavailable')
     expect(recorded.calls[1].init.signal?.aborted).toBe(false)
     b.abort('cancelled')
     expect(recorded.calls[1].init.signal?.aborted).toBe(true)
-    expect((await left).status).toBe('unavailable')
     expect((await right).status).toBe('unavailable')
     const again = instance.advise({ content_summary: summary }, call(other))
     await vi.waitFor(() => expect(recorded.calls).toHaveLength(3))

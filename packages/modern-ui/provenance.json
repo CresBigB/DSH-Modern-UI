@@ -3691,7 +3691,7 @@
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "db96d2c237e9452e56d92f8b973bd20b8a984bc267ab48db72fd0ade32cabec5",
+      "targetSha256": "9f8116d540320588d30d93fc2c68c3b4a268c358df3cf6595c4ddc259f2aa947",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
