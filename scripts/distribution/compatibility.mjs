@@ -51,16 +51,21 @@ export function compareVersions(left, right) {
 }
 
 /**
- * Whether a version satisfies a space-separated comparator set such as `>=0.2.1-rc.2 <0.3.0`.
- * Like npm, a prerelease only matches when a comparator names a prerelease of the same major.minor.patch.
+ * Whether a version satisfies a range: comparator sets joined by `||`, each a space-separated list such as
+ * `>=0.2.1-rc.2 <0.3.0-0`. A prerelease satisfies a set only when one of its comparators names a prerelease of the
+ * same major.minor.patch (the npm rule), so a later prerelease line is opted in by its own set.
  * @param {string} version - candidate version.
- * @param {string} range - comparator set.
- * @returns {boolean} whether the version is in range.
+ * @param {string} range - the range.
+ * @returns {boolean} whether any comparator set holds.
  */
 export function satisfiesRange(version, range) {
   const parsed = parseVersion(version)
   if (!parsed) return false
-  const comparators = range
+  return range.split('||').some(set => satisfiesComparatorSet(parsed, version, set))
+}
+
+function satisfiesComparatorSet(parsed, version, set) {
+  const comparators = set
     .trim()
     .split(/\s+/)
     .map(item => {
@@ -76,6 +81,7 @@ export function satisfiesRange(version, range) {
     return other.prerelease.length > 0 && other.core.every((part, index) => part === parsed.core[index])
   })
 }
+
 if (!satisfiesRange(defaultHostVersion, hostRange) || supportedHostVersions.some(version => !satisfiesRange(version, hostRange))) {
   throw new Error('Every verified host must satisfy the declared host range')
 }
