@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-11-07
+
 ### Changed
 
 - 手机竖屏下输入框底栏和统计行不再被截断：
@@ -213,7 +215,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.6...v0.1.7
