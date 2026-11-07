@@ -39,6 +39,56 @@ export function makeFormat(kind: string | undefined, currency: string | undefine
   };
 }
 
+/** A value axis: lowest and highest tick and the step between ticks. */
+export interface Domain {
+  lo: number;
+  hi: number;
+  step: number;
+}
+
+/** Fixed bounds a chart asks for; the axis still widens to show values outside them. */
+export interface Range {
+  min?: number;
+  max?: number;
+}
+
+/** A round step giving about span/step ticks: 1, 2, 2.5 or 5 times a power of ten. */
+export function niceStep(span: number) {
+  if (span <= 0) return 1;
+  const power = 10 ** Math.floor(Math.log10(span));
+  const n = span / power;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * power;
+}
+
+/** The rounded axis around [min, max] with about five steps. */
+export function niceDomain(min: number, max: number): Domain {
+  const step = niceStep((max - min) / 5);
+  const lo = Math.floor(min / step) * step;
+  return { lo, hi: Math.max(lo + step, Math.ceil(max / step) * step), step };
+}
+
+/** Share of the held axis the data must still span before a shrinking reading tightens it. */
+const KEEP_SHARE = 0.4;
+/** Room past the data when a changing reading outgrows the held axis, so dragging on does not rescale at every step. */
+const HEADROOM = 1.25;
+
+/**
+ * The value axis for data spanning [min, max]. Fixed bounds give a constant axis while the data stays inside them.
+ * Otherwise a chart that already drew an axis (`held`) keeps it while the data fits and still fills a good part of
+ * it: a Slider or Input changing a value then moves only that bar, instead of every bar jumping each time the rounded
+ * maximum crosses a step (99 -> axis 100, 101 -> axis 125). Data that outgrows the axis widens it with headroom;
+ * data that shrinks far inside tightens it. A first drawing (`held` null) is the plain rounded axis.
+ */
+export function valueDomain(min: number, max: number, held: Domain | null, range?: Range): Domain {
+  if (range && (range.min !== undefined || range.max !== undefined)) {
+    return niceDomain(Math.min(min, range.min ?? min), Math.max(max, range.max ?? max));
+  }
+  if (held === null) return niceDomain(min, max);
+  const fits = min >= held.lo && max <= held.hi;
+  if (fits) return max - min >= (held.hi - held.lo) * KEEP_SHARE ? held : niceDomain(min, max);
+  return niceDomain(min < held.lo ? min * HEADROOM : held.lo, max > held.hi ? max * HEADROOM : held.hi);
+}
+
 /** Decimals that tell neighbouring ticks apart: 0 for a step of 1000, 1 for 2.5, 4 for 0.0005, 26 for 2e-26. */
 export function stepDigits(step: number) {
   // Coincident ticks (a step lost to rounding) or a missing step need no decimals.
