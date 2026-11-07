@@ -145,13 +145,18 @@ function exactCount(value: number, t: Translate): string {
   return t('message.turnUsage.count', { count: formatExactTokens(value, t) })
 }
 
-/** One or two reading segments, visually joined by a separator glyph. */
+/**
+ * One or two reading segments, visually joined by a separator glyph. A
+ * phone-width conversation shows only the second (the Compact reading: speed or
+ * cache hit); the full text stays the accessible name, and the dialog opened
+ * by the pill heads with the first.
+ */
 function reading(first: string, second: string | null): Pick<PillContent, 'label' | 'text'> {
   if (second === null) return { label: first, text: first }
   return {
     label: (
       <>
-        {first}
+        <span className={css.lead}>{first}</span>
         <span className={css.sep} aria-hidden>·</span>
         {second}
       </>

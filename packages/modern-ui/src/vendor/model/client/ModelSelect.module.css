@@ -23,7 +23,11 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  max-width: min(360px, 45cqw);
+  /* The composer row publishes its unused (or missing) width as
+     --dsh-composer-model-slack (control-row-layout.ts): a long model name grows
+     into free space instead of ellipsizing beside it, and a full row narrows
+     the trigger, down to a vendor tile and a few characters, before wrapping. */
+  max-width: min(360px, max(72px, calc(45cqw + var(--dsh-composer-model-slack, 0px))));
   height: 28px;
   padding: 0 6px 0 4px;
   border: none;
@@ -123,6 +127,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A phone-width composer row keeps only the bulb for the effort: a level cut
+   to one glyph reads worse than none, and the trigger's title and accessible
+   name still carry it. The width goes to the model name. */
+@container (max-width: 480px) {
+  /* The whole vendor-tile chip opens the picker, so a phone row trades the
+     chevron and some spacing for model-name characters. */
+  .trigger {
+    gap: 4px;
+  }
+
+  .chevron {
+    display: none;
+  }
+
+  .triggerEffort:has(.bulb) {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .triggerEffort:has(.bulb) .triggerEffortText {
+    display: none;
+  }
 }
 
 .bulb {
