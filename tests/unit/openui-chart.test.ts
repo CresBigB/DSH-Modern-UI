@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'vitest'
-import { bar, curve, makeFormat, stackAreas, stepDigits } from '../../packages/modern-ui/src/vendor/openui/components/chart-math.ts'
+import {
+  bar,
+  curve,
+  makeFormat,
+  niceDomain,
+  stackAreas,
+  stepDigits,
+  valueDomain,
+  type Domain,
+} from '../../packages/modern-ui/src/vendor/openui/components/chart-math.ts'
 
 describe('chart number formats', () => {
   test('small non-zero values never read as 0, on ticks or in tooltips', () => {
@@ -182,5 +191,44 @@ describe('chart geometry', () => {
     expect(bar(0, 0, 40, 90, false)).toBe('M0,0V82A8,8 0 0 0 8,90H32A8,8 0 0 0 40,82V0Z')
     expect(bar(0, 97, 40, 3, true)).toContain('A3,3')
     expect(bar(0, 100, 40, 0, true)).toBe('M0,100H40V100H0Z')
+  })
+})
+
+describe('chart value axis', () => {
+  test('a first drawing keeps the plain rounded axis', () => {
+    expect(valueDomain(0, 99, null)).toEqual({ lo: 0, hi: 100, step: 20 })
+    expect(valueDomain(0, 101, null)).toEqual({ lo: 0, hi: 125, step: 25 })
+    expect(valueDomain(-30, 80, null)).toEqual(niceDomain(-30, 80))
+  })
+
+  test('a slider sweep rescales once instead of at every rounded step', () => {
+    let held: Domain | null = null
+    const axes: string[] = []
+    for (const value of [95, 98, 99, 100, 101, 102, 110, 120, 125, 126, 130, 140, 120, 101, 99, 100, 98]) {
+      held = valueDomain(0, value, held)
+      axes.push(`${held.lo}-${held.hi}`)
+    }
+    // The old axis jumped 100 -> 125 -> 150 and back down to 100 on the way back.
+    expect([...new Set(axes)]).toEqual(['0-100', '0-150'])
+  })
+
+  test('an axis tightens once the data shrinks far inside it', () => {
+    const held = { lo: 0, hi: 150, step: 50 }
+    expect(valueDomain(0, 70, held)).toBe(held)
+    expect(valueDomain(0, 20, held)).toEqual(niceDomain(0, 20))
+  })
+
+  test('outgrowing one side widens that side with headroom and keeps the other', () => {
+    const held = { lo: -50, hi: 100, step: 25 }
+    expect(valueDomain(-60, 90, held)).toEqual(niceDomain(-75, 100))
+    expect(valueDomain(-10, 101, held)).toEqual(niceDomain(-50, 126.25))
+  })
+
+  test('fixed min and max give a constant axis that still shows values outside them', () => {
+    const range = { min: 0, max: 200 }
+    const axes = [0, 37, 99, 101, 180, 200].map(value => valueDomain(0, value, null, range))
+    expect(new Set(axes.map(axis => `${axis.lo}-${axis.hi}-${axis.step}`))).toEqual(new Set(['0-200-50']))
+    expect(valueDomain(0, 250, { lo: 0, hi: 200, step: 50 }, range)).toEqual(niceDomain(0, 250))
+    expect(valueDomain(-5, 50, null, { max: 100 })).toEqual(niceDomain(-5, 100))
   })
 })

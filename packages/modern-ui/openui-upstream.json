@@ -19,7 +19,7 @@
     "lucide-react": "0.562.0",
     "zod": "4.6.7"
   },
-  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths and @Range are capped, an Image whose address fails no longer searches by its alt text, table numbers keep small values, stacked charts stack negative values downward, Code copies through the shared clipboard fallback, inputs register a reader of their current value in a field registry (components/fields.ts, which also holds the upstream useFieldName helper, now keyed by statement or instance instead of label) for @ToAssistant, a Slider writes its clamped value back to its state when its bounds change and restores the chosen value when they widen, chart ticks and tooltips keep small non-zero values, lines and single areas are drawn as monotone curves while stacked areas keep straight edges, scatter x ticks keep small decimals, bars round only their outer corners (components/chart-math.ts), corner radii follow the host's larger superellipse corners while pills and circles stay round, interface words come from the block's dictionaries, the prompt options teach openui-lang fences inside Markdown answers, and @Replace and @Join check the length of the text they would build against the block budget before building it. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
+  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths and @Range are capped, an Image whose address fails no longer searches by its alt text, table numbers keep small values, stacked charts stack negative values downward, Code copies through the shared clipboard fallback, inputs register a reader of their current value in a field registry (components/fields.ts, which also holds the upstream useFieldName helper, now keyed by statement or instance instead of label) for @ToAssistant, a Slider writes its clamped value back to its state when its bounds change and restores the chosen value when they widen, chart ticks and tooltips keep small non-zero values, lines and single areas are drawn as monotone curves while stacked areas keep straight edges, scatter x ticks keep small decimals, bars round only their outer corners (components/chart-math.ts), a chart keeps the value axis it drew while changing data still fits it and takes optional min and max bounds, so a Slider-driven chart no longer rescales at every rounded step, corner radii follow the host's larger superellipse corners while pills and circles stay round, interface words come from the block's dictionaries, the prompt options teach openui-lang fences inside Markdown answers, and @Replace and @Join check the length of the text they would build against the block budget before building it. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
   "files": [
     {
       "source": "src/lib/actions.ts",
@@ -32,7 +32,7 @@
       "source": "src/lib/components/chart.tsx",
       "target": "src/vendor/openui/components/chart.tsx",
       "sourceSha256": "61a270bc9aa80ead37631c90ea525052f60482ff904544b7d32cbd2d0e60bef3",
-      "targetSha256": "45a1faa6743c48394b6bced884edae2c41b046ccb2a79f7fbefb23ba387df288",
+      "targetSha256": "bafe1be7603587e09ab3ca303598562858982e758b913f9d4fb69b6ebc504af0",
       "adapted": true
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "target": "src/vendor/openui/components/chart-math.ts",
-      "targetSha256": "36935ccd633e9b91c36e4619cca99fab3c835c06a004d1bf109073bbeeabf72d",
+      "targetSha256": "79cc8dfa8d688c919984d0fb7911fe71463e347f85bf5660bb4a0d61bcda04a4",
       "authored": true
     },
     {
@@ -225,7 +225,7 @@
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "576927f609a553a8a19e6ee9e7a55f6752c5d924c695e2ac3420dcdd03263fd6",
+      "targetSha256": "2fc13f866f21f937016b4dff0454b61d1dda3a26b4f89f0457b182d5adc11e51",
       "authored": true
     }
   ]

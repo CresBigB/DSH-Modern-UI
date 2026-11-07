@@ -1,7 +1,7 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { z } from "zod/v4";
-import { bar, curve, makeFormat, polyline, stackAreas, type Format } from "./chart-math";
+import { bar, curve, makeFormat, niceStep, polyline, stackAreas, valueDomain, type Domain, type Format, type Range } from "./chart-math";
 
 type Row = Record<string, unknown>;
 type Spec = {
@@ -12,19 +12,14 @@ type Spec = {
   stacked: boolean;
   height: number;
   format: Format;
+  /** Fixed value-axis bounds from the min and max props. */
+  range: Range;
 };
 
 const COLORS = 6;
 const seriesColor = (i: number) => `var(--iui-chart-${(i % COLORS) + 1})`;
 const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0);
 const label = (row: Row, x: string) => String(row[x] ?? "");
-
-function niceStep(span: number) {
-  if (span <= 0) return 1;
-  const power = 10 ** Math.floor(Math.log10(span));
-  const n = span / power;
-  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * power;
-}
 
 function useWidth() {
   const ref = useRef<HTMLDivElement>(null);
@@ -73,9 +68,12 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
   // A stacked area also splits each series where it crosses zero between two categories.
   const layers = stacked && type === "area" ? stackAreas(rows.map((row) => series.map((s) => num(row[s])))) : null;
   const values = stacked ? spans.flatMap((row) => row.map(([, to]) => to)) : rows.flatMap((row) => series.map((s) => num(row[s])));
-  const step = niceStep((Math.max(0, ...values) - Math.min(0, ...values)) / 5);
-  const lo = Math.floor(Math.min(0, ...values) / step) * step;
-  const hi = Math.max(lo + step, Math.ceil(Math.max(0, ...values) / step) * step);
+  // The axis this chart last drew: values changed by a Slider or Input keep it while they fit (valueDomain).
+  const held = useRef<Domain | null>(null);
+  const { lo, hi, step } = valueDomain(Math.min(0, ...values), Math.max(0, ...values), held.current, spec.range);
+  useLayoutEffect(() => {
+    held.current = { lo, hi, step };
+  });
   const ticks = Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step);
   const left = Math.max(...ticks.map((t) => format(t, true, step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 4, bottom: 26, left };
@@ -202,7 +200,9 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const [hover, setHover] = useState<{ i: number; si: number } | null>(null);
   const { rows, series, height, format, x } = spec;
   const name = rows[0] ? Object.keys(rows[0]).find((k) => k !== x && typeof rows[0][k] === "string") : undefined;
-  const ya = axis(rows.flatMap((r) => series.map((s) => num(r[s]))), false);
+  // Fixed min and max widen the value axis the same way they do for bars and lines.
+  const bounds = [spec.range.min, spec.range.max].filter((v): v is number => v !== undefined);
+  const ya = axis([...rows.flatMap((r) => series.map((s) => num(r[s]))), ...bounds], false);
   const xa = axis(rows.map((r) => num(r[x])), false);
   const left = Math.max(...ya.ticks.map((t) => format(t, true, ya.step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 8, bottom: 26, left };
@@ -298,6 +298,8 @@ const chartProps = z.object({
   currency: z.string().optional(),
   stacked: z.boolean().optional(),
   height: z.number().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
 });
 
 function toSpec(props: z.infer<typeof chartProps>): Spec | null {
@@ -315,13 +317,17 @@ function toSpec(props: z.infer<typeof chartProps>): Spec | null {
     stacked: !!props.stacked,
     height: Math.min(480, Math.max(140, props.height ?? 240)),
     format: makeFormat(props.format, props.currency),
+    range: {
+      ...(typeof props.min === "number" && Number.isFinite(props.min) ? { min: props.min } : {}),
+      ...(typeof props.max === "number" && Number.isFinite(props.max) ? { max: props.max } : {}),
+    },
   };
 }
 
 export const Chart = defineComponent({
   name: "Chart",
   props: chartProps,
-  description: 'Rows of data; x is the category key (a number key for scatter), series the value keys (default: every number key). percent values are like 45; currency is a code like "EUR".',
+  description: 'Rows of data; x is the category key (a number key for scatter), series the value keys (default: every number key). percent values are like 45; currency is a code like "EUR". min and max fix the value axis: when a Slider or Input changes the data, pass the range its values can reach so the bars or line keep their scale.',
   component: function ChartView({ props }) {
     const [ref, width] = useWidth();
     const spec = toSpec(props);
