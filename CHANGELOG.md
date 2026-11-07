@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-11-07
+
 ### Fixed
 
 - 可视化回答里用滑块（或输入框）调整数据时，柱状图和折线图的顶端不再上下跳动。以前每次数据变化都会重算一个取整的纵轴上限，数值跨过整数台阶（例如 100 变 101，上限从 100 变成 125）时所有柱子会突然一起缩短，在台阶附近来回拖动就反复跳。现在图表画出来以后会沿用当前纵轴：数据仍在范围内、也没缩得太小时，只有被拖动的那根柱子在变；数据超出范围才放大，而且留出余量，往回拖时也不再缩回去；数据缩到很小时才收紧。第一次显示的样子和以前一样。
@@ -220,7 +222,8 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.10...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.7...v0.1.8
