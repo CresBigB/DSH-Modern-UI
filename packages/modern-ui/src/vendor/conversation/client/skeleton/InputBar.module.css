@@ -562,6 +562,12 @@
     padding-bottom: 8px;
   }
 
+  /* Phone rows are tight: the model name receives what the groups no longer
+     keep between them (control-row-layout.ts publishes the row's slack). */
+  .row {
+    column-gap: 6px;
+  }
+
   /* Suggested tasks remain available on desktop; phones keep the input at
      the bottom without a second block underneath the message field. */
   .heroSuggestions {

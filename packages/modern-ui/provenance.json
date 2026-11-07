@@ -701,8 +701,9 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/control-row-layout.ts",
       "target": "src/vendor/conversation/client/skeleton/control-row-layout.ts",
       "sourceSha256": "4d8e50b98ed790259f0c33e44fcc3406676369544a2fe75f1efb44401a4b87ed",
-      "targetSha256": "4d8e50b98ed790259f0c33e44fcc3406676369544a2fe75f1efb44401a4b87ed",
-      "adapted": false
+      "targetSha256": "2bc9083752979cb735d39ae4c874daa023198924855f82cf7e45020da0fe9904",
+      "adapted": true,
+      "adaptation": "Publishes the row slack (positive or negative) as --dsh-composer-model-slack for the model trigger cap."
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx",
@@ -778,8 +779,9 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.module.css",
       "target": "src/vendor/conversation/client/skeleton/InputBar.module.css",
       "sourceSha256": "1ccd2142ae5677d142665344de8c851e0288e5096f57ae33987c6d4fb71a58b9",
-      "targetSha256": "5ce4ffa5d7fd3b26296a3c0e8d5d67f6f8f006cbbaa0d25004461c4e4f5ad60a",
-      "adapted": true
+      "targetSha256": "945edf5cabe0cb7d849ddee49c5ae6fa7204998be92ed73cfffcaf890cdc2f68",
+      "adapted": true,
+      "adaptation": "Phone widths narrow the control-row column gap to 6px."
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
@@ -988,8 +990,9 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "8756048e8ac52230e0abcb3804f4e489590f270700aaa0f78a36e4347391e45b",
-      "adapted": true
+      "targetSha256": "12a9e8bbe6de32b7a85c57d525e8f8cab6cfc5befcb1c394f07bd6095befd944",
+      "adapted": true,
+      "adaptation": "Phone-width composer rows (container ≤480px) keep only the bulb for the effort and drop the chevron; the trigger cap adds the row slack that control-row-layout.ts publishes."
     },
     {
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
@@ -2799,15 +2802,17 @@
       "source": "packages/client/ui-chat/src/client/chat/StatsPills.module.css",
       "target": "src/vendor/chat/client/chat/StatsPills.module.css",
       "sourceSha256": "54c8593deae58daa06db7c3a4a5351956e6df6dbb0af7edfdfe4f113a1c6a099",
-      "targetSha256": "54c8593deae58daa06db7c3a4a5351956e6df6dbb0af7edfdfe4f113a1c6a099",
-      "adapted": false
+      "targetSha256": "7bff601545c1b3fb3c2c8db73af5c2ef0d9cdeb91702cae2ead40b160c2d5416",
+      "adapted": true,
+      "adaptation": "Phone-width conversations show only the key reading (speed, cache hit) and tighten pill padding."
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/StatsPills.tsx",
       "target": "src/vendor/chat/client/chat/StatsPills.tsx",
       "sourceSha256": "ce5b0c92adf74bdd43a308a412df639f61304cdc565b3dd7f9f4f2be54fd09ab",
-      "targetSha256": "35a48d802f6004ede8b1161cb083b9a308464a8d919953dc2478a14b6c4b8931",
-      "adapted": true
+      "targetSha256": "04a0b8a05db6bd745339e7495f28d455b6ac6934e5542d6921e5b5babb6bf456",
+      "adapted": true,
+      "adaptation": "The lead segment of a two-part reading carries its own class so phone widths can show the key reading alone."
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/SystemPromptRow.tsx",

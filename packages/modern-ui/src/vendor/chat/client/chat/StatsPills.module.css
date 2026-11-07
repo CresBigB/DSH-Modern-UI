@@ -61,3 +61,18 @@ button.pill[aria-expanded='true'] {
   color: var(--dsw-alias-separator-primary);
   margin: 0 6px;
 }
+
+/* A phone-width conversation keeps each pill to its key reading (speed, cache
+   hit), the Compact mode's choice; counts and token totals head the dialog the
+   pill opens. Tighter padding gives the readings and the context meter room. */
+@container (max-width: 480px) {
+  .lead,
+  .lead + .sep {
+    display: none;
+  }
+
+  .pill {
+    gap: 4px;
+    padding: 1px 6px;
+  }
+}
