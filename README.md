@@ -95,3 +95,8 @@ npm run preview    # 生成 .artifacts/plugin-preview（tgz 与安装器）
 ## License
 
 [MIT](LICENSE)。从 DeepSeek Harness 派生的部分保留上游版权，见 [`THIRD_PARTY_NOTICES.md`](packages/modern-ui/THIRD_PARTY_NOTICES.md)。
+
+## 友情链接
+
+- [LINUX DO](https://linux.do/)
+
