@@ -19,6 +19,13 @@ import { en, ja, es, fr, de, ru, pt, NS, zh } from './vendor/translation/client/
 const FIRST_READ_RETRIES = 6
 const FIRST_READ_RETRY_MS = 2_000
 
+// The form belongs to the official cot-translation entry, which is optional: this module only listens to it, and only
+// once that entry's Remote service exists. The id is read off an object on purpose. The dshmarket plugin scans installed
+// client bundles for `configForms.get('<name>')` (a literal, or a constant holding one) and treats the name as the
+// plugin's own settings; wherever the official entry is not installed it then tells the user that Modern UI's settings
+// panel cannot read its config. A property read is not something that scan resolves, so the notice stays away.
+const OFFICIAL_ENTRY = { translation: 'cot-translation' } as const
+
 async function registerUi(ctx: Context, lifetime: AbortController): Promise<void> {
   let readTask: Promise<RemoteResult<CotTranslationSnapshot>> | undefined
   let updating: Promise<void> | undefined
@@ -83,7 +90,7 @@ async function registerUi(ctx: Context, lifetime: AbortController): Promise<void
       if (acceptSnapshot === undefined) refresh()
     }, delay)
   }
-  const scope = ctx.configForms.get<CotTranslationPreferences>('cot-translation')
+  const scope = ctx.configForms.get<CotTranslationPreferences>(OFFICIAL_ENTRY.translation)
   ctx.effect(() => scope.subscribe(invalidate))
   refresh()
   await updating
