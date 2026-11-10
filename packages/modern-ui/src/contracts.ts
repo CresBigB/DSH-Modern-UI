@@ -13,6 +13,7 @@ import type * as translationLocale from './vendor/translation/client/locales.ts'
 import type * as markdownPreviewLocale from './vendor/documentpreview/client/markdown/locales.ts'
 import type * as planPreviewLocale from './vendor/plan/client/locales.ts'
 import type * as reasoningLocale from './vendor/settings-models/client/locales.ts'
+import type { ModelParametersOwner } from './model-extras.tsx'
 
 export type { MessageCodeOwnerProps }
 
@@ -30,5 +31,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Code-fence presenters select from authored content; the standard CodeBlock has priority 100. */
     'conversation.chat.message.code': { kind: 'chain'; scope: 'session'; owner: MessageCodeOwnerProps }
+    /**
+     * Rows a provider's plugin adds for the selected model, shown in the menu beside the composer's model button.
+     * An entry renders nothing while the selected model is not its own; the button shows only while a row rendered.
+     */
+    'conversation.input.model.parameters': { kind: 'list'; scope: 'session'; owner: ModelParametersOwner }
   }
 }
