@@ -983,7 +983,7 @@
       "source": "packages/client/ui-model-selection/src/client/locales.ts",
       "target": "src/vendor/model/client/locales.ts",
       "sourceSha256": "34c4e4f38a3d4de48acee1b56d135c525840e26ac89beee564af1a97cb78f2e7",
-      "targetSha256": "b70e611f3a1ecbf828a19f7f92705a9ca2ccaa9804ef0e49913183aaa59a6e65",
+      "targetSha256": "8b957aea0862eaf5561dba9043112c5035b30bf9d2da68a2b9c7f317b39c07ca",
       "adapted": true
     },
     {
@@ -3892,7 +3892,7 @@
     },
     {
       "target": "src/model-owner.ts",
-      "targetSha256": "5b9be4575f8fdf5c85fe7665addf024ec06043e6dffc1ff374d6821a73e6dfed",
+      "targetSha256": "3e424eec15da516947af631def6e0c4ca4aa13f3d90c3bbf651d720d380fb602",
       "sources": [
         {
           "source": "packages/client/ui-model-selection/src/client/index.ts",

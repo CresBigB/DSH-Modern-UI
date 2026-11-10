@@ -1,0 +1,259 @@
+/* The provider menu beside the composer's model button (model-extras.tsx). The button and the card take their
+   geometry and tones from the model picker next to them, so the two read as one group. */
+
+/* The button is a direct item of the composer's control group; the wrapper only carries the key handler. */
+.root {
+  display: contents;
+}
+
+/* The card is portaled out of .root, so both carry the shared tone. */
+.trigger,
+.menu {
+  --extras-fill: color-mix(in oklab, var(--bui-ink) 5%, transparent);
+}
+
+.trigger {
+  display: grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--bui-radius-control);
+  outline: none;
+  background: transparent;
+  color: var(--bui-ink-2);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .trigger:hover:not(:disabled) {
+    background: var(--extras-fill);
+    color: var(--bui-ink);
+  }
+}
+
+.trigger[aria-expanded='true'] {
+  background: var(--extras-fill);
+  color: var(--bui-ink);
+}
+
+.trigger:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+}
+
+.trigger:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.menu {
+  --extras-enter-y: 2px;
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(280px, calc(100vw - 24px));
+  max-height: var(--extras-room, calc(100vh - 24px));
+  overflow: hidden;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--bui-radius-card);
+  outline: none;
+  box-shadow:
+    0 0 0 0.5px oklch(0 0 0 / 0.08),
+    0 12px 28px -10px oklch(0 0 0 / 0.16),
+    0 1px 2px oklch(0 0 0 / 0.05);
+  color: var(--bui-ink);
+  transform-origin: bottom right;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.menu[data-menu-positioned='true'] {
+  animation: extrasIn var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+}
+
+.menu[data-menu-side='bottom'] {
+  transform-origin: top right;
+  --extras-enter-y: -2px;
+}
+
+:global(body[data-ds-dark-theme]) .menu {
+  box-shadow: var(--bui-shadow-overlay);
+}
+
+/* Opacity animation on the menu would isolate its material from the page. */
+@keyframes extrasIn {
+  from { transform: translateY(var(--extras-enter-y)); }
+  to { transform: none; }
+}
+
+.body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.heading {
+  overflow: hidden;
+  padding: 6px 8px 4px;
+  color: var(--bui-ink-3);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.speed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-height: 34px;
+  padding: 2px 4px 2px 8px;
+}
+
+.speedLabel {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bui-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pills {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--extras-fill);
+}
+
+.pill {
+  box-sizing: border-box;
+  min-height: 24px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  background: transparent;
+  color: var(--bui-ink-2);
+  font: inherit;
+  font-size: 12px;
+  line-height: 24px;
+  white-space: normal;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.pill[aria-checked='true'] {
+  background: var(--bui-surface);
+  color: var(--bui-ink);
+  box-shadow: 0 0 0 0.5px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.12);
+}
+
+.pill:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+}
+
+.pill:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Handed to plugin rows as class names, for rows that take the menu's row geometry instead of bringing their own. */
+.cell {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-xs);
+  outline: none;
+  background: transparent;
+  color: var(--bui-ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: left;
+}
+
+button.cell {
+  cursor: pointer;
+}
+
+button.cell:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+button.cell:focus-visible {
+  background: var(--extras-fill);
+}
+
+@media (hover: hover) {
+  button.cell:hover:not(:disabled) {
+    background: var(--extras-fill);
+  }
+}
+
+.cellLabel {
+  flex: 0 0 auto;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cellValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bui-ink-3);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu[data-menu-positioned] {
+    animation: none;
+  }
+
+  .trigger,
+  .pill {
+    transition: none;
+  }
+
+  .trigger:active:not(:disabled) {
+    transform: none;
+  }
+}
