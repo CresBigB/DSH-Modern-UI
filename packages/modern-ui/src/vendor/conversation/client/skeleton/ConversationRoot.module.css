@@ -609,6 +609,26 @@
     display: none;
   }
 
+  /* A blank Session's header holds only the corner control: the official right-panel
+     expand button (28px, 15px glyph), directly under the phone navigation bar's 44px
+     buttons with 21px glyphs. Give it that target and glyph, and centre it under the
+     bar's trailing button, whose inline padding is 8px against this header's 12px.
+     A started Session keeps the compact size: there the control closes a row of
+     equally compact utilities. */
+  .headerBlank .headerCorner {
+    margin-right: calc(max(8px, env(safe-area-inset-right, 0px)) - 12px);
+  }
+
+  .headerBlank .headerCorner button:has(> svg:only-child) {
+    width: 44px;
+    height: 44px;
+  }
+
+  .headerBlank .headerCorner button:has(> svg:only-child) > svg {
+    width: 21px;
+    height: 21px;
+  }
+
   .composerSeat {
     --dsh-composer-chrome-reserve: 98px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
