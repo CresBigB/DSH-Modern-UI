@@ -157,8 +157,10 @@ for (const version of versions) {
     result.layers.officialBefore = { state: 'passed', result: await main(['verify', '--root', state.root]) }
     result.layers.officialControls = { state: 'passed', result: await runOfficialControlsChecks(state.backend) }
     const runtimeDependencies = await inspectRuntimeDependencies(path.join(state.plugin.path, 'package.json'), state.backend)
+    const installedPlugin = await json(path.join(state.plugin.path, 'package.json'))
     for (const dependency of runtimeDependencies.plugin.filter(item => item.declared)) {
       assert.equal(dependency.status, 'resolved', `Installed plugin runtime dependency ${dependency.name} must resolve`)
+      assert.equal(dependency.version, installedPlugin.dependencies[dependency.name], `Installed plugin must use its pinned ${dependency.name}`)
     }
     await save(path.join(evidence, 'runtime-dependencies.json'), runtimeDependencies)
     result.layers.runtimeDependencies = { state: 'passed', evidence: 'runtime-dependencies.json', scope: 'resolution, not a vulnerability exemption' }

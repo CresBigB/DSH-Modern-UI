@@ -1,4 +1,4 @@
-import { readFile, mkdir, writeFile } from 'node:fs/promises'
+import { readFile, mkdir, writeFile, realpath } from 'node:fs/promises'
 import { createRequire, isBuiltin } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -34,7 +34,8 @@ export function artifactExposure(root, packageDirectory, metafiles) {
 export async function resolvePackage(fromPackage, name) {
   try {
     await readJson(fromPackage)
-    const entry = createRequire(path.resolve(fromPackage)).resolve(name)
+    // Match Node's default module loading through pnpm symlinks: dependencies belong to the physical owner.
+    const entry = createRequire(await realpath(fromPackage)).resolve(name)
     let directory = path.dirname(entry)
     while (directory !== path.dirname(directory)) {
       try {

@@ -1,10 +1,36 @@
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { artifactExposure, collectExposure, inspectRuntimeDependencies, resolvePackage } from '../../scripts/dependency-exposure.mjs'
 
 describe('dependency exposure evidence', () => {
+  test('uses the pnpm physical owner instead of a decoy beside its logical package link', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'dependency-pnpm-'))
+    const install = async (directory: string, name: string, version: string) => {
+      await mkdir(directory, { recursive: true })
+      await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name, version, main: 'index.js' }))
+      await writeFile(path.join(directory, 'index.js'), '')
+    }
+    try {
+      const physicalModules = path.join(root, 'node_modules/.pnpm/plugin@1.0.0/node_modules')
+      const physicalPlugin = path.join(physicalModules, 'plugin')
+      const physicalDependency = path.join(physicalModules, 'undici')
+      await install(physicalPlugin, 'plugin', '1.0.0')
+      await install(physicalDependency, 'undici', '8.12.2')
+      await install(path.join(root, 'node_modules/undici'), 'undici', '8.11.2')
+      const logicalPlugin = path.join(root, 'node_modules/plugin')
+      await symlink(physicalPlugin, logicalPlugin, process.platform === 'win32' ? 'junction' : 'dir')
+      expect(await resolvePackage(path.join(logicalPlugin, 'package.json'), 'undici')).toMatchObject({
+        status: 'resolved',
+        version: '8.12.2',
+        directory: await realpath(physicalDependency),
+      })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   test('does not attribute a patched root package to an affected nested package', () => {
     const root = path.resolve('fixture')
     const nested = 'node_modules/owner/node_modules/katex'
