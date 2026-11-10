@@ -8,17 +8,26 @@ const UNITS = [1e12, 1e9, 1e6, 1e3];
 
 export function makeFormat(kind: string | undefined, currency: string | undefined, locale = "en-US"): Format {
   const code = typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
-  const percentParts = new Intl.NumberFormat(locale, { style: "percent", useGrouping: false }).formatToParts(1);
-  const write = (value: number, options: Intl.NumberFormatOptions) =>
-    kind === "percent"
-      ? percentParts.map(part => part.type === "integer" ? value.toLocaleString(locale, { ...options, useGrouping: false }) : part.value).join("")
-      : value.toLocaleString(locale, kind === "currency" ? { ...options, style: "currency", currency: code } : options);
+  const writer = (tag: string) => {
+    const percentParts = new Intl.NumberFormat(tag, { style: "percent", useGrouping: false }).formatToParts(1);
+    return (value: number, options: Intl.NumberFormatOptions) =>
+      kind === "percent"
+        ? percentParts.map(part => part.type === "integer" ? value.toLocaleString(tag, { ...options, useGrouping: false }) : part.value).join("")
+        : value.toLocaleString(tag, kind === "currency" ? { ...options, style: "currency", currency: code } : options);
+  };
+  // Values written out in full follow the interface language. K, M, B and T are en-US compact notation, and the
+  // precision rules below count in those units; other languages abbreviate by other powers (10^4 and 10^8 in Chinese),
+  // so abbreviated values keep the en-US writer in every language. The ticks of one axis read as a series and are all
+  // written by that one writer; without it a Chinese interface spelled every tick out ("US$1,500,000,000").
+  const written = writer(locale);
+  const abbreviated = writer("en-US");
   // Ticks a step apart always read differently: compact where the unit keeps the step's precision ("$2B", "1.25B"),
   // written out where it cannot ("1,000,000.2", "2,021"), with the decimals the step needs ("0.0005"), and past the
   // 20 fraction digits Intl accepts in scientific notation ("2E-26"). Tooltips show the value itself: at least two
   // decimals, the step's precision and three significant digits below 1 ("1.0005", "0.000123"), compact only where
   // that loses nothing ("$1.24B", but "1,000,001"), so a small non-zero value never reads as 0.
   return (value, compact, step = 0) => {
+    const write = compact ? abbreviated : written;
     const abs = Math.abs(value);
     if (value === 0 || !Number.isFinite(value)) return write(value, { maximumFractionDigits: 0 });
     const places = compact ? stepDigits(step) : Math.max(2, stepDigits(step), abs < 1 ? 2 - Math.floor(Math.log10(abs)) : 0);
@@ -26,15 +35,15 @@ export function makeFormat(kind: string | undefined, currency: string | undefine
       const mantissa = stepDigits(step / 10 ** Math.floor(Math.log10(abs)));
       return write(value, compact ? { notation: "scientific", maximumFractionDigits: Math.min(20, mantissa) } : { notation: "scientific", maximumSignificantDigits: 3 });
     }
-    const unit = kind === "percent" || !/^en(?:-|$)/i.test(locale) ? undefined : UNITS.find((u) => abs >= u && (compact || u >= 1e6));
+    const unit = kind === "percent" ? undefined : UNITS.find((u) => abs >= u && (compact || u >= 1e6));
     // The unit keeps the step's precision in at most two decimals, so values on this axis read compact.
     const scaled = unit === undefined ? Number.POSITIVE_INFINITY : stepDigits(step / unit);
     if (unit !== undefined && scaled <= 2) {
-      if (compact) return write(value, { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: scaled });
+      if (compact) return abbreviated(value, { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: scaled });
       // Hundredths of the unit in the written-out value: a whole number of them reads the same compact.
       const hundredths = Number(value.toFixed(places)) / (unit / 100);
       if (Math.abs(hundredths - Math.round(hundredths)) < 1e-9 * Math.max(1, Math.abs(hundredths)))
-        return write(value, { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        return abbreviated(value, { notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: 2 });
     }
     return write(value, { minimumFractionDigits: 0, maximumFractionDigits: places });
   };

@@ -15,7 +15,8 @@ export function numberText(value: number, locale = "en-US"): string {
   locale = typeof locale === "string" ? locale : "en-US";
   if (!Number.isFinite(value) || Number.isInteger(value)) return value.toLocaleString(locale);
   const abs = Math.abs(value);
-  if (abs < 1e-4) return locale === "en-US" ? value.toExponential(2) : value.toLocaleString(locale, { notation: "scientific", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // The Host's English interface is "en"; it keeps the notation an English reader had before ("1.23e-5").
+  if (abs < 1e-4) return /^en(?:-|$)/i.test(locale) ? value.toExponential(2) : value.toLocaleString(locale, { notation: "scientific", minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (abs < 1) return value.toLocaleString(locale, { maximumSignificantDigits: 4 });
   return value.toLocaleString(locale, { maximumFractionDigits: 4 });
 }

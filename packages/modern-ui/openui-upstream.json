@@ -68,7 +68,7 @@
     },
     {
       "target": "src/vendor/openui/components/chart-math.ts",
-      "targetSha256": "53058d297f5ed2160cc5a141fe536e1ae25530ca6596bdb14ed51177630e555f",
+      "targetSha256": "dd4ad0bcd2c0b38b690fd06c18cd3573c182a58500177e92d829218e00551e70",
       "authored": true
     },
     {
@@ -145,7 +145,7 @@
       "source": "src/lib/components/table.tsx",
       "target": "src/vendor/openui/components/table.tsx",
       "sourceSha256": "d6713d6f0330c760d5c5feb491b4a7bc79a205b15961e9ef8673c0a90e90e492",
-      "targetSha256": "a69ef8dbc0a10b5ca4b5e66309a7cc198dcf0ec966a1f53fc7f6c2244df484c1",
+      "targetSha256": "d3c925fdeac512711308e1c4de10120c34eb2f2fd47f15f89223cee6a0c8e9c4",
       "adapted": true
     },
     {
@@ -171,7 +171,7 @@
       "source": "src/lib/functions/dates.ts",
       "target": "src/vendor/openui/functions/dates.ts",
       "sourceSha256": "5b3c634f418f6337dfeb6703677206394b8dd327a5614ec79d66c1063174854b",
-      "targetSha256": "dac36494b3e93f1a80ec426ac9bdd841d090af00a963fa50caa3be2eb8fe0b68",
+      "targetSha256": "37574e54ff7c846a9a44f73718e5a003c667ceb38f0c70236505e08e1d4b2d98",
       "adapted": true
     },
     {

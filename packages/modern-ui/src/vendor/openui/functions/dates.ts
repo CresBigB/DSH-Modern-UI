@@ -50,6 +50,19 @@ export const Now = defineFunction({
   fn: () => new Date().toISOString(),
 });
 
+/**
+ * The language tag for a date. A model asked to pass the reader's language also writes "zh_CN", "" or a language
+ * name; Intl throws on those, which would leave the date blank, so they read as the nearest valid tag or the default.
+ */
+export function languageTag(locale: unknown): string {
+  if (typeof locale !== "string") return "en-US";
+  try {
+    return Intl.getCanonicalLocales(locale.trim().replace(/_/g, "-"))[0] ?? "en-US";
+  } catch {
+    return "en-US";
+  }
+}
+
 export const FormatDate = defineFunction({
   name: "FormatDate",
   description:
@@ -65,7 +78,7 @@ export const FormatDate = defineFunction({
     if (style === "iso") return isoDay(day);
     // A calendar date formats in UTC so its day never shifts with the viewer's zone
     const at = instant ?? new Date(day * DAY);
-    return at.toLocaleString(locale, { ...STYLES[style], ...(instant ? {} : { timeZone: "UTC" }) });
+    return at.toLocaleString(languageTag(locale), { ...STYLES[style], ...(instant ? {} : { timeZone: "UTC" }) });
   },
 });
 

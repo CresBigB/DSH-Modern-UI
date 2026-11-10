@@ -150,7 +150,8 @@ export function ConversationSessionHeader({
     if (target !== undefined) {
       const ids = viewTabIds(sessionId, target.id)
       const destination = document.getElementById(ids.tab) ?? document.getElementById(ids.panel)
-      destination?.focus()
+      // The panel is the whole transcript; moving focus to it must not scroll a long conversation.
+      destination?.focus({ preventScroll: true })
     }
   }, [visibleTabs, active, sessionId, showTabs])
   const openFromMenu = (id: string): void => {
