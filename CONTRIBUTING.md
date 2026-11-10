@@ -27,6 +27,8 @@
 
 [`pr.yml`](.github/workflows/pr.yml) 跑前三层；[`plugin-preview.yml`](.github/workflows/plugin-preview.yml) 跑已验证宿主 × Linux/Windows 的隔离消费者矩阵与五平台安装矩阵；[`upstream-canary.yml`](.github/workflows/upstream-canary.yml) 每天对上游新版本跑隔离消费者。
 
+仅测试脚本变化、已有同产物完整证据时，可手动填写 `host` / `runner` 定点重验并启用 `skip_consumers` 复用安装检查；默认手动运行和所有版本 tag 仍执行完整矩阵，`host` 必须在已验证清单内。
+
 ## 约束
 
 - 不放宽 OpenUI 组件边界（见 [SECURITY.md](SECURITY.md)）；不引入对宿主的 monkey patch。
