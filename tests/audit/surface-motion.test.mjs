@@ -67,9 +67,28 @@ afterAll(async () => {
   await rm(directory, { recursive: true, force: true })
 })
 
-async function open(mode, reducedMotion = 'no-preference') {
+async function open(mode, reducedMotion = 'no-preference', holdTooltipResize = false) {
   const context = await browser.newContext({ viewport: { width: 900, height: 700 }, reducedMotion })
   const page = await context.newPage()
+  if (holdTooltipResize)
+    await page.addInitScript(() => {
+      const NativeResizeObserver = window.ResizeObserver
+      window.heldTooltipResizes = []
+      window.holdTooltipResize = true
+      window.releaseTooltipResize = () => {
+        window.holdTooltipResize = false
+        for (const deliver of window.heldTooltipResizes.splice(0)) deliver()
+      }
+      window.ResizeObserver = class extends NativeResizeObserver {
+        constructor(callback) {
+          super((entries, observer) => {
+            if (window.holdTooltipResize && entries.some(entry => entry.target.getAttribute('role') === 'tooltip')) {
+              window.heldTooltipResizes.push(() => callback(entries, observer))
+            } else callback(entries, observer)
+          })
+        }
+      }
+    })
   await page.goto('http://127.0.0.1:' + server.address().port)
   await page.waitForFunction(() => typeof window.show === 'function')
   await page.evaluate(mode => window.show(mode), mode)
@@ -85,6 +104,8 @@ async function frames(page, selector, count = 18) {
       const r = el.getBoundingClientRect(),
         s = getComputedStyle(el)
       samples.push({
+        timeMs: performance.now() - started,
+        visibility: s.visibility,
         x: r.x,
         y: r.y,
         width: r.width,
@@ -169,7 +190,7 @@ test('real Tooltip fades without moving its positioned box and does not restart 
   const { context, page } = await open('tooltip')
   try {
     await page.locator('#tooltip-trigger').focus()
-    await page.getByRole('tooltip').waitFor({ state: 'attached' })
+    await page.getByRole('tooltip').waitFor({ state: 'visible' })
     const samples = await frames(page, '[role=tooltip]', 12)
     stableGeometry(samples)
     monotonic(
@@ -270,7 +291,7 @@ test('reduced motion disables button shrink and tooltip, modal and official prom
       try {
         const page = surface.page
         if (mode === 'tooltip') await page.locator('#tooltip-trigger').focus()
-        await page.locator(selector).waitFor({ state: 'attached' })
+        await page.locator(selector).waitFor({ state: 'visible' })
         assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).animationName), 'none')
         const samples = await frames(page, selector, 4)
         stableGeometry(samples)
@@ -280,6 +301,54 @@ test('reduced motion disables button shrink and tooltip, modal and official prom
         await surface.context.close()
       }
     }
+  } finally {
+    await context.close()
+  }
+})
+
+test('tooltip placement changes only while hidden; first visible frame and later reduced-motion frames stay fixed', async () => {
+  const { context, page } = await open('tooltip', 'reduce', true)
+  try {
+    await page.locator('#tooltip-trigger').focus()
+    // Deliberately observe the normally invisible measurement stage rather than racing ResizeObserver.
+    await page.locator('[role=tooltip]').waitFor({ state: 'attached' })
+    await page.waitForFunction(() => window.heldTooltipResizes.length > 0)
+    const samples = await page.locator('[role=tooltip]').evaluate(async el => {
+      const samples = []
+      for (let frame = 0; frame < 12; frame++) {
+        await new Promise(requestAnimationFrame)
+        const rect = el.getBoundingClientRect(),
+          style = getComputedStyle(el)
+        samples.push({
+          frame,
+          visibility: style.visibility,
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          opacity: Number(style.opacity),
+          animationName: style.animationName,
+        })
+        if (frame === 3) window.releaseTooltipResize()
+      }
+      return samples
+    })
+    console.info('Tooltip delayed placement frames:', JSON.stringify(samples))
+    assert.ok(
+      samples.slice(0, 4).every(sample => sample.visibility === 'hidden'),
+      'measurement boxes are never painted',
+    )
+    const visible = samples.filter(sample => sample.visibility === 'visible')
+    assert.equal(visible.length, 8, 'placement makes the following frames visible')
+    assert.ok(
+      Math.abs(samples[0].x - visible[0].x) > 0.02 || Math.abs(samples[0].y - visible[0].y) > 0.02,
+      'delayed delivery reproduces different hidden and placed coordinates',
+    )
+    stableGeometry(visible)
+    assert.ok(
+      visible.every(sample => sample.opacity === 1 && sample.animationName === 'none'),
+      'reduced motion remains animation-free',
+    )
   } finally {
     await context.close()
   }
