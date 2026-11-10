@@ -28,7 +28,7 @@ Windows、Node 24.18.0、React 18.3.1、Edge 157.0.4341.42；CI 使用仓库固�
 
 `node scripts/probe-conversation-tabs.mjs` 复现真实浏览器 Tab/Shift+Tab、方向键、Home/End、Enter/Space。两脚本默认写入 `.artifacts/audit-20261110/`，其简化远端、selector 桥和 primitives 边界也写入结果。PERF-C01～C05 为原报告的未确认候选，本次没有凭静态推测修改排序、列表动画、运行时钟或 Markdown 不可变快照。
 
-本地 lint（630 文件）、client/Host typecheck、单元测试及完整 audit/compat 回归通过。OpenUI 的新字段在旧位置参数之后保持 optional；生成提示词由 `npm run prompt:openui` 验证示例并重新生成；来源清单保留原 source SHA，只更新实际 target SHA 和改编标记。打包通过 `npm run preview`，全部运行资源继续随 tgz 安装，无额外 CDN。
+本地 lint、client/Host typecheck、单元测试及完整 audit/compat 回归通过。OpenUI 的新字段在旧位置参数之后保持 optional；生成提示词由 `npm run prompt:openui` 验证示例并重新生成；来源清单保留原 source SHA，只更新实际 target SHA 和改编标记。打包通过 `npm run preview`，全部运行资源继续随 tgz 安装，无额外 CDN。上面的包体积和订阅计时记录来自审计整改完成、下述动效追加之前。
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
@@ -42,6 +42,20 @@ npm run preview
 ```
 
 `npm audit` 对已知公告返回 1，须保留其 JSON 再执行路径/产物检查。PR 和隔离消费者矩阵的最终状态应以该修订的 GitHub Actions 为准。
+
+## 菜单与侧栏动效追加
+
+参考 [Feel](https://diip3sh.github.io/feel/) 的弹性与阻尼参数思路，沿用仓库已有的 Feel 曲线，不引入新动画依赖。位置移动保持已有 panel/control 曲线；颜色与透明度反馈改为 120ms，通用按钮按压为 80ms、居中缩放至 0.985，释放沿用 control 曲线。带弹出面板的通用按钮保持几何不动，Tooltip 和 Modal 仅淡入。
+
+模型菜单原先以正处于按压变形的按钮测量位置，并在入场时缩放整个菜单。现在用与按钮布局宽度一致的稳定 wrapper 定位，测量完成后才入场；普通菜单、模型菜单及官方指令菜单只做不超过 2px 的单向移动，保持尺寸和定位 transform。菜单异步加载、上下翻转与普通重渲染不会重放入场。模型选择、搜索、方向键、Escape、窄输入区及 portal 行为保留。
+
+侧栏的 grid 收缩与图标的独立横移曾叠加，调宽手柄则直接跳到最终位置。现在 rail 控件仅短暂淡入，手柄跟随实际 grid 边界；窗口 resize、拖动和动态开启 reduced-motion 会终止轨道缓动。手机抽屉关闭后立即变为 inert、撤销模态占用并恢复触发器焦点，视觉退场完成后隐藏；退场期间重新打开可以反向继续。
+
+同机 Edge 157 的实际组件逐帧对照（基准 `59c2d01`，含真实 Feel/base tokens、简化的工作区插槽）中，rail 图标最大单帧横移由 42px 降为 7px；开关过程中的手柄与 grid 边界偏移由 193.75px 降为 0。新增 `menu-motion` 8 项、`model-picker-motion` 8 项、`sidebar-motion` 6 项、`surface-motion` 6 项，覆盖快速反向、真实 pointer 拖动、异步目录、稳定几何、焦点返回以及初始/中途 reduced-motion。侧栏同一组检查在基准上 5 失败 / 1 通过，在修改后 6 项通过。
+
+另用隔离的真实 rc.4 宿主与本地固定模型检查 1365px 桌面和 390px 手机视口：模型菜单、侧栏更多菜单、侧栏开关、手机退出/重新打开及 reduced-motion 均通过，未记录 pageerror；63 个侧栏展开样本的手柄边界偏差小于 0.001px。该 smoke 不访问日常 profile 或外部模型。数值证明对应测试场景的几何稳定，不代表真实设备帧率或主观自然度；原生 macOS 合成、Safari/WebKit、真实手机键盘和复杂第三方嵌套模态尚未实测。
+
+整合后本地 lint 检查 635 个文件，client/Host typecheck、292 项 unit 和 307 项 audit/compat 全部通过（合计 599 项）。最终 client 为 9,746,814 原始字节、2,123,267 gzip 字节，仍低于既定预算；来源目标摘要已同步。
 
 ## SEC-R01 与依赖公告的剩余边界
 

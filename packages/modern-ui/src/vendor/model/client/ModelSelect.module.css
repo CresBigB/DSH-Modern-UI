@@ -17,6 +17,15 @@
   min-width: 0;
 }
 
+/* Match the button's layout box while its pressed transform settles. The
+   root can fill a wider composer seat and is not itself a precise anchor. */
+.anchor {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
 /* Beautiful UI PromptBar text trigger. */
 .trigger {
   display: flex;
@@ -226,6 +235,7 @@
    component reads --picker-cap to tell how tall the card will render. */
 .menu {
   --picker-cap: 560px;
+  --picker-enter-y: 2px;
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
@@ -242,10 +252,18 @@
     0 12px 28px -10px oklch(0 0 0 / 0.16),
     0 1px 2px oklch(0 0 0 / 0.05);
   color: var(--bui-ink);
-  animation: pickerIn 220ms var(--bui-ease-out);
   transform-origin: bottom right;
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.menu[data-menu-positioned='true'] {
+  animation: pickerIn var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+}
+
+.menu[data-menu-side='bottom'] {
+  transform-origin: top right;
+  --picker-enter-y: -2px;
 }
 
 :global(body[data-ds-dark-theme]) .menu {
@@ -254,7 +272,7 @@
 
 /* Opacity animation on the menu would isolate its material from the page. */
 @keyframes pickerIn {
-  from { transform: translateY(4px) scale(0.97); }
+  from { transform: translateY(var(--picker-enter-y)); }
   to { transform: none; }
 }
 
@@ -737,17 +755,22 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menu,
+  .menu[data-menu-positioned],
   .bulb {
     animation: none;
   }
 
   .segment,
+  .trigger,
   .fold,
   .fold[data-open],
   .chevron,
   .option,
   .pill {
     transition: none;
+  }
+
+  .trigger:active:not(:disabled) {
+    transform: none;
   }
 }

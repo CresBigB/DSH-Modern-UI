@@ -15,16 +15,21 @@
   background: transparent;
   padding: 0 12px;
   transition:
-    background-color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
-    border-color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
-    color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
-    opacity var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
-    transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+    background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    border-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    opacity var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    transform var(--dsh-button-motion-duration, var(--dsh-feel-control-duration)) var(--dsh-button-motion-curve, var(--dsh-feel-control-curve));
 }
 
 .button:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+  --dsh-button-motion-duration: var(--dsh-motion-press-duration);
+  --dsh-button-motion-curve: var(--dsh-motion-feedback-curve);
+  transform: scale(0.985);
 }
+
+/* Anchored overlays must not inherit a moving reference point from their trigger. */
+.button[aria-haspopup]:active:not(:disabled) { transform: none; }
 
 .button:disabled {
   cursor: not-allowed;

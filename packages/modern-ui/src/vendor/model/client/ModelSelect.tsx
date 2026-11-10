@@ -118,6 +118,7 @@ export function ModelSelect({
   const rootRef = useRef<HTMLDivElement | null>(null)
   useDismissBehindModal(rootRef, open, () => { setOpen(false) })
   const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const anchorRef = useRef<HTMLSpanElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -238,7 +239,8 @@ export function ModelSelect({
     const menu = menuRef.current as HTMLDivElement
     const list = listRef.current as HTMLDivElement
     const place = (): void => {
-      const rect = (triggerRef.current as HTMLButtonElement).getBoundingClientRect()
+      // The button's pressed transform is visual feedback, not popup geometry.
+      const rect = (anchorRef.current as HTMLSpanElement).getBoundingClientRect()
       const MARGIN = 12
       const GAP = 8
       // The fixed card's containing block: the layout viewport the trigger rect is measured in.
@@ -270,6 +272,7 @@ export function ModelSelect({
     window.addEventListener('resize', place)
     const observer = new ResizeObserver(place)
     observer.observe(menu)
+    observer.observe(anchorRef.current as HTMLSpanElement)
     return () => {
       observer.disconnect()
       window.removeEventListener('scroll', place, true)
@@ -534,39 +537,41 @@ export function ModelSelect({
         if (event.target instanceof Element && event.target.closest('input') === null) event.preventDefault()
       }}
     >
-      <button
-        ref={triggerRef}
-        type="button"
-        className={css.trigger}
-        aria-label={triggerAria}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={open ? `${id}-menu` : undefined}
-        title={triggerTitle}
-        aria-busy={busy}
-        data-selection-focus={selectionFocus ? '' : undefined}
-        onBlur={() => { setSelectionFocus(false) }}
-        disabled={locked}
-        onClick={() => { if (open) close(true); else show() }}
-      >
-        {currentChoice === undefined
-          ? <IconDataOutlineRegular className={css.triggerIcon} size={16} />
-          : <span className={clsx(css.glyph, css.triggerGlyph)} aria-hidden="true">{tileContent(currentChoice.profile)}</span>}
-        <span className={css.triggerLabel}>
-          {currentChoice === undefined ? modelLabel : renderModelLabel(currentChoice, 'trigger', true)}
-        </span>
-        {showsEffort && (
-          <span className={css.triggerEffort}>
-            <span className={css.triggerEffortInner}>
-              {showsBulb && <IconThinkOutlineRegular className={css.bulb} size={14} />}
-              <span className={css.triggerEffortText}>{effortLabel}</span>
-            </span>
+      <span ref={anchorRef} className={css.anchor}>
+        <button
+          ref={triggerRef}
+          type="button"
+          className={css.trigger}
+          aria-label={triggerAria}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-controls={open ? `${id}-menu` : undefined}
+          title={triggerTitle}
+          aria-busy={busy}
+          data-selection-focus={selectionFocus ? '' : undefined}
+          onBlur={() => { setSelectionFocus(false) }}
+          disabled={locked}
+          onClick={() => { if (open) close(true); else show() }}
+        >
+          {currentChoice === undefined
+            ? <IconDataOutlineRegular className={css.triggerIcon} size={16} />
+            : <span className={clsx(css.glyph, css.triggerGlyph)} aria-hidden="true">{tileContent(currentChoice.profile)}</span>}
+          <span className={css.triggerLabel}>
+            {currentChoice === undefined ? modelLabel : renderModelLabel(currentChoice, 'trigger', true)}
           </span>
-        )}
-        {busy
-          ? <StateDot state="ongoing" />
-          : <IconChevronDownOutlineRegular className={clsx(css.chevron, open && css.chevronOpen)} />}
-      </button>
+          {showsEffort && (
+            <span className={css.triggerEffort}>
+              <span className={css.triggerEffortInner}>
+                {showsBulb && <IconThinkOutlineRegular className={css.bulb} size={14} />}
+                <span className={css.triggerEffortText}>{effortLabel}</span>
+              </span>
+            </span>
+          )}
+          {busy
+            ? <StateDot state="ongoing" />
+            : <IconChevronDownOutlineRegular className={clsx(css.chevron, open && css.chevronOpen)} />}
+        </button>
+      </span>
 
       {/* Portaled to body (Menu primitive's portal mode) so the sidebar and
           column overflow clips cannot crop the card; synthetic events still
@@ -577,6 +582,8 @@ export function ModelSelect({
           id={`${id}-menu`}
           className={css.menu}
           style={menuPos ?? MEASURE_STYLE}
+          data-menu-positioned={placed}
+          data-menu-side={menuPos?.top !== undefined ? 'bottom' : 'top'}
           role="dialog"
           aria-label={t('menu.aria')}
           aria-busy={state.status === 'loading' || busy}

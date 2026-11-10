@@ -22,6 +22,39 @@
      ui-theme styles/scrollbar.css for the rebinding contract). */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  /* Placement reads offset dimensions, never this visual translation. Keep
+   * the material opaque so its backdrop filter continues sampling the page. */
+  --menu-enter-x: 0px;
+  --menu-enter-y: -2px;
+  animation: menu-enter var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+}
+
+.list[data-menu-side='top'] {
+  --menu-enter-y: 2px;
+}
+
+.list[data-menu-side='right'],
+.submenu {
+  --menu-enter-x: -2px;
+  --menu-enter-y: 0px;
+}
+
+/* A host-provided anchor can become available after the menu mounts. Start
+ * its entrance only once placement has made the hidden measuring card visible. */
+.list[data-menu-positioned='false'] {
+  animation: none;
+}
+
+@keyframes menu-enter {
+  from { transform: translate(var(--menu-enter-x), var(--menu-enter-y)); }
+  to { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list,
+  .submenu {
+    animation: none;
+  }
 }
 
 /* Primary cards grow with their content between compact and readable bounds. */

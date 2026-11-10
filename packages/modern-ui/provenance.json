@@ -913,14 +913,14 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "5b374799f5883ac626cc9c62b697c2588c044ec082b1f047169a36a1a7f99bd9",
+      "targetSha256": "6315165904c7837af493f0804b26258af4937a3eed1e68af2268fc8c37872d0b",
       "adapted": true
     },
     {
       "source": "packages/client/ui-layout/src/client/AppFrame.tsx",
       "target": "src/vendor/layout/AppFrame.tsx",
       "sourceSha256": "f4d0ff65db73b83c93f2d068991c2c02e1018adacc4979c17b188d76e81b29d1",
-      "targetSha256": "9582cd0beb9c76777dce92000da245a5fcac7b96751222ae0f71ec030c081037",
+      "targetSha256": "e1bd884faa6b809fc466722eb07dd9663fde535e315d16fe013389ed3dccecc3",
       "adapted": true
     },
     {
@@ -990,7 +990,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "12a9e8bbe6de32b7a85c57d525e8f8cab6cfc5befcb1c394f07bd6095befd944",
+      "targetSha256": "a6ebc5f6c41e5aebbe6fe950bf57cdcd60a632a6de2b7b2cf6be3c8e9c359874",
       "adapted": true,
       "adaptation": "Phone-width composer rows (container ≤480px) keep only the bulb for the effort and drop the chevron; the trigger cap adds the row slack that control-row-layout.ts publishes."
     },
@@ -998,7 +998,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
       "target": "src/vendor/model/client/ModelSelect.tsx",
       "sourceSha256": "72cdaf8eee5362562440ddd86519b039da7d012b1b980db40d283f148dad7d1e",
-      "targetSha256": "b25cae0f5bc19eb7df68ac453a012f609f10887c702531e9f5acd0fefb8a70e5",
+      "targetSha256": "0835414cba30d573dde56c8e71c7ec2f31f0608abf3873fda3419e11a810163f",
       "adapted": true
     },
     {
@@ -1131,8 +1131,8 @@
       "source": "packages/client/ui-primitives/src/Button.module.css",
       "target": "src/vendor/primitives/Button.module.css",
       "sourceSha256": "65c7e37f50b79a051bf75f91bb9acb91847d006256470a9caa81440bc781546c",
-      "targetSha256": "65c7e37f50b79a051bf75f91bb9acb91847d006256470a9caa81440bc781546c",
-      "adapted": false
+      "targetSha256": "6a9b623b6f132a851be768f5bdd1eed8befaf10d5260458eb1f8bb87de6e2de3",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Button.tsx",
@@ -1631,14 +1631,14 @@
       "source": "packages/client/ui-primitives/src/Menu.module.css",
       "target": "src/vendor/primitives/Menu.module.css",
       "sourceSha256": "11059a50119654e9bd3735cbe73bf918f78ade59fa8d49e6b7b2d3492b066a37",
-      "targetSha256": "11059a50119654e9bd3735cbe73bf918f78ade59fa8d49e6b7b2d3492b066a37",
-      "adapted": false
+      "targetSha256": "867e476d6868924a87c18c40bcff37cb83d50ea2d31ab760da8ab3cf81c22b6b",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Menu.tsx",
       "target": "src/vendor/primitives/Menu.tsx",
       "sourceSha256": "cf0333db81f314e6d1e49f44109499e2443e1301dd42a455429942cacb793b8c",
-      "targetSha256": "5a6e4643128c8435adebe155a250eb840b14eed24cc9aa5897a49d87ce3b373d",
+      "targetSha256": "4cdf1b00ba545969f79ff91740ff673c9d951fe8aa9858bdfc04ff56c999a805",
       "adapted": true
     },
     {
@@ -1673,8 +1673,8 @@
       "source": "packages/client/ui-primitives/src/Modal.module.css",
       "target": "src/vendor/primitives/Modal.module.css",
       "sourceSha256": "651082405cea026fd7c9a3f3390ecaf9b09f88c0da40248ae1b4c74afca46629",
-      "targetSha256": "651082405cea026fd7c9a3f3390ecaf9b09f88c0da40248ae1b4c74afca46629",
-      "adapted": false
+      "targetSha256": "f9d31e6b67fe2e104e8573a4f37674a7d97515b297aa6fe74f95aad06119ff4d",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Modal.tsx",
@@ -1897,8 +1897,8 @@
       "source": "packages/client/ui-primitives/src/Tooltip.module.css",
       "target": "src/vendor/primitives/Tooltip.module.css",
       "sourceSha256": "531b7d7e4e17a73978c43b492308519944894e635d247ed404f2b910a93774c9",
-      "targetSha256": "531b7d7e4e17a73978c43b492308519944894e635d247ed404f2b910a93774c9",
-      "adapted": false
+      "targetSha256": "c47f5a8eae6ebac3106d810aa6c70b52da300a1f8f3c9541cbdb692aca06565c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Tooltip.tsx",
@@ -2030,14 +2030,14 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "40d37bac6f53cf639160f92d6e189e3f658c27bd3598fd9fd61dc857bb2bfd3b",
+      "targetSha256": "e31892e0062ed53a6797d833315b1bbe36d6a0786ba12da20ba0981f1691a022",
       "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
       "target": "src/vendor/sidebar/client/SidebarRoot.tsx",
       "sourceSha256": "9b0f10a46deb7900d5d583ad1228bab540c7385a437c445c013ff2ce3689b291",
-      "targetSha256": "a505bb9ca438555fd592382a4e1d4d558888bc36d9ef88b2b16f52834ecafb1c",
+      "targetSha256": "c993ea4424e9bb7526d889df30283ecbba0a52937360a2350c065efd8ccd6c3e",
       "adapted": true
     },
     {
@@ -2114,7 +2114,7 @@
       "source": "packages/client/ui-theme/src/styles/base.css",
       "target": "src/vendor/theme/styles/base.css",
       "sourceSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "targetSha256": "7a5a4bf8b4cc5421833f01534784126d0bb1d0336d9afdbe8c0352d245dfd86c",
+      "targetSha256": "a1b1d61e8d5ccdd34e7331676567ac06a015b20a813b4a414f5b520db0332820",
       "adapted": true
     },
     {
@@ -3803,7 +3803,7 @@
     },
     {
       "target": "src/official-surfaces.css",
-      "targetSha256": "887735bd87ae5b8ab808595267635a2f978d16e129a9f7919a062994b3e37680",
+      "targetSha256": "1eb61bfd82c3edc2d09937adad03e9f254e89d42a2766abb7255e18c75fed845",
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
@@ -3907,7 +3907,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "8500e0087d0fac60abb2882101e806a9e589092e378f09f2e3bf2fb5ad8ae335",
+      "targetSha256": "7e2c12b911465e0bed9f950eb8f14bc12335fd5d33c411b4de2f674220edd312",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",

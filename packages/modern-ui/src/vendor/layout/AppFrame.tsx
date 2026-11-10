@@ -106,7 +106,7 @@ function DragHandle(props: { side: 'sidebar' | 'rightbar'; left: number; onStart
   return (
     <div
       className={css.handle}
-      style={{ left: props.left }}
+      style={props.side === 'sidebar' ? { gridColumn: '2 / 3', left: 0 } : { left: props.left }}
       data-side={props.side}
       data-dragging={dragging || undefined}
       onPointerDown={onPointerDown}
@@ -238,11 +238,14 @@ export function AppFrame({
   useLayoutEffect(() => {
     const viewportChanged = previousViewport.current !== viewport
     previousViewport.current = viewport
-    if (previousToggle.current === trackToggle) return
+    const toggled = previousToggle.current !== trackToggle
     previousToggle.current = trackToggle
-    if (viewportChanged) return
-    setAnimating(token => token + 1)
-  }, [trackToggle, viewport])
+    if (viewportChanged || dragging || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setAnimating(0)
+      return
+    }
+    if (toggled) setAnimating(token => token + 1)
+  }, [trackToggle, viewport, dragging])
   useEffect(() => {
     if (animating === 0) return
     const frame = frameRef.current
@@ -252,10 +255,14 @@ export function AppFrame({
     const onTransitionEnd = (event: TransitionEvent) => {
       if (event.target === frame && event.propertyName === 'grid-template-columns') settle()
     }
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const onReducedMotion = () => { if (reducedMotion.matches) settle() }
     frame.addEventListener('transitionend', onTransitionEnd)
+    reducedMotion.addEventListener('change', onReducedMotion)
     const timer = setTimeout(settle, 600)
     return () => {
       frame.removeEventListener('transitionend', onTransitionEnd)
+      reducedMotion.removeEventListener('change', onReducedMotion)
       clearTimeout(timer)
     }
   }, [animating])

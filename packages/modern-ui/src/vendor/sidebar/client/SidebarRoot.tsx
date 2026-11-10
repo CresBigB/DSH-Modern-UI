@@ -1,12 +1,11 @@
 // Derived from deepseek-ai/deepseek-harness (MIT); see package LICENSE.
 /**
  * Sidebar shell: Cloud-Monitor floating frosted-glass navigation (.feel-navigation).
- * Collapse is a slide plus crossfade:
+ * Collapse is a clipped column resize plus a short crossfade:
  * content freezes at its expanded width (inline style) and fades out in place
  * while the sliding column (AppFrame grid tracks) clips it — nothing reflows
  * mid-slide. At settle the wide-only content unmounts and the upper
- * controls enter the rail from the same horizontal offset on one fade that
- * ends with the slide.
+ * controls fade into their final rail positions, without an independent slide.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from 'react'
 import clsx from 'clsx'
@@ -22,9 +21,6 @@ import type {
 import { FIXED_PANEL_ID } from './panel-pins.ts'
 import { MobileHeader } from './MobileHeader.tsx'
 import css from './SidebarRoot.module.css'
-
-/** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
-const COLLAPSE_SETTLE_MS = 150
 
 /**
  * How long the column's scrollbars stay drawn after the pointer leaves it.
@@ -129,6 +125,7 @@ export function SidebarRoot({
   renderSlot,
 }: SidebarRootComponentProps) {
   const mobile = useModernViewport(snapshot => snapshot.mobile)
+  const column = useRef<HTMLDivElement>(null)
   const mobileTrigger = useRef<HTMLButtonElement>(null)
   const sidebarToggle = useRef<HTMLButtonElement>(null)
   const mobileReturnFocus = useRef<HTMLButtonElement | null>(null)
@@ -162,11 +159,26 @@ export function SidebarRoot({
   const toggleLabel = collapsed ? t('toggle.open') : t('toggle.collapse')
 
   const [settled, setSettled] = useState(collapsed)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!collapsed) { setSettled(false); return }
-    const timer = window.setTimeout(() => { setSettled(true) }, COLLAPSE_SETTLE_MS)
-    return () => { window.clearTimeout(timer) }
-  }, [collapsed])
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (reducedMotion.matches) { setSettled(true); return }
+    const token = mobile ? '--dsh-feel-panel-duration' : '--dsh-motion-feedback-duration'
+    const value = getComputedStyle(column.current ?? document.documentElement).getPropertyValue(token).trim()
+    const amount = Number.parseFloat(value)
+    const duration = Number.isFinite(amount) ? amount * (value.endsWith('ms') ? 1 : 1000) : mobile ? 297 : 120
+    const timer = window.setTimeout(() => { setSettled(true) }, duration)
+    const onReducedMotion = () => {
+      if (!reducedMotion.matches) return
+      window.clearTimeout(timer)
+      setSettled(true)
+    }
+    reducedMotion.addEventListener('change', onReducedMotion)
+    return () => {
+      window.clearTimeout(timer)
+      reducedMotion.removeEventListener('change', onReducedMotion)
+    }
+  }, [collapsed, mobile])
   const windowsTitlebar = document.documentElement.hasAttribute('data-windows-titlebar')
   const wide = mobile || (windowsTitlebar ? !collapsed : !collapsed || !settled)
 
@@ -183,7 +195,6 @@ export function SidebarRoot({
   const everWide = useRef(!collapsed)
   if (!collapsed) everWide.current = true
 
-  const column = useRef<HTMLDivElement>(null)
   useModalLayer(column, mobile && !collapsed, closeMobileDrawer)
   const drawerWasOpen = useRef(mobile && !collapsed)
   useLayoutEffect(() => {
@@ -301,16 +312,19 @@ export function SidebarRoot({
           {collapsed && newSession}
         </div>
       )}
-      {mobile && !collapsed && <div className={css.mobileBackdrop} aria-hidden="true" onClick={closeMobileDrawer} />}
+      {mobile && (!collapsed || !settled) && <div className={css.mobileBackdrop} data-open={!collapsed || undefined} aria-hidden="true" onClick={closeMobileDrawer} />}
       <div
         ref={column}
         onFocusCapture={rememberMobileFocus}
         onBlurCapture={leaveMobileFocus}
-        hidden={collapsed && (mobile || (width === 0 && settled))}
+        hidden={collapsed && settled && (mobile || width === 0)}
+        aria-hidden={mobile && collapsed ? true : undefined}
+        {...mobile && collapsed ? { inert: '' } : {}}
         role={mobile && !collapsed ? 'dialog' : undefined}
         aria-modal={mobile && !collapsed ? true : undefined}
         aria-label={mobile ? t('mobile.sessions') : undefined}
         data-mobile-drawer={mobile || undefined}
+        data-drawer-open={mobile && !collapsed || undefined}
         className={clsx(
           css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
           collapsed && wide && css.fading, !pointerInside && css.quietBars,
