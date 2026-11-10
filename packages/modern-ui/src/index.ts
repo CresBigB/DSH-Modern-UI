@@ -20,13 +20,16 @@ export const Config = z.object({
   foldedReplies: z.union(['all', 'final']).default('all').volatile(),
   // Model-visible behavior is opt-in; the two renderers only draw what a model already wrote.
   // Volatile so the Settings row can write it and every assembly reads the current value.
-  presentation: z.object({
-    prompt: z.boolean().default(false),
-    // Progressive result delivery guidance, separate from the components prompt and just as opt-in.
-    progressive: z.boolean().default(false),
-    openui: z.boolean().default(true),
-    followups: z.boolean().default(true),
-  }).default({}).volatile(),
+  presentation: z
+    .object({
+      prompt: z.boolean().default(false),
+      // Progressive result delivery guidance, separate from the components prompt and just as opt-in.
+      progressive: z.boolean().default(false),
+      openui: z.boolean().default(true),
+      followups: z.boolean().default(true),
+    })
+    .default({})
+    .volatile(),
   // Optional TypeSafe Jev presentation advice the model may consult; inactive until the credential resolves to a key.
   jev: JevConfig.default({}).volatile(),
 })
@@ -35,7 +38,7 @@ type Presentation = { prompt?: boolean; progressive?: boolean }
 
 /** Read one live switch; a Loader-mounted config holds a volatile reference, a plain object is accepted too. */
 function switchOn(section: Volatile<Presentation> | Presentation | undefined, key: keyof Presentation): boolean {
-  const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : section as Presentation | undefined
+  const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : (section as Presentation | undefined)
   return value?.[key] === true
 }
 
@@ -48,29 +51,44 @@ const JEV_DEFAULTS: JevSettings = JevConfig({})
  * configured). The Loader's schema already fills them; a plain object may carry `undefined`, which must not win.
  */
 function jevSettings(section: Volatile<Partial<JevSettings>> | Partial<JevSettings> | undefined): JevSettings {
-  const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : section as Partial<JevSettings> | undefined
+  const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : (section as Partial<JevSettings> | undefined)
   return { ...JEV_DEFAULTS, ...Object.fromEntries(Object.entries(value ?? {}).filter(([, field]) => field !== undefined)) }
 }
 
 /** Register only plugin-owned settings and additive guidance through public services. */
-export function apply(ctx: Context, config: { enabled: boolean; presentation?: Volatile<Presentation> | Presentation; jev?: Volatile<Partial<JevSettings>> | Partial<JevSettings> }): void {
+export function apply(
+  ctx: Context,
+  config: { enabled: boolean; presentation?: Volatile<Presentation> | Presentation; jev?: Volatile<Partial<JevSettings>> | Partial<JevSettings> },
+): void {
   configureConversation(ctx)
   if (!config.enabled) return
   installBootStyle(ctx)
   // Empty section text is dropped at assembly, so a switched-off prompt adds nothing.
-  ctx.inject(['systemPrompt'], scope => scope.effect(() => scope.systemPrompt.section({
-    name: 'modern-ui:response-presentation',
-    order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX') - 1,
-    interpolate: false,
-    text: () => promptEnabled(config.presentation) ? PRESENTATION_PROMPT : '',
-  })))
+  ctx.inject(['systemPrompt'], scope =>
+    scope.effect(() =>
+      scope.systemPrompt.section({
+        name: 'modern-ui:response-presentation',
+        order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX') - 1,
+        interpolate: false,
+        text: () => (promptEnabled(config.presentation) ? PRESENTATION_PROMPT : ''),
+      }),
+    ),
+  )
   // Its own section and switch, right after the component guidance and before the persona suffix.
-  ctx.inject(['systemPrompt'], scope => scope.effect(() => scope.systemPrompt.section({
-    name: 'modern-ui:progressive-results',
-    order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX') - 0.5,
-    interpolate: false,
-    text: () => switchOn(config.presentation, 'progressive') ? PROGRESSIVE_PROMPT : '',
-  })))
+  ctx.inject(['systemPrompt'], scope =>
+    scope.effect(() =>
+      scope.systemPrompt.section({
+        name: 'modern-ui:progressive-results',
+        order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX') - 0.5,
+        interpolate: false,
+        text: () => (switchOn(config.presentation, 'progressive') ? PROGRESSIVE_PROMPT : ''),
+      }),
+    ),
+  )
   // Jev only advises a model taught the components, so its tool follows the presentation prompt switch.
-  installJevTool(ctx, () => jevSettings(config.jev), () => promptEnabled(config.presentation))
+  installJevTool(
+    ctx,
+    () => jevSettings(config.jev),
+    () => promptEnabled(config.presentation),
+  )
 }

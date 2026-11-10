@@ -30,16 +30,30 @@ async function registerUi(ctx: Context, lifetime: AbortController): Promise<void
   let readTask: Promise<RemoteResult<CotTranslationSnapshot>> | undefined
   let updating: Promise<void> | undefined
   let acceptSnapshot: ((snapshot: CotTranslationSnapshot) => void) | undefined
-  let revision = 0, lastReadRevision = -1, acceptedRevision = -1
+  let revision = 0,
+    lastReadRevision = -1,
+    acceptedRevision = -1
   let retryTimer: ReturnType<typeof setTimeout> | undefined
   let retries = 0
   const isDisposed = (): boolean => lifetime.signal.aborted || ctx.fiber.uid === null
-  lifetime.signal.addEventListener('abort', () => { clearTimeout(retryTimer) }, { once: true })
-  ctx.effect(() => async () => {
-    lifetime.abort()
-    await Promise.allSettled([readTask, updating])
-  }, 'cot-translation: metadata queries')
-  const invalidate = (): void => { revision += 1; refresh() }
+  lifetime.signal.addEventListener(
+    'abort',
+    () => {
+      clearTimeout(retryTimer)
+    },
+    { once: true },
+  )
+  ctx.effect(
+    () => async () => {
+      lifetime.abort()
+      await Promise.allSettled([readTask, updating])
+    },
+    'cot-translation: metadata queries',
+  )
+  const invalidate = (): void => {
+    revision += 1
+    refresh()
+  }
   ctx.effect(() => [
     ctx.remote.$on('settings/document-updated', invalidate),
     ctx.remote.$on('llm/adapters-updated', invalidate),
@@ -112,25 +126,39 @@ async function registerUi(ctx: Context, lifetime: AbortController): Promise<void
         while (updating !== undefined) await updating
         signal.throwIfAborted()
         const accepted = preferences.getSnapshot()
-        if (isDisposed() || acceptedRevision !== revision || request.provider !== accepted.provider
-          || (accepted.targetLanguage !== 'auto' && request.targetLanguage !== accepted.targetLanguage)
-          || request.text.length > translationLimit.getSnapshot()) throw new Error('Translation preferences or limits changed')
+        if (
+          isDisposed() ||
+          acceptedRevision !== revision ||
+          request.provider !== accepted.provider ||
+          (accepted.targetLanguage !== 'auto' && request.targetLanguage !== accepted.targetLanguage) ||
+          request.text.length > translationLimit.getSnapshot()
+        )
+          throw new Error('Translation preferences or limits changed')
         const result = await ctx.remote.cotTranslation.translate({ ...request, sessionId }, signal)
         if (!result.ok) throw result.error
         return result.value
       },
     })
-    ctx.slots.inject('conversation.chat.reasoning.body', () => ctx.slots.register({
-      name: 'conversation.chat.reasoning.body', locale: NS, priority: -100,
-      inject: injected,
-    }, TranslationBody))
+    ctx.slots.inject('conversation.chat.reasoning.body', () =>
+      ctx.slots.register(
+        {
+          name: 'conversation.chat.reasoning.body',
+          locale: NS,
+          priority: -100,
+          inject: injected,
+        },
+        TranslationBody,
+      ),
+    )
   }
 }
 
 export function installReasoningTranslation(ctx: Context): void {
   ctx.inject(['remote.cotTranslation', 'remote', 'slots', 'locale', 'configForms'], child => {
     const lifetime = new AbortController()
-    child.on('internal/plugin', fiber => { if (fiber === child.fiber && fiber.uid === null) lifetime.abort() })
+    child.on('internal/plugin', fiber => {
+      if (fiber === child.fiber && fiber.uid === null) lifetime.abort()
+    })
     child.effect(() => () => lifetime.abort())
     // Keep setup outside the injection's async barrier: dependency withdrawal
     // must run the cancellation effect while the initial Remote read is pending.
@@ -139,5 +167,3 @@ export function installReasoningTranslation(ctx: Context): void {
     })
   })
 }
-
-

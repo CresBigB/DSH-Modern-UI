@@ -82,9 +82,16 @@ export function readJev(section: JevSection | undefined): Pick<JevRowState, 'ena
  */
 export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
   const state = createSnapshotStore<JevRowState>({
-    ...readJev(form.getSnapshot().value?.jev), configured: false, source: undefined, writable: true, busy: false, notice: null,
+    ...readJev(form.getSnapshot().value?.jev),
+    configured: false,
+    source: undefined,
+    writable: true,
+    busy: false,
+    notice: null,
   })
-  const update = (patch: Partial<JevRowState>) => { state.set({ ...state.getSnapshot(), ...patch }) }
+  const update = (patch: Partial<JevRowState>) => {
+    state.set({ ...state.getSnapshot(), ...patch })
+  }
 
   let reads = 0
   let newest: Promise<void> = Promise.resolve()
@@ -92,7 +99,10 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
     const read = ++reads
     const run = (async () => {
       const ref = state.getSnapshot().ref
-      if (ref === null) { update({ configured: false, source: undefined, writable: false }); return }
+      if (ref === null) {
+        update({ configured: false, source: undefined, writable: false })
+        return
+      }
       const response = await credentials.describe([ref]).catch(() => undefined)
       // Only the latest read applies: an older answer, or one for a reference since replaced, may describe a state
       // a save has already changed.
@@ -129,7 +139,9 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
       sync()
       update({ notice: accepted ? null : 'switchFailed' })
     }
-    form.mutate([{ op: 'set', path: ['jev', 'enabled'], value: enabled }]).then(settle, () => { settle(false) })
+    form.mutate([{ op: 'set', path: ['jev', 'enabled'], value: enabled }]).then(settle, () => {
+      settle(false)
+    })
   }
 
   const writeKey = async (write: (ref: string) => Promise<RemoteResult<void>>, done: 'saved' | 'removed') => {
@@ -148,7 +160,7 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
   return {
     state,
     setEnabled,
-    saveKey: (value) => {
+    saveKey: value => {
       const key = value.trim()
       if (key === '') return Promise.resolve(false)
       // The Host could never send such a key, so it is refused here instead of stored and silently unused.
@@ -159,7 +171,9 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
       return writeKey(ref => credentials.set(ref, key), 'saved')
     },
     removeKey: () => writeKey(ref => credentials.unset(ref), 'removed'),
-    refresh: (ref) => { if (ref === state.getSnapshot().ref) void describe() },
+    refresh: ref => {
+      if (ref === state.getSnapshot().ref) void describe()
+    },
     dispose: (() => {
       const unsubscribe = form.subscribe(sync)
       void describe()
@@ -173,7 +187,8 @@ export const JEV_LOCALE = 'modern-jev-settings'
 
 const zh = {
   'settings.jev.title': 'Jev 呈现建议',
-  'settings.jev.description': '可选。填入 TypeSafe 的密钥后，模型回答前可以请 Jev 参谋一下，用文字、表格、图表还是流程图来展示。Jev 只看到这一轮的请求和模型写的一小段内容结构概述；问不问、采不采纳都由模型决定。没有密钥时不会联系 TypeSafe。',
+  'settings.jev.description':
+    '可选。填入 TypeSafe 的密钥后，模型回答前可以请 Jev 参谋一下，用文字、表格、图表还是流程图来展示。Jev 只看到这一轮的请求和模型写的一小段内容结构概述；问不问、采不采纳都由模型决定。没有密钥时不会联系 TypeSafe。',
   'settings.jev.site': 'TypeSafe 官网',
   'settings.jev.needsPrompt': '要先打开上面的「回答可视化组件」才会生效。',
   'settings.jev.enable': '使用 Jev',
@@ -193,7 +208,8 @@ const zh = {
 type Dictionary = Record<keyof typeof zh, string>
 const en: Dictionary = {
   'settings.jev.title': 'Jev presentation advice',
-  'settings.jev.description': "Optional. With a TypeSafe key, the model may ask Jev before answering whether text, a table, a chart or a flowchart would present the answer well. Jev sees only this turn's request and the model's short outline of the content's structure; whether to ask, and whether to follow the advice, is up to the model. Without a key, TypeSafe is never contacted.",
+  'settings.jev.description':
+    "Optional. With a TypeSafe key, the model may ask Jev before answering whether text, a table, a chart or a flowchart would present the answer well. Jev sees only this turn's request and the model's short outline of the content's structure; whether to ask, and whether to follow the advice, is up to the model. Without a key, TypeSafe is never contacted.",
   'settings.jev.site': 'TypeSafe website',
   'settings.jev.needsPrompt': 'Takes effect only while "Answer visual components" above is on.',
   'settings.jev.enable': 'Use Jev',
@@ -212,7 +228,8 @@ const en: Dictionary = {
 }
 const ja: Dictionary = {
   'settings.jev.title': 'Jev による表示方法の助言',
-  'settings.jev.description': '任意。TypeSafe のキーを入れると、モデルは回答の前に、テキスト・表・グラフ・フローチャートのどれで見せるとよいかを Jev に相談できます。Jev が見るのは今回のリクエストと、モデルが書いた内容の構成の短い説明だけです。相談するか、助言に従うかはモデルが決めます。キーがなければ TypeSafe には接続しません。',
+  'settings.jev.description':
+    '任意。TypeSafe のキーを入れると、モデルは回答の前に、テキスト・表・グラフ・フローチャートのどれで見せるとよいかを Jev に相談できます。Jev が見るのは今回のリクエストと、モデルが書いた内容の構成の短い説明だけです。相談するか、助言に従うかはモデルが決めます。キーがなければ TypeSafe には接続しません。',
   'settings.jev.site': 'TypeSafe のサイト',
   'settings.jev.needsPrompt': '上の「回答のビジュアルコンポーネント」がオンのときだけ有効です。',
   'settings.jev.enable': 'Jev を使う',
@@ -231,7 +248,8 @@ const ja: Dictionary = {
 }
 const es: Dictionary = {
   'settings.jev.title': 'Consejo de presentación de Jev',
-  'settings.jev.description': 'Opcional. Con una clave de TypeSafe, el modelo puede consultar a Jev antes de responder si conviene presentar la respuesta como texto, tabla, gráfico o diagrama de flujo. Jev solo ve la petición de este turno y un breve resumen de la estructura del contenido escrito por el modelo; el modelo decide si consulta y si sigue el consejo. Sin clave no se contacta con TypeSafe.',
+  'settings.jev.description':
+    'Opcional. Con una clave de TypeSafe, el modelo puede consultar a Jev antes de responder si conviene presentar la respuesta como texto, tabla, gráfico o diagrama de flujo. Jev solo ve la petición de este turno y un breve resumen de la estructura del contenido escrito por el modelo; el modelo decide si consulta y si sigue el consejo. Sin clave no se contacta con TypeSafe.',
   'settings.jev.site': 'Sitio de TypeSafe',
   'settings.jev.needsPrompt': 'Solo tiene efecto con «Componentes visuales en respuestas» activado.',
   'settings.jev.enable': 'Usar Jev',
@@ -250,7 +268,8 @@ const es: Dictionary = {
 }
 const fr: Dictionary = {
   'settings.jev.title': 'Conseil de présentation par Jev',
-  'settings.jev.description': 'Facultatif. Avec une clé TypeSafe, le modèle peut demander à Jev, avant de répondre, si un texte, un tableau, un graphique ou un organigramme présenterait bien la réponse. Jev ne voit que la demande de ce tour et un court résumé de la structure du contenu rédigé par le modèle ; c’est le modèle qui décide de consulter Jev et de suivre ou non son avis. Sans clé, TypeSafe n’est jamais contacté.',
+  'settings.jev.description':
+    'Facultatif. Avec une clé TypeSafe, le modèle peut demander à Jev, avant de répondre, si un texte, un tableau, un graphique ou un organigramme présenterait bien la réponse. Jev ne voit que la demande de ce tour et un court résumé de la structure du contenu rédigé par le modèle ; c’est le modèle qui décide de consulter Jev et de suivre ou non son avis. Sans clé, TypeSafe n’est jamais contacté.',
   'settings.jev.site': 'Site de TypeSafe',
   'settings.jev.needsPrompt': 'Ne s’applique que si « Composants visuels des réponses » est activé.',
   'settings.jev.enable': 'Utiliser Jev',
@@ -265,11 +284,13 @@ const fr: Dictionary = {
   'settings.jev.removed': 'Clé supprimée',
   'settings.jev.writeFailed': 'Échec de l’enregistrement. Réessayez.',
   'settings.jev.switchFailed': 'Échec de l’enregistrement de l’interrupteur ; le réglage n’a pas changé. Réessayez.',
-  'settings.jev.keyInvalid': 'Non enregistrée : la clé contient des espaces, des retours à la ligne ou des caractères non ASCII. Collez seulement la clé, sans « Bearer ».',
+  'settings.jev.keyInvalid':
+    'Non enregistrée : la clé contient des espaces, des retours à la ligne ou des caractères non ASCII. Collez seulement la clé, sans « Bearer ».',
 }
 const de: Dictionary = {
   'settings.jev.title': 'Darstellungsrat von Jev',
-  'settings.jev.description': 'Optional. Mit einem TypeSafe-Schlüssel kann das Modell vor der Antwort Jev fragen, ob Text, Tabelle, Diagramm oder Flussdiagramm die Antwort gut darstellt. Jev sieht nur die Anfrage dieses Durchgangs und eine kurze Beschreibung der Inhaltsstruktur vom Modell; ob es fragt und dem Rat folgt, entscheidet das Modell. Ohne Schlüssel wird TypeSafe nie kontaktiert.',
+  'settings.jev.description':
+    'Optional. Mit einem TypeSafe-Schlüssel kann das Modell vor der Antwort Jev fragen, ob Text, Tabelle, Diagramm oder Flussdiagramm die Antwort gut darstellt. Jev sieht nur die Anfrage dieses Durchgangs und eine kurze Beschreibung der Inhaltsstruktur vom Modell; ob es fragt und dem Rat folgt, entscheidet das Modell. Ohne Schlüssel wird TypeSafe nie kontaktiert.',
   'settings.jev.site': 'TypeSafe-Website',
   'settings.jev.needsPrompt': 'Wirkt nur, solange „Visuelle Antwortkomponenten“ oben an ist.',
   'settings.jev.enable': 'Jev verwenden',
@@ -284,11 +305,13 @@ const de: Dictionary = {
   'settings.jev.removed': 'Schlüssel entfernt',
   'settings.jev.writeFailed': 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
   'settings.jev.switchFailed': 'Schalter nicht gespeichert; die Einstellung ist unverändert. Bitte erneut versuchen.',
-  'settings.jev.keyInvalid': 'Nicht gespeichert: Der Schlüssel enthält Leerzeichen, Zeilenumbrüche oder Nicht-ASCII-Zeichen. Nur den Schlüssel selbst einfügen, ohne „Bearer“.',
+  'settings.jev.keyInvalid':
+    'Nicht gespeichert: Der Schlüssel enthält Leerzeichen, Zeilenumbrüche oder Nicht-ASCII-Zeichen. Nur den Schlüssel selbst einfügen, ohne „Bearer“.',
 }
 const ru: Dictionary = {
   'settings.jev.title': 'Советы Jev по виду ответа',
-  'settings.jev.description': 'Необязательно. С ключом TypeSafe модель может перед ответом спросить Jev, как лучше его показать: текстом, таблицей, графиком или схемой. Jev видит только запрос этого хода и краткое описание структуры содержимого от модели; спрашивать ли и следовать ли совету, решает модель. Без ключа к TypeSafe нет обращений.',
+  'settings.jev.description':
+    'Необязательно. С ключом TypeSafe модель может перед ответом спросить Jev, как лучше его показать: текстом, таблицей, графиком или схемой. Jev видит только запрос этого хода и краткое описание структуры содержимого от модели; спрашивать ли и следовать ли совету, решает модель. Без ключа к TypeSafe нет обращений.',
   'settings.jev.site': 'Сайт TypeSafe',
   'settings.jev.needsPrompt': 'Работает, только когда выше включены «Визуальные компоненты ответов».',
   'settings.jev.enable': 'Использовать Jev',
@@ -307,7 +330,8 @@ const ru: Dictionary = {
 }
 const pt: Dictionary = {
   'settings.jev.title': 'Conselho de apresentação do Jev',
-  'settings.jev.description': 'Opcional. Com uma chave da TypeSafe, o modelo pode consultar o Jev antes de responder se a resposta fica melhor como texto, tabela, gráfico ou fluxograma. O Jev só vê o pedido desta rodada e um breve resumo da estrutura do conteúdo escrito pelo modelo; consultar e seguir o conselho fica a critério do modelo. Sem chave, a TypeSafe nunca é contatada.',
+  'settings.jev.description':
+    'Opcional. Com uma chave da TypeSafe, o modelo pode consultar o Jev antes de responder se a resposta fica melhor como texto, tabela, gráfico ou fluxograma. O Jev só vê o pedido desta rodada e um breve resumo da estrutura do conteúdo escrito pelo modelo; consultar e seguir o conselho fica a critério do modelo. Sem chave, a TypeSafe nunca é contatada.',
   'settings.jev.site': 'Site da TypeSafe',
   'settings.jev.needsPrompt': 'Só funciona com «Componentes visuais nas respostas» ativado.',
   'settings.jev.enable': 'Usar Jev',
@@ -328,5 +352,7 @@ const pt: Dictionary = {
 export const jevLocale = { zh, en, ja, es, fr, de, ru, pt }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap { 'modern-jev-settings': keyof Dictionary }
+  interface LocaleNamespaceMap {
+    'modern-jev-settings': keyof Dictionary
+  }
 }

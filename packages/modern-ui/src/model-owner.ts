@@ -27,10 +27,7 @@ function optionsOf(directory: ModelDirectoryState, t: TranslateNS<'modern-model'
         id: rowId(group.id, model.id),
         label: model.name,
         group: { name: group.id, label: name },
-        ...(directory.current !== null
-          && directory.current.provider === group.id
-          && directory.current.model === model.id
-          ? { active: true } : {}),
+        ...(directory.current !== null && directory.current.provider === group.id && directory.current.model === model.id ? { active: true } : {}),
       })
     }
   }
@@ -56,13 +53,11 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
     for (const model of group.models) {
       if (rowId(group.id, model.id) !== id) continue
       const sameRoute = state.current?.provider === group.id && state.current.model === model.id
-      const reasoningEffort = sameRoute
-        ? state.current?.reasoningEffort ?? model.reasoning?.defaultEffort
-        : model.reasoning?.defaultEffort
+      const reasoningEffort = sameRoute ? (state.current?.reasoningEffort ?? model.reasoning?.defaultEffort) : model.reasoning?.defaultEffort
       return {
         provider: group.id,
         model: model.id,
-        ...reasoningEffort === undefined ? {} : { reasoningEffort },
+        ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
       }
     }
   }
@@ -82,62 +77,73 @@ export function apply(ctx: ClientContext): void {
     const command = scope.get('commandUi') as CommandUiContract
     const models = scope.modelDirectories
     const sessions = scope.sessions
-    scope.effect(() => command.register({
-      name: 'model',
-      label: () => t('command.label'),
-      description: () => t('command.description'),
-      icon: IconDataOutlineRegular,
-      available: session => sessions.subagentAddress(session.sessionId) === undefined,
-      ui: {
-        kind: 'popupSelect',
-        searchMode: 'fuzzy-label',
-        searchLabels: () => ({
-          placeholder: t('search.placeholder'),
-          empty: t('empty.models'),
-          noResults: t('search.empty'),
+    scope.effect(
+      () =>
+        command.register({
+          name: 'model',
+          label: () => t('command.label'),
+          description: () => t('command.description'),
+          icon: IconDataOutlineRegular,
+          available: session => sessions.subagentAddress(session.sessionId) === undefined,
+          ui: {
+            kind: 'popupSelect',
+            searchMode: 'fuzzy-label',
+            searchLabels: () => ({
+              placeholder: t('search.placeholder'),
+              empty: t('empty.models'),
+              noResults: t('search.empty'),
+            }),
+            options: async session => {
+              if (sessions.subagentAddress(session.sessionId) !== undefined) {
+                throw new Error('model selection is unavailable for addressed subagent sessions')
+              }
+              return optionsOf(await models.directoryFor(session.sessionId).load(), t)
+            },
+            onSelect: async (option, session) => {
+              if (sessions.subagentAddress(session.sessionId) !== undefined) {
+                throw new Error('model selection is unavailable for addressed subagent sessions')
+              }
+              const directory = models.directoryFor(session.sessionId)
+              const selection = selectionOf(directory.store.getSnapshot(), option.id)
+              if (selection === undefined) {
+                throw new Error("this provider's catalog failed to load — pick a model from a loaded group")
+              }
+              const result = await directory.select(selection)
+              if (!result.ok) {
+                if (result.error.code === 'session/writer-held') throw new Error(t('error.sessionInUse'))
+                throw result.error
+              }
+            },
+          },
         }),
-        options: async (session) => {
-          if (sessions.subagentAddress(session.sessionId) !== undefined) {
-            throw new Error('model selection is unavailable for addressed subagent sessions')
-          }
-          return optionsOf(await models.directoryFor(session.sessionId).load(), t)
-        },
-        onSelect: async (option, session) => {
-          if (sessions.subagentAddress(session.sessionId) !== undefined) {
-            throw new Error('model selection is unavailable for addressed subagent sessions')
-          }
-          const directory = models.directoryFor(session.sessionId)
-          const selection = selectionOf(directory.store.getSnapshot(), option.id)
-          if (selection === undefined) {
-            throw new Error('this provider\'s catalog failed to load — pick a model from a loaded group')
-          }
-          const result = await directory.select(selection)
-          if (!result.ok) {
-            if (result.error.code === 'session/writer-held') throw new Error(t('error.sessionInUse'))
-            throw result.error
-          }
-        },
-      },
-    }), 'ui-model-selection: /model contribution')
+      'ui-model-selection: /model contribution',
+    )
   })
-
 
   ctx.inject(['slots', 'modelDirectories'], scope => {
     const models = scope.modelDirectories
-    scope.slots.inject('conversation.input.model', () => scope.slots.register({
-      name: 'conversation.input.model', locale: 'modern-model',
-      children: { 'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true } },
-      inject: sessionId => {
-        const directory = models.directoryFor(sessionId)
-        const available = scope.sessions.subagentAddress(sessionId) === undefined
-        return {
-          available,
-          hooks: { modelDirectory: directory.store, modelPicker: picker },
-          load: () => { if (available) void directory.load().catch(() => {}) },
-          select: selection => available ? directory.select(selection) : Promise.resolve(undefined),
-        }
-      },
-    }, ModelSelect))
+    scope.slots.inject('conversation.input.model', () =>
+      scope.slots.register(
+        {
+          name: 'conversation.input.model',
+          locale: 'modern-model',
+          children: { 'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true } },
+          inject: sessionId => {
+            const directory = models.directoryFor(sessionId)
+            const available = scope.sessions.subagentAddress(sessionId) === undefined
+            return {
+              available,
+              hooks: { modelDirectory: directory.store, modelPicker: picker },
+              load: () => {
+                if (available) void directory.load().catch(() => {})
+              },
+              select: selection => (available ? directory.select(selection) : Promise.resolve(undefined)),
+            }
+          },
+        },
+        ModelSelect,
+      ),
+    )
   })
 }
 

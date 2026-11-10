@@ -21,7 +21,9 @@ const dictionaries = {
 }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap { 'modern-presentation': keyof typeof dictionaries.en }
+  interface LocaleNamespaceMap {
+    'modern-presentation': keyof typeof dictionaries.en
+  }
 }
 
 type QuestionFace = {
@@ -36,9 +38,7 @@ export function installPresentationParity(ctx: Context): void {
   const textLabels: TextDisclosureLabels = () => ({ collapse: t('textCollapse'), expand: t('textExpand') })
 
   watchPresentation(ctx, 'conversation.composer', {
-    source: entry => entry.locale === 'question'
-      && (entry.options.priority ?? 0) === 0
-      && entry.children?.['conversation.plan-review.actions'] !== undefined,
+    source: entry => entry.locale === 'question' && (entry.options.priority ?? 0) === 0 && entry.children?.['conversation.plan-review.actions'] !== undefined,
     register: source => {
       if (source.select === undefined || source.inject === undefined || source.store === undefined) {
         throw new Error('The official question presentation no longer supplies its declared selector, store and card face')
@@ -46,15 +46,20 @@ export function installPresentationParity(ctx: Context): void {
       // StoredEntry erases the types; the official public QuestionComposerProps contract supplies them.
       const select = source.select as (owner: OwnerOf<'conversation.composer'>) => PendingQuestion | null
       const inject = source.inject as () => QuestionFace
-      return ctx.slots.register({
-        name: 'conversation.composer', priority: -100, locale: 'question',
-        store: source.store as QuestionDraftStore,
-        select: owner => {
-          const matched = select(owner)
-          return matched?.kind === 'question' ? matched : null
+      return ctx.slots.register(
+        {
+          name: 'conversation.composer',
+          priority: -100,
+          locale: 'question',
+          store: source.store as QuestionDraftStore,
+          select: owner => {
+            const matched = select(owner)
+            return matched?.kind === 'question' ? matched : null
+          },
+          inject: () => ({ ...inject(), foldLabels, textLabels }),
         },
-        inject: () => ({ ...inject(), foldLabels, textLabels }),
-      }, QuestionPresentation)
+        QuestionPresentation,
+      )
     },
   })
 

@@ -2,8 +2,12 @@ import type { Context } from '@deepseek-ai/cordis'
 import translations from './languages.json'
 
 const languages = [
-  { id: 'ja', label: '日本語' }, { id: 'es', label: 'Español' }, { id: 'fr', label: 'Français' },
-  { id: 'de', label: 'Deutsch' }, { id: 'ru', label: 'Русский' }, { id: 'pt', label: 'Português' },
+  { id: 'ja', label: '日本語' },
+  { id: 'es', label: 'Español' },
+  { id: 'fr', label: 'Français' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'ru', label: 'Русский' },
+  { id: 'pt', label: 'Português' },
 ] as const
 
 /** Language packs use the public catalog API and dictionary registrations, preserving the official locale owner. */

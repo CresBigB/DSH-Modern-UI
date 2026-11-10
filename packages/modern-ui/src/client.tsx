@@ -52,8 +52,15 @@ export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'rem
 export { installIconSprite }
 
 const LANGUAGES = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt'] as const
-const dictionaries = <D extends Record<string, string>>(source: Record<typeof LANGUAGES[number], D>) => ({
-  zh: source.zh, en: source.en, ja: source.ja, es: source.es, fr: source.fr, de: source.de, ru: source.ru, pt: source.pt,
+const dictionaries = <D extends Record<string, string>>(source: Record<(typeof LANGUAGES)[number], D>) => ({
+  zh: source.zh,
+  en: source.en,
+  ja: source.ja,
+  es: source.es,
+  fr: source.fr,
+  de: source.de,
+  ru: source.ru,
+  pt: source.pt,
 })
 
 /** Mount selected Modern owners before dependent presentation cells. */
@@ -120,7 +127,9 @@ function installPresentation(ctx: Context): void {
   registerModelPickerSettings(ctx, {
     form,
     catalog: catalog.store,
-    loadCatalog: () => { void catalog.load().catch(() => {}) },
+    loadCatalog: () => {
+      void catalog.load().catch(() => {})
+    },
     blurb: key => t(`preset.${key}`),
     effortName: (id, fallback) => {
       const key = EFFORT_SHORT.get(id)
@@ -131,40 +140,60 @@ function installPresentation(ctx: Context): void {
   // catalog: a block in each pi-ai provider card, writing the stored models list through the
   // shared settings form. The official editor keeps every hidden field on save (verified against
   // rc.4, see docs/history/reasoning-and-preview-fold-20261028.md), so the two never fight over the row.
-  ctx.inject(['remote.llm', 'settingsSchema'], scope => registerReasoningDeclaration(scope, {
-    namespace: PI_AI_NAMESPACE,
-    form: scope.configForms.get<Record<string, unknown>>(PI_AI_NAMESPACE),
-    describe: scope.configForms.describe(),
-    schema: scope.settingsSchema,
-    discoverCatalog: async provider => {
-      const answer = await scope.remote.llm.discoverModels(PI_AI_NAMESPACE, { provider })
-      return answer.ok ? answer.value.map(model => model.id) : undefined
-    },
-  }))
+  ctx.inject(['remote.llm', 'settingsSchema'], scope =>
+    registerReasoningDeclaration(scope, {
+      namespace: PI_AI_NAMESPACE,
+      form: scope.configForms.get<Record<string, unknown>>(PI_AI_NAMESPACE),
+      describe: scope.configForms.describe(),
+      schema: scope.settingsSchema,
+      discoverCatalog: async provider => {
+        const answer = await scope.remote.llm.discoverModels(PI_AI_NAMESPACE, { provider })
+        return answer.ok ? answer.value.map(model => model.id) : undefined
+      },
+    }),
+  )
   // Code-fence presenters beside the standard CodeBlock (priority 100, registered by the chat entry).
   // Each follows its `presentation` switch: a fence whose presenter is off renders as plain code.
   const presentation = installPresentationSettings(ctx)
   // The optional Jev row needs the credentials Remote; without it the row is simply absent.
-  ctx.inject(['remote.credentials'], scope => { installJevSettings(scope, presentation) })
+  ctx.inject(['remote.credentials'], scope => {
+    installJevSettings(scope, presentation)
+  })
   ctx.slots.inject('conversation.chat.message.code', () => {
     const presenters = {
-      openui: () => ctx.slots.register({
-        name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-        // `openui-lang` is the taught fence; a plain `openui` fence counts when its body reads as openui-lang,
-        // so HTML visualizations in older answers stay readable code.
-        select: (owner) => {
-          const lang = owner.lang?.trim().toLowerCase()
-          return lang === 'openui-lang' || (lang === 'openui' && looksLikeOpenUI(owner.code)) ? {} : null
-        },
-        inject: (): ThemeInjected => ({ hooks: { theme: {
-          getSnapshot: () => ctx.theme.getTheme(),
-          subscribe: listener => ctx.on('theme/change', listener),
-        } } }),
-      }, OpenUIBlock),
-      followups: () => ctx.slots.register({
-        name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-        select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
-      }, Followups),
+      openui: () =>
+        ctx.slots.register(
+          {
+            name: 'conversation.chat.message.code',
+            locale: 'modern-intelligent',
+            priority: 0,
+            // `openui-lang` is the taught fence; a plain `openui` fence counts when its body reads as openui-lang,
+            // so HTML visualizations in older answers stay readable code.
+            select: owner => {
+              const lang = owner.lang?.trim().toLowerCase()
+              return lang === 'openui-lang' || (lang === 'openui' && looksLikeOpenUI(owner.code)) ? {} : null
+            },
+            inject: (): ThemeInjected => ({
+              hooks: {
+                theme: {
+                  getSnapshot: () => ctx.theme.getTheme(),
+                  subscribe: listener => ctx.on('theme/change', listener),
+                },
+              },
+            }),
+          },
+          OpenUIBlock,
+        ),
+      followups: () =>
+        ctx.slots.register(
+          {
+            name: 'conversation.chat.message.code',
+            locale: 'modern-intelligent',
+            priority: 0,
+            select: owner => (owner.lang?.trim().toLowerCase() === 'followups' ? {} : null),
+          },
+          Followups,
+        ),
     }
     const live: Partial<Record<keyof typeof presenters, () => void>> = {}
     const sync = () => {
@@ -172,37 +201,76 @@ function installPresentation(ctx: Context): void {
       for (const key of ['openui', 'followups'] as const) {
         const dispose = live[key]
         if (switches[key] && dispose === undefined) live[key] = presenters[key]()
-        else if (!switches[key] && dispose !== undefined) { dispose(); delete live[key] }
+        else if (!switches[key] && dispose !== undefined) {
+          dispose()
+          delete live[key]
+        }
       }
     }
     sync()
     const stop = presentation.subscribe(sync)
-    return () => { stop(); for (const dispose of Object.values(live)) dispose() }
+    return () => {
+      stop()
+      for (const dispose of Object.values(live)) dispose()
+    }
   })
   ctx.inject(['uiWorkspace', 'sidebarRight'], scope => {
     const actions = () => ({
       openChild: (address: SubagentAddress) => scope.uiWorkspace.openSession(address),
       openChildAside: (address: SubagentAddress) => {
         const query = new URLSearchParams({ parent: address.parentSessionId, mode: address.mode })
-        scope.sidebarRight.openResource(`dsh-resource://subagentchat/session/${encodeURIComponent(address.childSessionId)}?${query}`, { kind: 'subagentchat', preferNewPane: true })
+        scope.sidebarRight.openResource(`dsh-resource://subagentchat/session/${encodeURIComponent(address.childSessionId)}?${query}`, {
+          kind: 'subagentchat',
+          preferNewPane: true,
+        })
       },
-      refreshProjection: (sessionId: SessionId) => { void scope.sessions.refreshProjections(sessionId) },
+      refreshProjection: (sessionId: SessionId) => {
+        void scope.sessions.refreshProjections(sessionId)
+      },
     })
-    scope.slots.inject('conversation.session.header.lineage', () => scope.slots.register({
-      name: 'conversation.session.header.lineage', priority: -100, locale: 'modern-subagent', inject: actions,
-    }, SubagentHeaderLineage))
-    scope.slots.inject('conversation.session.header.actions', () => scope.slots.register({
-      name: 'conversation.session.header.actions', id: 'subagent-catalog', priority: -100, order: 10,
-      locale: 'modern-subagent', inject: actions,
-    }, SubagentCatalogAction))
+    scope.slots.inject('conversation.session.header.lineage', () =>
+      scope.slots.register(
+        {
+          name: 'conversation.session.header.lineage',
+          priority: -100,
+          locale: 'modern-subagent',
+          inject: actions,
+        },
+        SubagentHeaderLineage,
+      ),
+    )
+    scope.slots.inject('conversation.session.header.actions', () =>
+      scope.slots.register(
+        {
+          name: 'conversation.session.header.actions',
+          id: 'subagent-catalog',
+          priority: -100,
+          order: 10,
+          locale: 'modern-subagent',
+          inject: actions,
+        },
+        SubagentCatalogAction,
+      ),
+    )
     const translate = scope.locale.bind('modern-subagent')
-    scope.slots.inject('conversation.view', () => scope.slots.register({
-      name: 'conversation.view', id: 'agents', priority: -100, order: 5, locale: 'modern-subagent',
-      label: () => translate('view.agents'),
-      inject: () => ({
-        openSession: sessionId => scope.uiWorkspace.openSession(scope.sessions.subagentAddress(sessionId) ?? sessionId),
-        refreshProjections: sessionId => { void scope.sessions.refreshProjections(sessionId) },
-      }),
-    }, AgentsView))
+    scope.slots.inject('conversation.view', () =>
+      scope.slots.register(
+        {
+          name: 'conversation.view',
+          id: 'agents',
+          priority: -100,
+          order: 5,
+          locale: 'modern-subagent',
+          label: () => translate('view.agents'),
+          inject: () => ({
+            openSession: sessionId => scope.uiWorkspace.openSession(scope.sessions.subagentAddress(sessionId) ?? sessionId),
+            refreshProjections: sessionId => {
+              void scope.sessions.refreshProjections(sessionId)
+            },
+          }),
+        },
+        AgentsView,
+      ),
+    )
   })
 }

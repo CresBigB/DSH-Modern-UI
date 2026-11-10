@@ -4,13 +4,19 @@ import { DetailDocument, useDetailDocumentLabels, type DetailDocumentState } fro
 import type { PluginDetail } from '../host-compat/plugin-documents/types.ts'
 import type {} from './locales.ts'
 
-export type DocumentTarget = { readonly kind: 'bundle'; readonly name: string; readonly version?: string }
+export type DocumentTarget =
+  | { readonly kind: 'bundle'; readonly name: string; readonly version?: string }
   | { readonly kind: 'market'; readonly name: string; readonly url: string; readonly version: string }
 export type DocumentTranslate = PropsLocale<'modern-plugin-documents'>['t']
 type DocumentProps = { target: DocumentTarget; language: string; t: DocumentTranslate }
 type ReadState = { readonly value: PluginDetail } | { readonly failure: string }
-const FAILURE_KEYS = { 'too-large': 'detailTooLarge', network: 'detailNetwork', denied: 'detailDenied',
-  'git-unavailable': 'detailGitUnavailable', invalid: 'detailInvalid' } as const
+const FAILURE_KEYS = {
+  'too-large': 'detailTooLarge',
+  network: 'detailNetwork',
+  denied: 'detailDenied',
+  'git-unavailable': 'detailGitUnavailable',
+  invalid: 'detailInvalid',
+} as const
 
 /** Read a listed package's document; each target and language is read by an instance of its own. */
 export function PluginDocument(props: DocumentProps) {
@@ -42,24 +48,58 @@ function DocumentRead({ target, language, t }: DocumentProps) {
           throw new Error('invalid')
         }
         if (!controller.signal.aborted) setRead({ value })
-      }).catch((error: unknown) => {
+      })
+      .catch((error: unknown) => {
         if (!controller.signal.aborted) setRead({ failure: error instanceof Error ? error.message : 'network' })
       })
     return () => controller.abort()
     // The instance is keyed by target and language, so only a retry reads again.
   }, [retry])
   const found = read !== undefined && 'value' in read && read.value.status === 'found' ? read.value : undefined
-  const state: DetailDocumentState = read === undefined ? { status: 'loading' }
-    : 'failure' in read ? { status: 'error', message: t(FAILURE_KEYS[read.failure as keyof typeof FAILURE_KEYS] ?? 'detailFailed') }
-      : read.value.status === 'none' ? { status: 'none' } : { status: 'found', markdown: read.value.markdown }
-  const labels = useDetailDocumentLabels({ title: t('detailTitle'), loading: t('detailLoading'), retry: t('retry'),
-    copy: t('copy'), copied: t('copied'), codeBlock: t('codeBlock.title'), wrap: t('codeBlock.wrap'), unwrap: t('codeBlock.unwrap'),
-    collapseCode: t('codeBlock.collapse'), expandCode: t('codeBlock.expand'), footnotes: t('footnotes') })
-  const images = useMemo(() => found === undefined ? undefined : { resolve: (destination: string) => {
-    const url = new URL('api/modern-ui/plugin-document-image', document.baseURI)
-    url.searchParams.set('document', found.document)
-    url.searchParams.set('path', destination)
-    return url.href
-  } }, [found?.document])
-  return <DetailDocument state={state} labels={labels} images={images} onRetry={() => { setRead(undefined); setRetry(value => value + 1) }} />
+  const state: DetailDocumentState =
+    read === undefined
+      ? { status: 'loading' }
+      : 'failure' in read
+        ? { status: 'error', message: t(FAILURE_KEYS[read.failure as keyof typeof FAILURE_KEYS] ?? 'detailFailed') }
+        : read.value.status === 'none'
+          ? { status: 'none' }
+          : { status: 'found', markdown: read.value.markdown }
+  const labels = useDetailDocumentLabels({
+    title: t('detailTitle'),
+    loading: t('detailLoading'),
+    retry: t('retry'),
+    copy: t('copy'),
+    copied: t('copied'),
+    codeBlock: t('codeBlock.title'),
+    wrap: t('codeBlock.wrap'),
+    unwrap: t('codeBlock.unwrap'),
+    collapseCode: t('codeBlock.collapse'),
+    expandCode: t('codeBlock.expand'),
+    footnotes: t('footnotes'),
+  })
+  const images = useMemo(
+    () =>
+      found === undefined
+        ? undefined
+        : {
+            resolve: (destination: string) => {
+              const url = new URL('api/modern-ui/plugin-document-image', document.baseURI)
+              url.searchParams.set('document', found.document)
+              url.searchParams.set('path', destination)
+              return url.href
+            },
+          },
+    [found?.document],
+  )
+  return (
+    <DetailDocument
+      state={state}
+      labels={labels}
+      images={images}
+      onRetry={() => {
+        setRead(undefined)
+        setRetry(value => value + 1)
+      }}
+    />
+  )
 }

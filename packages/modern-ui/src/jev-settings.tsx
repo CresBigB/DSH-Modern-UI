@@ -45,7 +45,9 @@ export function JevRow({ useJev, usePrompt, actions, t }: JevRowProps) {
           <div className={css.title}>{t('settings.jev.title')}</div>
           <div className={css.desc}>
             {t('settings.jev.description')}{' '}
-            <a className={css.link} href="https://typesafe.ai" target="_blank" rel="noopener noreferrer">{t('settings.jev.site')}</a>
+            <a className={css.link} href="https://typesafe.ai" target="_blank" rel="noopener noreferrer">
+              {t('settings.jev.site')}
+            </a>
           </div>
           {!prompt && <div className={css.desc}>{t('settings.jev.needsPrompt')}</div>}
         </div>
@@ -62,14 +64,35 @@ export function JevRow({ useJev, usePrompt, actions, t }: JevRowProps) {
         onEdit={setDraft}
       />
       <div className={css.actions}>
-        <Button size="sm" variant="primary" disabled={locked || draft.trim() === ''}
-          onClick={() => { void actions.saveKey(draft).then((saved) => { if (saved) setDraft('') }) }}>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={locked || draft.trim() === ''}
+          onClick={() => {
+            void actions.saveKey(draft).then(saved => {
+              if (saved) setDraft('')
+            })
+          }}
+        >
           {t('settings.jev.save')}
         </Button>
-        {jev.configured && jev.source === 'file' && <Button size="sm" variant="ghost" disabled={locked} onClick={() => { void actions.removeKey() }}>
-          {t('settings.jev.remove')}
-        </Button>}
-        {jev.notice !== null && <span className={css.notice} role="status">{t(`settings.jev.${jev.notice}`)}</span>}
+        {jev.configured && jev.source === 'file' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={locked}
+            onClick={() => {
+              void actions.removeKey()
+            }}
+          >
+            {t('settings.jev.remove')}
+          </Button>
+        )}
+        {jev.notice !== null && (
+          <span className={css.notice} role="status">
+            {t(`settings.jev.${jev.notice}`)}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -84,20 +107,29 @@ export function JevRow({ useJev, usePrompt, actions, t }: JevRowProps) {
 export function installJevSettings(ctx: Context, presentation: ObservableSnapshot<PresentationSettings>): void {
   const state = trackJev(ctx.configForms.get<{ jev?: Record<string, unknown> }>(CHAT_SETTINGS_NAMESPACE) as JevForm, ctx.remote.credentials)
   ctx.effect(() => state.dispose)
-  ctx.effect(() => ctx.remote.$on('credentials/reference-updated', (ref) => { state.refresh(String(ref)) }))
+  ctx.effect(() =>
+    ctx.remote.$on('credentials/reference-updated', ref => {
+      state.refresh(String(ref))
+    }),
+  )
   const prompt: ObservableSnapshot<boolean> = {
     getSnapshot: () => presentation.getSnapshot().prompt,
     subscribe: listener => presentation.subscribe(listener),
   }
   ctx.effect(() => ctx.locale.register(JEV_LOCALE, jevLocale))
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
-    id: 'jev-routing',
-    order: 19,
-    locale: JEV_LOCALE,
-    inject: (): JevRowInjected => ({
-      hooks: { jev: state.state, prompt },
-      actions: { setEnabled: state.setEnabled, saveKey: state.saveKey, removeKey: state.removeKey },
-    }),
-  }, JevRow))
+  ctx.slots.inject('settings.general.item', () =>
+    ctx.slots.register(
+      {
+        name: 'settings.general.item',
+        id: 'jev-routing',
+        order: 19,
+        locale: JEV_LOCALE,
+        inject: (): JevRowInjected => ({
+          hooks: { jev: state.state, prompt },
+          actions: { setEnabled: state.setEnabled, saveKey: state.saveKey, removeKey: state.removeKey },
+        }),
+      },
+      JevRow,
+    ),
+  )
 }

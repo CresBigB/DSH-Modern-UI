@@ -19,10 +19,7 @@ export interface PresentationRowInjected {
 }
 
 /** Full Settings-row props. */
-export type PresentationRowProps =
-  PropsRuntime<'settings.general.item'>
-  & PropsLocale<typeof PRESENTATION_LOCALE>
-  & InjectFace<PresentationRowInjected>
+export type PresentationRowProps = PropsRuntime<'settings.general.item'> & PropsLocale<typeof PRESENTATION_LOCALE> & InjectFace<PresentationRowInjected>
 
 /**
  * Render the presentation prompt switch; a failed write replaces the description with the failure.
@@ -42,7 +39,9 @@ export function PresentationRow({ usePrompt, useSaveFailed, setPrompt, t }: Pres
         { id: 'off', label: t('settings.presentation.off') },
         { id: 'on', label: t('settings.presentation.on') },
       ]}
-      onSelect={(value) => { setPrompt(value === 'on') }}
+      onSelect={value => {
+        setPrompt(value === 'on')
+      }}
     />
   )
 }
@@ -60,10 +59,7 @@ export interface ProgressiveRowInjected {
 }
 
 /** Full Settings-row props. */
-export type ProgressiveRowProps =
-  PropsRuntime<'settings.general.item'>
-  & PropsLocale<typeof PRESENTATION_LOCALE>
-  & InjectFace<ProgressiveRowInjected>
+export type ProgressiveRowProps = PropsRuntime<'settings.general.item'> & PropsLocale<typeof PRESENTATION_LOCALE> & InjectFace<ProgressiveRowInjected>
 
 /**
  * Render the progressive result delivery switch, independent of the components prompt.
@@ -83,7 +79,9 @@ export function ProgressiveRow({ useEnabled, useSaveFailed, setEnabled, t }: Pro
         { id: 'off', label: t('settings.presentation.off') },
         { id: 'on', label: t('settings.presentation.on') },
       ]}
-      onSelect={(value) => { setEnabled(value === 'on') }}
+      onSelect={value => {
+        setEnabled(value === 'on')
+      }}
     />
   )
 }
@@ -101,24 +99,34 @@ export function installPresentationSettings(ctx: Context): ObservableSnapshot<Pr
     subscribe: listener => state.settings.subscribe(listener),
   }
   ctx.effect(() => ctx.locale.register(PRESENTATION_LOCALE, presentationLocale))
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
-    id: 'presentation-prompt',
-    order: 18,
-    locale: PRESENTATION_LOCALE,
-    inject: (): PresentationRowInjected => ({ hooks: { prompt, saveFailed: state.saveFailed }, setPrompt: state.setPrompt }),
-  }, PresentationRow))
+  ctx.slots.inject('settings.general.item', () =>
+    ctx.slots.register(
+      {
+        name: 'settings.general.item',
+        id: 'presentation-prompt',
+        order: 18,
+        locale: PRESENTATION_LOCALE,
+        inject: (): PresentationRowInjected => ({ hooks: { prompt, saveFailed: state.saveFailed }, setPrompt: state.setPrompt }),
+      },
+      PresentationRow,
+    ),
+  )
   const progressive: ObservableSnapshot<boolean> = {
     getSnapshot: () => state.settings.getSnapshot().progressive,
     subscribe: listener => state.settings.subscribe(listener),
   }
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item',
-    id: 'progressive-results',
-    // Above the components switch, so that switch and the Jev row under it stay together.
-    order: 17.5,
-    locale: PRESENTATION_LOCALE,
-    inject: (): ProgressiveRowInjected => ({ hooks: { enabled: progressive, saveFailed: state.progressiveSaveFailed }, setEnabled: state.setProgressive }),
-  }, ProgressiveRow))
+  ctx.slots.inject('settings.general.item', () =>
+    ctx.slots.register(
+      {
+        name: 'settings.general.item',
+        id: 'progressive-results',
+        // Above the components switch, so that switch and the Jev row under it stay together.
+        order: 17.5,
+        locale: PRESENTATION_LOCALE,
+        inject: (): ProgressiveRowInjected => ({ hooks: { enabled: progressive, saveFailed: state.progressiveSaveFailed }, setEnabled: state.setProgressive }),
+      },
+      ProgressiveRow,
+    ),
+  )
   return state.settings
 }
