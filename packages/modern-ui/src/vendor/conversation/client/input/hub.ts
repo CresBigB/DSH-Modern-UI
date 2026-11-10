@@ -26,7 +26,7 @@ import type { InputSubmitMode } from '../contract/composer-submission.ts'
 import type { PopupDismissFace } from './facade.ts'
 import { SessionInputShell } from './facade.ts'
 import { reportMessageSubmission } from './submission-analytics.ts'
-import { readConversationDraft } from '../stores.ts'
+import { readConversationDraft, readFailedInputSends, writeFailedInputSends, writeRecoveredConversationDraft } from '../stores.ts'
 
 /** Structural command face for per-session popup resolution. */
 interface CommandFace {
@@ -51,6 +51,7 @@ interface ConversationAttachmentFace {
   ): Promise<SubmitOutcome>
   serializeDraftAttachments(attachmentIds: readonly DraftAttachmentId[]): Promise<DraftAttachmentSerializationResult>
   releaseDraftAttachment(id: DraftAttachmentId): void
+  resolveDraftAttachments(ids: readonly DraftAttachmentId[]): readonly { readonly id: DraftAttachmentId }[]
 }
 
 /** Session-addressed input facade registry (SessionInputResolver face + composer-layer extras). */
@@ -110,6 +111,14 @@ export class InputHub implements SessionInputResolver {
     const { session, ctx: actx } = binding
     const shell = new SessionInputShell({
       actx,
+      failedSends: readFailedInputSends(binding.sessionId),
+      persistFailedSends: records => { writeFailedInputSends(binding.sessionId, records) },
+      persistRecoveredDraft: draft => writeRecoveredConversationDraft(binding.sessionId, draft),
+      availableAttachmentIds: ids => {
+        const conversation = this.rootCtx.get('conversation') as ConversationAttachmentFace | undefined
+        return conversation?.resolveDraftAttachments(ids).map(item => item.id) ?? []
+      },
+      missingAttachmentsNotice: () => this.t('input.failedSend.missingAttachments'),
       submissionState: () => {
         const state = session.getSnapshot()
         const model = session.projections.faceOf('modelSelection').getSnapshot() as ModelSelectionProjection | undefined
