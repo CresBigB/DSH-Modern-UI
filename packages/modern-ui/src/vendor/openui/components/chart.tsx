@@ -198,11 +198,15 @@ function axis(values: number[], zero: boolean) {
   return { lo, hi, step, ticks: Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) };
 }
 
-/** Points with a numeric x; each series is a color. The first text key names a point in its tooltip. */
+function pointNameKey({ rows, x }: Spec): string | undefined {
+  return rows[0] ? Object.keys(rows[0]).find((key) => key !== x && typeof rows[0][key] === "string") : undefined;
+}
+
+/** Points with a numeric x; each series is a color. The first text key names a point. */
 function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const [hover, setHover] = useState<{ i: number; si: number } | null>(null);
   const { rows, series, height, format, x } = spec;
-  const name = rows[0] ? Object.keys(rows[0]).find((k) => k !== x && typeof rows[0][k] === "string") : undefined;
+  const name = pointNameKey(spec);
   // Fixed min and max widen the value axis the same way they do for bars and lines.
   const bounds = [spec.range.min, spec.range.max].filter((v): v is number => v !== undefined);
   const ya = axis([...rows.flatMap((r) => series.map((s) => num(r[s]))), ...bounds], false);
@@ -237,7 +241,7 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
       </svg>
       {tip && hover && (
         <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(px(num(tip[x])), 70), width - 70), top: Math.max(0, py(num(tip[series[hover.si]])) - 70) }}>
-          <strong>{name ? String(tip[name]) : series[hover.si]}</strong>
+          <strong>{name ? label(tip, name) : series[hover.si]}</strong>
           <span>{x} <b>{xFormat(num(tip[x]), false, xa.step)}</b></span>
           <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]), false, ya.step)}</b></span>
         </div>
@@ -357,6 +361,7 @@ export const Chart = defineComponent({
     const xData = dataFormat(locale);
     const yData = dataFormat(locale, props.format, props.currency);
     const pie = spec?.type === "pie" || spec?.type === "donut";
+    const pointName = spec?.type === "scatter" ? pointNameKey(spec) : undefined;
     return (
       <figure className="iui-chart" ref={ref}>
         {spec && width > 0 ? pie ? <Pie spec={spec} width={width} /> : spec.type === "scatter" ? <Scatter spec={spec} width={width} /> : <Cartesian spec={spec} width={width} /> : <div style={{ height: spec?.height ?? 240 }} />}
@@ -366,9 +371,9 @@ export const Chart = defineComponent({
           <summary>{text.chartData}</summary>
           <div className="iui-table-scroll"><table className="iui-table">
             <caption>{props.summary || spec.name}</caption>
-            <thead><tr><th scope="col">{spec.x}</th>{(pie ? spec.series.slice(0, 1) : spec.series).map(s => <th key={s} scope="col">{s}</th>)}</tr></thead>
+            <thead><tr>{pointName && <th scope="col">{pointName}</th>}<th scope="col">{spec.x}</th>{(pie ? spec.series.slice(0, 1) : spec.series).map(s => <th key={s} scope="col">{s}</th>)}</tr></thead>
             <tbody>{spec.rows.map((row, i) => <tr key={i}>
-              <th scope="row">{spec.type === "scatter" ? xData(num(row[spec.x])) : label(row, spec.x)}</th>
+              {pointName ? <><th scope="row">{label(row, pointName)}</th><td>{xData(num(row[spec.x]))}</td></> : <th scope="row">{spec.type === "scatter" ? xData(num(row[spec.x])) : label(row, spec.x)}</th>}
               {(pie ? spec.series.slice(0, 1) : spec.series).map(s => <td key={s}>{yData(pie ? Math.max(0, num(row[s])) : num(row[s]))}</td>)}
             </tr>)}</tbody>
           </table></div>

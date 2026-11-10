@@ -123,9 +123,11 @@ export const Popover = defineComponent({
     // A component trigger that draws its own control (a Button) opens the panel through that control, which then
     // neither runs its action nor sits inside a second focusable wrapper.
     const [control, setControl] = useState<HTMLElement | null>(null);
+    const [hasTriggerText, setHasTriggerText] = useState(false);
     useLayoutEffect(() => {
       const found = typeof props.trigger === "string" ? null : button.current?.querySelector<HTMLElement>(CONTROLS) ?? null;
       setControl((current) => (current === found ? current : found));
+      setHasTriggerText(!!button.current?.textContent?.trim());
     });
     useLayoutEffect(() => {
       if (!control) return;
@@ -211,6 +213,7 @@ export const Popover = defineComponent({
             ref={button as RefObject<HTMLSpanElement>}
             role="button"
             tabIndex={0}
+            aria-label={!hasTriggerText ? title || text.details : undefined}
             id={`${id}-trigger`} className="iui-popover-trigger"
             aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={open}
             onClick={() => setOpen(!open)}

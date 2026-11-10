@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { harness, realSession, source, stable, t } from '../tests/audit/helpers/conversation-harness.mjs'
+import assert from 'node:assert/strict'
+import { harness, projectStreamingText, realSession, source, stable, t } from '../tests/audit/helpers/conversation-harness.mjs'
 
 // Usage: node scripts/profile-conversation.mjs [baseline-ref] [output-directory]
 // Development React/jsdom fixture; remote, selector bridge and UI slots are simplified.
@@ -27,17 +28,18 @@ for (const kind of ['root', 'continuable-child'])
       session.acceptEventChange({ type: 'assistant-stream', frame: { type: 'start', attemptId: 'attempt', startedAfterSeq: 0, turn: 1, step: 1 } })
       session.acceptEventChange({
         type: 'assistant-stream',
-        frame: { type: 'chunk', attemptId: 'attempt', index: 0, time: 0, chunk: { type: 'text-start', id: 'text' } },
+        frame: { type: 'chunk', attemptId: 'attempt', index: 0, time: 0, chunk: { type: 'block-start', index: 0, blockType: 'text' } },
       })
       await Promise.resolve()
       const useSession = h.bind(session)
       const useConversation = h.bind(source({ activeTargets: new Set(['chat']) }))
       const full = { dock: 0, chain: 0, view: 0 }
+      const snapshots = {}
       const props = { sessionId: 'session', useSession, useConversation, useSessions: stable({ byId: { session: { blank: false, cwd: '/work' } } }) }
       function ThirdPartyView() {
-        useSession(s => s)
+        snapshots.view = useSession(s => s)
         full.view++
-        return h.React.createElement('div', null, 'resident view')
+        return h.React.createElement('div', { 'data-streamed-text': '' }, projectStreamingText(h, session).text)
       }
       const body = {
         ...props,
@@ -65,12 +67,16 @@ for (const kind of ['root', 'continuable-child'])
         selectWorkspace() {},
         t,
         useFactorySlot: name => (name === 'views' ? Views : () => null),
-        renderSlot: name => {
-          if (name === 'conversation.input.dock') full.dock++
+        renderSlot: (name, zone) => {
+          if (name === 'conversation.input.dock') {
+            full.dock++
+            snapshots.dock = zone.session
+          }
           return null
         },
-        renderSlotChain: (_name, _owner, options) => {
+        renderSlotChain: (_name, owner, options) => {
           full.chain++
+          snapshots.chain = owner.session
           return options.fallback
         },
       }
@@ -94,14 +100,18 @@ for (const kind of ['root', 'continuable-child'])
         for (const key of Object.keys(h.renderCounts)) h.renderCounts[key] = 0
         for (const key of Object.keys(full)) full[key] = 0
         commits.length = 0
-        for (let index = 1; index <= 100; index++)
+        for (let index = 1; index <= 100; index++) {
           await h.act(async () => {
             session.acceptEventChange({
               type: 'assistant-stream',
-              frame: { type: 'chunk', attemptId: 'attempt', index, time: index, chunk: { type: 'text-delta', id: 'text', delta: 'token' } },
+              frame: { type: 'chunk', attemptId: 'attempt', index, time: index, chunk: { type: 'text-delta', index: 0, text: 'token' } },
             })
             await Promise.resolve()
           })
+          assert.equal(h.document.querySelector('[data-streamed-text]').textContent, 'token'.repeat(index))
+          for (const snapshot of Object.values(snapshots)) assert.equal(snapshot, session.getSnapshot())
+        }
+        assert.equal(projectStreamingText(h, session).process.turn, 1)
         results.push({
           kind,
           baseline,
@@ -109,6 +119,7 @@ for (const kind of ['root', 'continuable-child'])
           renders: { ...h.renderCounts },
           fullSnapshotConsumerRenders: { ...full },
           commits: commits.length,
+          verifiedTextLength: h.document.querySelector('[data-streamed-text]').textContent.length,
           reactActualDurationMs: commits.reduce((sum, value) => sum + value.actualDuration, 0),
         })
       } finally {
@@ -121,8 +132,10 @@ const evidence = {
   node: process.version,
   react: '18.3.1 development profiler',
   environment:
-    'Windows jsdom; official rc.4 Session class, mocked remote/notification adapter and renderer selector hook; simplified UI slots, no Markdown or real device',
-  samples: '100 independent text-delta microtask flushes after start and text-start; five trials per root/continuable-child and revision',
+    'Windows jsdom; official rc.4 Session class; real Chat assistant and turn-process business projections over accepted event windows, reduced single running Turn/Step location wiring; mocked remote/notification adapter and renderer selector hook; simplified UI slots, no Markdown or real device',
+  samples:
+    '100 independent legal rc.4 text-delta microtask flushes after start and block-start; five trials per root/continuable-child and revision; every assembled text prefix and full consumer snapshot identity verified',
+  fixtureRevision: 'rc4-legal-chunks-with-chat-projections; timings supersede the invalid-payload fixture and are not directly comparable',
   results,
 }
 await writeFile(path.join(outputDirectory, 'conversation-profile.json'), JSON.stringify(evidence, null, 2))

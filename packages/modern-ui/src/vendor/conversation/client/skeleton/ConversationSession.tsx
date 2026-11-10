@@ -139,14 +139,20 @@ export function ConversationSessionHeader({
   }, [tabs, unpinned, hasMenu, visibleViewLimit, active])
   const currentInMore = moreTabs.some(tab => tab.id === active?.id)
   const focusAfterMenu = useRef(false)
-  const focusedTab = useRef<string | null>(null)
+  const focusedTab = useRef<HTMLButtonElement | null>(null)
   useLayoutEffect(() => {
-    const focusRemoved = focusedTab.current !== null && !visibleTabs.some(tab => tab.id === focusedTab.current)
+    const focusRemoved = focusedTab.current !== null && !focusedTab.current.isConnected
+      && document.activeElement === document.body
     if (!focusAfterMenu.current && !focusRemoved) return
     focusAfterMenu.current = false
+    focusedTab.current = null
     const target = active ?? visibleTabs[0]
-    if (target !== undefined) document.getElementById(viewTabIds(sessionId, target.id).tab)?.focus()
-  }, [visibleTabs, active, sessionId])
+    if (target !== undefined) {
+      const ids = viewTabIds(sessionId, target.id)
+      const destination = document.getElementById(ids.tab) ?? document.getElementById(ids.panel)
+      destination?.focus()
+    }
+  }, [visibleTabs, active, sessionId, showTabs])
   const openFromMenu = (id: string): void => {
     focusAfterMenu.current = true
     selectView(id)
@@ -234,7 +240,7 @@ export function ConversationSessionHeader({
                 aria-controls={viewTabIds(sessionId, viewTab.id).panel}
                 aria-selected={viewTab.id === active?.id}
                 tabIndex={viewTab.id === (active?.id ?? visibleTabs[0]?.id) ? 0 : -1}
-                onFocus={() => { focusedTab.current = viewTab.id }}
+                onFocus={event => { focusedTab.current = event.currentTarget }}
                 onBlur={event => {
                   if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node | null)) focusedTab.current = null
                 }}

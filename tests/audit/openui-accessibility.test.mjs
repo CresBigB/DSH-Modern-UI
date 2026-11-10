@@ -275,3 +275,67 @@ test('a radio group that becomes empty releases focus ownership before new optio
     assert.equal(await page.getByRole('radio', { name: 'Two' }).getAttribute('aria-checked'), 'true')
   })
 })
+
+test('icon Popover trigger uses title or localized details as its fallback name', async () => {
+  await withPage(async (page, show) => {
+    await show(
+      'root = Col([Popover(Icon("info"), [Text("Definition")], "Term details"), Popover("Source", [Text("Text body")], "Other title"), Popover(Text("Text trigger"), [Text("Component body")], "Component title"), Popover(Button("Native"), [Text("Button body")], "Native title")])',
+    )
+    const trigger = page.getByRole('button', { name: 'Term details', exact: true })
+    assert.equal(await trigger.count(), 1)
+    assert.equal(await page.getByRole('button', { name: 'Source', exact: true }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: 'Native', exact: true }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: 'Text trigger', exact: true }).count(), 1)
+    assert.equal(await page.locator('button button, [role="button"] button').count(), 0)
+    for (const key of ['Enter', ' ']) {
+      await trigger.focus()
+      await page.keyboard.press(key)
+      const dialog = page.getByRole('dialog', { name: 'Term details' })
+      assert.equal(await dialog.count(), 1)
+      assert.equal(await dialog.evaluate(el => el === document.activeElement), true)
+      await page.keyboard.press('Escape')
+      assert.equal(await dialog.count(), 0)
+      assert.equal(await trigger.evaluate(el => el === document.activeElement), true)
+    }
+    for (const title of ['', ', "   "']) {
+      await show(
+        `root = Col([Popover(Icon("info"), [Text("Definition")]${title}), Popover(Text("Text trigger"), [Text("Text body")]${title}), Popover(Button("Native"), [Text("Button body")]${title})])`,
+      )
+      assert.equal(await page.getByRole('dialog').count(), 0)
+      assert.equal(await page.getByRole('button', { name: 'Details', exact: true }).count(), 1)
+      assert.equal(await page.getByRole('button', { name: 'Text trigger', exact: true }).count(), 1)
+      assert.equal(await page.getByRole('button', { name: 'Native', exact: true }).count(), 1)
+    }
+  })
+})
+
+test('scatter table retains point names shared with tooltips and numeric series', async () => {
+  await withPage(async (page, show) => {
+    await show(
+      'root = Col([Chart("scatter", [{name:"Store A", x:1.0001, y:2, z:0.000005}, {name:"Store B", x:1.0001, y:2}], "x", ["y","z"], "currency", "EUR")])',
+      'de',
+    )
+    await page.locator('details summary').click()
+    assert.deepEqual(await page.locator('table thead th').allTextContents(), ['name', 'x', 'y', 'z'])
+    assert.deepEqual(await page.locator('table tbody th').allTextContents(), ['Store A', 'Store B'])
+    assert.deepEqual(await page.locator('table tbody tr').first().locator('td').allTextContents(), ['1,0001', '2 €', '0,000005 €'])
+    assert.ok((await page.locator('table tbody tr').last().textContent()).includes('0 €'))
+    const circles = page.locator('.iui-chart-plot circle')
+    for (const [index, name] of [
+      [0, 'Store A'],
+      [1, 'Store B'],
+      [2, 'Store A'],
+      [3, 'Store B'],
+    ]) {
+      await circles.nth(index).dispatchEvent('pointerover')
+      await page.waitForFunction(expected => document.querySelector('.iui-chart-tooltip strong')?.textContent === expected, name)
+      assert.equal(await page.locator('.iui-chart-tooltip strong').textContent(), name)
+    }
+    await show('root = Col([Chart("scatter", [{x:1, y:2}, {x:1, y:2}], "x", ["y"])])')
+    await page.locator('details summary').click()
+    assert.deepEqual(await page.locator('table thead th').allTextContents(), ['x', 'y'])
+    await page.locator('.iui-chart-plot circle').first().dispatchEvent('pointerover')
+    await page.waitForFunction(() => document.querySelector('.iui-chart-tooltip strong')?.textContent === 'y')
+    assert.equal(await page.locator('.iui-chart-tooltip strong').textContent(), 'y')
+  })
+})

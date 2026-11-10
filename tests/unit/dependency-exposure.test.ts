@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promis
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { artifactExposure, collectExposure, inspectRuntimeDependencies, resolvePackage } from '../../scripts/dependency-exposure.mjs'
+import { collectExposure, inspectRuntimeDependencies, resolvePackage } from '../../scripts/dependency-exposure.mjs'
 
 describe('dependency exposure evidence', () => {
   test('uses the pnpm physical owner instead of a decoy beside its logical package link', async () => {
@@ -29,23 +29,6 @@ describe('dependency exposure evidence', () => {
     } finally {
       await rm(root, { recursive: true, force: true })
     }
-  })
-
-  test('does not attribute a patched root package to an affected nested package', () => {
-    const root = path.resolve('fixture')
-    const nested = 'node_modules/owner/node_modules/katex'
-    const rootInput = 'node_modules/katex/dist/index.js'
-    const nestedInput = `${nested}/dist/index.js`
-    const siblingInput = `${nested}-extra/index.js`
-    const data = {
-      inputs: { [rootInput]: {}, [nestedInput]: {}, [siblingInput]: {} },
-      outputs: { 'client.js': { inputs: { [rootInput]: { bytesInOutput: 100 }, [nestedInput]: { bytesInOutput: 0 }, [siblingInput]: { bytesInOutput: 15 } } } },
-    }
-    expect(artifactExposure(root, nested, [{ name: 'client', data }])).toEqual([
-      { artifact: 'client', parsedInputs: [nestedInput], retainedOutputBytes: 0, parsedOnly: true },
-    ])
-    data.outputs['client.js'].inputs[nestedInput].bytesInOutput = 12
-    expect(artifactExposure(root, nested, [{ name: 'client', data }])[0]).toMatchObject({ retainedOutputBytes: 12, parsedOnly: false })
   })
 
   test('resolves plugin and official transport from their own install locations despite hidden package exports', async () => {
@@ -101,6 +84,7 @@ describe('dependency exposure evidence', () => {
         vulnerabilities: { affected: { dev: true, nodes: [affected], via: [{ url: 'https://example.test/GHSA-fixture', range: '<2.0.0' }] } },
       })
       await json(path.join(root, affected, 'package.json'), { name: 'affected', version: '1.0.0' })
+      await writeFile(path.join(root, input), 'export const affected = true')
       await json(path.join(root, 'packages/modern-ui/package.json'), { name: 'plugin', dependencies: {} })
       for (const name of ['client', 'host-main', 'host-compat']) {
         await json(path.join(root, '.artifacts/build-metafiles', `${name}.json`), {

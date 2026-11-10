@@ -59,9 +59,40 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement.id), 'before')
   await page.keyboard.press('Tab')
   assert.equal(await focusedTab(), 'Tools')
+  const dynamicFocus = []
+  const twoViews = [
+    { id: 'chat', label: 'Chat' },
+    { id: 'files', label: 'Files' },
+  ]
+  const setViews = async views => {
+    await page.evaluate(views => fixture.views.set(views), views)
+    await page.waitForFunction(count => document.querySelectorAll('[role=tab]').length === count, views.length > 1 ? views.length : 0)
+  }
+  await setViews(twoViews)
+  assert.equal(await focusedTab(), 'Chat')
+  dynamicFocus.push('3-to-2 removed active tab returns focus to Chat tab')
+  await setViews(twoViews.slice(0, 1))
+  const chatPanel = page.getByRole('tabpanel', { name: 'Chat', exact: true })
+  assert.equal(await chatPanel.evaluate(el => el === document.activeElement), true)
+  dynamicFocus.push('2-to-1 surviving focused Chat tab returns focus to Chat panel')
+  await setViews(twoViews)
+  await page.getByRole('tab', { name: 'Files', exact: true }).click()
+  await setViews(twoViews.slice(0, 1))
+  assert.equal(await chatPanel.evaluate(el => el === document.activeElement), true)
+  assert.equal(await chatPanel.getAttribute('aria-labelledby'), null)
+  dynamicFocus.push('2-to-1 removed active Files tab returns focus to named Chat panel')
+  for (const count of [2, 3]) {
+    await setViews(count === 3 ? [...twoViews, { id: 'tools', label: 'Tools' }] : twoViews)
+    await page.getByRole('tab', { name: 'Files', exact: true }).focus()
+    await page.locator('#after').focus()
+    await setViews(count === 3 ? twoViews : twoViews.slice(0, 1))
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'after')
+    dynamicFocus.push(`${count}-to-${count - 1} preserves external focus`)
+  }
   const evidence = {
     browser: await browser.version(),
     nativeKeyboard: ['Tab', 'Shift+Tab', 'ArrowRight', 'Home', 'End', 'Enter', 'Space'],
+    dynamicFocus,
     errors,
     result: 'pass',
     limitation: 'isolated conversation components with simplified primitives and hooks; no real screen reader',

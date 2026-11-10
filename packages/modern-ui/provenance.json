@@ -751,7 +751,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationSession.tsx",
       "sourceSha256": "dfcd81e81a7b5c9a98d1ea3c5d68b30d3607b8cb539b47872d037bf82cd2a9e7",
-      "targetSha256": "3465fb36867c56292d04a0d55721468da1a2a8a7d76e5099d9b9e1599d72201f",
+      "targetSha256": "9e3152af11a51cb3a7472af3e3204cbeb5a79ee3d0a8d49d4063fc6f134f4032",
       "adapted": true
     },
     {

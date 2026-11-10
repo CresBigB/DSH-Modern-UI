@@ -10,24 +10,51 @@ const packageName = specifier =>
     .split('/')
     .slice(0, specifier.startsWith('@') ? 2 : 1)
     .join('/')
-const physicalPath = (root, input) => path.resolve(root, input.replace(/^(?:owned-css|inline-css):/, '').replaceAll('\\', '/'))
+function pathResolver(root) {
+  const cache = new Map()
+  return input => {
+    const file = path.resolve(root, input.replace(/^(?:owned-css|inline-css):/, '').replaceAll('\\', '/'))
+    if (!cache.has(file))
+      cache.set(
+        file,
+        realpath(file).then(
+          physical => ({ physical }),
+          error => ({ error: { path: input, code: error.code, reason: error.message } }),
+        ),
+      )
+    return cache.get(file)
+  }
+}
 const inside = (directory, file) => file.startsWith(`${directory}${path.sep}`) && !path.relative(directory, file).split(path.sep).includes('node_modules')
 
-export function artifactExposure(root, packageDirectory, metafiles) {
-  const directory = physicalPath(root, packageDirectory)
-  return metafiles.map(({ name, data }) => {
-    const parsedInputs = Object.keys(data.inputs).filter(input => inside(directory, physicalPath(root, input)))
-    const retainedOutputBytes = Object.values(data.outputs).reduce(
-      (total, output) =>
-        total +
-        Object.entries(output.inputs).reduce(
-          (sum, [input, contribution]) => sum + (inside(directory, physicalPath(root, input)) ? contribution.bytesInOutput : 0),
-          0,
-        ),
-      0,
-    )
-    return { artifact: name, parsedInputs, retainedOutputBytes, parsedOnly: parsedInputs.length > 0 && retainedOutputBytes === 0 }
-  })
+export async function artifactExposure(root, packageDirectory, metafiles, resolve = pathResolver(root)) {
+  const directory = await resolve(packageDirectory)
+  return Promise.all(
+    metafiles.map(async ({ name, data }) => {
+      const inputs = [...new Set([...Object.keys(data.inputs), ...Object.values(data.outputs).flatMap(output => Object.keys(output.inputs))])]
+      const resolved = new Map(await Promise.all(inputs.map(async input => [input, await resolve(input)])))
+      const matches = input => directory.physical && resolved.get(input).physical && inside(directory.physical, resolved.get(input).physical)
+      const resolutionErrors = [directory.error, ...inputs.map(input => resolved.get(input).error && { ...resolved.get(input).error, path: input })].filter(
+        Boolean,
+      )
+      const parsedInputs = Object.keys(data.inputs).filter(matches)
+      const retainedOutputBytes = Object.values(data.outputs).reduce(
+        (total, output) =>
+          total + Object.entries(output.inputs).reduce((sum, [input, contribution]) => sum + (matches(input) ? contribution.bytesInOutput : 0), 0),
+        0,
+      )
+      return {
+        artifact: name,
+        parsedInputs,
+        physicalDirectory: directory.physical ?? null,
+        resolvedInputs: inputs.filter(matches).map(input => ({ input, physical: resolved.get(input).physical })),
+        retainedOutputBytes,
+        parsedOnly: resolutionErrors.length === 0 && parsedInputs.length > 0 && retainedOutputBytes === 0,
+        status: resolutionErrors.length ? 'incomplete' : 'complete',
+        resolutionErrors,
+      }
+    }),
+  )
 }
 
 // Walk upward from the resolved entry: package.json may be hidden by exports.
@@ -109,6 +136,7 @@ export async function collectExposure({
     .flatMap(item =>
       item.imports.filter(specifier => !Object.hasOwn(declarations, packageName(specifier))).map(specifier => ({ artifact: item.artifact, specifier })),
     )
+  const resolve = pathResolver(root)
   const advisories = new Map()
   for (const [name, vulnerability] of Object.entries(audit.vulnerabilities)) {
     const directAdvisories = vulnerability.via.filter(item => typeof item === 'object')
@@ -125,7 +153,7 @@ export async function collectExposure({
           path: node,
           version: manifest?.version ?? null,
           status: manifest ? 'installed-audit-affected-path' : 'unknown-missing-installed-path',
-          artifacts: artifactExposure(root, node, metafiles),
+          artifacts: await artifactExposure(root, node, metafiles, resolve),
         }
       }),
     )
@@ -151,6 +179,13 @@ export async function collectExposure({
         .map(installed => ({ advisory: advisory.id, name: pkg.name, path: installed.path, version: installed.version })),
     ),
   )
+  const incompletePaths = [...advisories.values()].flatMap(advisory =>
+    advisory.packages.flatMap(pkg =>
+      pkg.installedPaths
+        .filter(installed => installed.status !== 'installed-audit-affected-path' || installed.artifacts.some(artifact => artifact.status === 'incomplete'))
+        .map(installed => ({ advisory: advisory.id, name: pkg.name, path: installed.path })),
+    ),
+  )
   return {
     generatedAt: new Date().toISOString(),
     auditFile: path.resolve(auditFile),
@@ -166,7 +201,12 @@ export async function collectExposure({
     advisories: [...advisories.values()],
     externals,
     runtime,
-    gate: { passed: !vulnerableRetainedPaths.length && !missingRuntimeDeclarations.length, vulnerableRetainedPaths, missingRuntimeDeclarations },
+    gate: {
+      passed: !incompletePaths.length && !vulnerableRetainedPaths.length && !missingRuntimeDeclarations.length,
+      incompletePaths,
+      vulnerableRetainedPaths,
+      missingRuntimeDeclarations,
+    },
   }
 }
 

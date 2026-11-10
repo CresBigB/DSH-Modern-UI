@@ -70,6 +70,8 @@ export async function harness({ loadSource } = {}) {
         contents: `
       import React,{act,useSyncExternalStore,Profiler} from 'react'; import {createRoot} from 'react-dom/client';
       export {React,act,createRoot,Profiler};
+      export {assistantDefinition} from './packages/modern-ui/src/vendor/chat/client/conversation-nodes/assistant.ts';
+      export {turnProcessDefinition} from './packages/modern-ui/src/vendor/chat/client/conversation-nodes/turn-process.ts';
       export {renderCounts} from "test-render-counts";
       export {ConversationContent} from './packages/modern-ui/src/vendor/conversation/client/skeleton/ConversationContent.tsx';
       export {DefaultConversationViews} from './packages/modern-ui/src/vendor/conversation/client/skeleton/DefaultConversationViews.tsx';
@@ -150,3 +152,29 @@ export function source(value) {
 }
 export const stable = value => selector => selector(value)
 export const t = key => key
+
+// Run real Chat business projections over the Session Controller event window.
+// Location/context wiring is reduced to one running Turn and Step.
+export function projectStreamingText(h, session) {
+  const step = { step: 1, status: 'running', data: new Map() }
+  const turn = { turn: 1, status: 'running', steps: [step], data: new Map() }
+  const location = { kind: 'step', turn, step }
+  const matches = session.eventSource
+    .getSnapshot()
+    .entries.map(entry => ({ ...entry, location }))
+    .filter(match => h.assistantDefinition.match(match.event) !== null)
+  const context = { key: 'assistant:1:1', id: '1:1', matches, current: new Map() }
+  const assistant = h.assistantDefinition.buildLocationData(context, 'step')
+  if (assistant === null) return { text: '', process: null }
+  step.data.set(assistant.key, assistant.value)
+  const process = h.turnProcessDefinition.buildLocationData(context, 'turn')
+  const node = h.assistantDefinition.buildViewNode(context)
+  return {
+    text:
+      node?.data.blocks
+        .filter(block => block.kind === 'text')
+        .map(block => block.text)
+        .join('') ?? '',
+    process: process?.value ?? null,
+  }
+}

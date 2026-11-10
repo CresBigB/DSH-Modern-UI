@@ -1,10 +1,11 @@
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import { harness, realSession, source, stable, t } from './helpers/conversation-harness.mjs'
+import { harness, projectStreamingText, realSession, source, stable, t } from './helpers/conversation-harness.mjs'
 
-test('real Session streaming preserves view assembly and publishes full snapshots to dock, chain, and third-party view', async () => {
+test.each(['root', 'continuable-child'])('real %s Session streams text through Chat projections and preserves full extension snapshots', async kind => {
   const h = await harness()
   const session = await realSession()
+  if (kind === 'continuable-child') session.configureSubagent({ mode: 'continuable', parentSessionId: 'parent', childSessionId: 'session' }, true)
   session.handleRunning(true)
   await Promise.resolve()
   const useSession = h.bind(session)
@@ -21,7 +22,7 @@ test('real Session streaming preserves view assembly and publishes full snapshot
     h.React.useEffect(() => {
       viewMounts++
     }, [])
-    return h.React.createElement('div', { 'data-view': '' }, 'resident view')
+    return h.React.createElement('div', { 'data-view': '' }, projectStreamingText(h, session).text)
   }
   const bodyProps = {
     sessionId: 'session',
@@ -88,16 +89,23 @@ test('real Session streaming preserves view assembly and publishes full snapshot
     const viewNode = h.document.querySelector('[data-view]')
     h.document.querySelector('[data-conversation-scroll]').scrollTop = 117
     session.acceptEventChange({ type: 'assistant-stream', frame: { type: 'start', attemptId: 'attempt', startedAfterSeq: 0, turn: 1, step: 1 } })
-    for (let index = 0; index < 20; index++) {
+    session.acceptEventChange({
+      type: 'assistant-stream',
+      frame: { type: 'chunk', attemptId: 'attempt', index: 0, time: 0, chunk: { type: 'block-start', index: 0, blockType: 'text' } },
+    })
+    for (let index = 1; index <= 20; index++) {
       await h.act(async () => {
         session.acceptEventChange({
           type: 'assistant-stream',
-          frame: { type: 'chunk', attemptId: 'attempt', index, time: index, chunk: { type: 'text-delta', id: 'text', delta: 'token' } },
+          frame: { type: 'chunk', attemptId: 'attempt', index, time: index, chunk: { type: 'text-delta', index: 0, text: 'token' } },
         })
         await Promise.resolve()
       })
       for (const target of Object.values(full)) assert.equal(target.at(-1), session.getSnapshot())
+      assert.equal(viewNode.textContent, 'token'.repeat(index))
     }
+    assert.equal(viewNode.textContent, 'token'.repeat(20))
+    assert.equal(projectStreamingText(h, session).process.turn, 1)
     assert.equal(assemblies, initialAssemblies, 'streaming must not reassemble the default view slot')
     for (const name of ['ConversationMainPanel', 'ConversationHeader', 'ConversationContent', 'DefaultConversationViews']) {
       assert.equal(h.renderCounts[name], initialRenders[name], name + ' must not re-render for text-only deltas')
@@ -224,6 +232,39 @@ test('tabs link panels and support roving Left/Right/Home/End focus across overf
     assert.equal(selected().textContent, 'Chat')
     assert.equal(h.document.activeElement, selected())
     checkLinks()
+    await h.act(async () => views.set([{ id: 'chat', label: 'Chat' }]))
+    const panel = h.document.querySelector('[role=tabpanel]:not([hidden])')
+    assert.equal(h.document.querySelector('[role=tablist]'), null)
+    assert.ok(h.document.activeElement === panel, 'removed tab row must focus the surviving Chat panel')
+    assert.equal(panel.getAttribute('aria-label'), 'Chat')
+    assert.equal(panel.getAttribute('aria-labelledby'), null)
+    // Removing the active Files tab at 2 -> 1 also falls back to the remaining panel.
+    const twoViews = [
+      { id: 'chat', label: 'Chat' },
+      { id: 'files', label: 'Files' },
+    ]
+    await h.act(async () => {
+      pins.set([])
+      views.set(twoViews)
+      store.set({ view: 'files' })
+    })
+    selected().focus()
+    await h.act(async () => views.set(twoViews.slice(0, 1)))
+    assert.ok(h.document.activeElement === h.document.querySelector('[role=tabpanel]:not([hidden])'), 'removed active Files tab must focus Chat panel')
+    // Panel recovery clears tab ownership: later registration must preserve an external focus.
+    await h.act(async () => views.set(twoViews))
+    const external = h.document.createElement('button')
+    h.document.body.append(external)
+    selected().focus()
+    external.focus()
+    await h.act(async () => views.set(twoViews.slice(0, 1)))
+    assert.ok(h.document.activeElement === external, '2 -> 1 must preserve focus outside the tablist')
+    await h.act(async () => views.set([...twoViews, { id: 'tools', label: 'Tools' }]))
+    selected().focus()
+    external.focus()
+    await h.act(async () => views.set(twoViews))
+    assert.ok(h.document.activeElement === external, '3 -> 2 must preserve focus outside the tablist')
+    external.remove()
   } finally {
     await h.act(async () => reactRoot.unmount())
     await h.close()

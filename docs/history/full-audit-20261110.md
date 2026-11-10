@@ -1,6 +1,6 @@
 # 2026-11-10 完整审计整改
 
-基准：`5b1acbda63f1074d5825cf82cbb55ffa19ec1940`（v0.1.12）。本次修复报告登记的全部 15 项确认问题，保留现有功能、旧 DSL、官方宿主与扩展契约；对另列的资源风险和依赖公告增加恢复、验证和处置记录。未修改官方安装物，也没有合并、发布或扩大已验证宿主范围。
+基准：`5b1acbda63f1074d5825cf82cbb55ffa19ec1940`（v0.1.12）。修复报告登记的 15 项确认问题，并按 PR #56 独立复审补足 R01–R04 和 T01（见下文）；保留现有功能、旧 DSL、官方宿主与扩展契约，对另列的资源风险和依赖公告增加恢复、验证和处置记录。未修改官方安装物，也没有合并、发布或扩大已验证宿主范围。
 
 ## 逐项结果
 
@@ -24,11 +24,13 @@
 
 Windows、Node 24.18.0、React 18.3.1、Edge 157.0.4341.42；CI 使用仓库固定 Node 24.22.1。相同本机环境重建基准为 11,023,423 原始字节、2,841,808 gzip 字节；整改产物为 9,743,377 原始字节、2,122,472 gzip 字节。gzip 是本地统一 level 9 / mtime 0 测量，不代表部署端开启了相同 HTTP 压缩。
 
-`node scripts/profile-conversation.mjs 5b1acbd` 使用真实宿主 Session、100 个独立 text-delta 微任务 flush、根与 continuable 子代理各五轮。四个不读正文的外层组件执行次数均为 100 → 0；完整快照的 dock/chain/第三方 view 消费者保持 100，整个树的提交仍为 100。开发版 React/jsdom 的总 actualDuration 中位数：根会话 19.26 → 7.77ms，子代理 16.14 → 6.96ms。它不覆盖真实 Markdown 绘制、侧栏大列表、设备掉帧或用户可感知时延；不将该数据外推为整页固定收益。
+复审 T01 发现早期性能夹具使用了错误的 chunk 字段，原计时不再用作正文消费链路的证据。修正后，`node scripts/profile-conversation.mjs 5b1acbd` 使用真实宿主 Session、合法 `block-start` 和 100 个独立 `text-delta` 微任务 flush，根与 continuable 子会话各五轮；实际调用 Chat 的 assistant / turn-process 投影，每次断言累计文本和完整 snapshot 身份，末尾为 500 字符。四个不读正文的外层组件执行次数均为 100 → 0；完整快照的 dock/chain/第三方 view 消费者保持 100，整个树的提交仍为 100。
 
-`node scripts/probe-conversation-tabs.mjs` 复现真实浏览器 Tab/Shift+Tab、方向键、Home/End、Enter/Space。两脚本默认写入 `.artifacts/audit-20261110/`，其简化远端、selector 桥和 primitives 边界也写入结果。PERF-C01～C05 为原报告的未确认候选，本次没有凭静态推测修改排序、列表动画、运行时钟或 Markdown 不可变快照。
+在同一修正夹具中，开发版 React/jsdom 总 actualDuration 中位数为：根会话 20.88 → 11.82ms，子会话 21.14 → 11.88ms。location/context 简化为一个运行中的 Turn/Step，remote、通知适配和 selector hook 仍为夹具；没有加载完整 Conversation 事件引擎或真实 Markdown 绘制，也不覆盖侧栏大列表、设备掉帧和用户可感知时延。该组计时替代旧夹具结果，不能跨两种夹具比较，也不外推为整页固定收益。
 
-本地 lint、client/Host typecheck、单元测试及完整 audit/compat 回归通过。OpenUI 的新字段在旧位置参数之后保持 optional；生成提示词由 `npm run prompt:openui` 验证示例并重新生成；来源清单保留原 source SHA，只更新实际 target SHA 和改编标记。打包通过 `npm run preview`，全部运行资源继续随 tgz 安装，无额外 CDN。上面的包体积和订阅计时记录来自审计整改完成、下述动效追加之前。
+`node scripts/probe-conversation-tabs.mjs` 复现真实浏览器 Tab/Shift+Tab、方向键、Home/End、Enter/Space，以及 3 → 2、2 → 1 动态视图变化的焦点恢复和外部焦点对照。两脚本默认写入 `.artifacts/audit-20261110/`，其简化远端、selector 桥和 primitives 边界也写入结果。PERF-C01～C05 为原报告的未确认候选，本次没有凭静态推测修改排序、列表动画、运行时钟或 Markdown 不可变快照。
+
+本地 lint、client/Host typecheck、单元测试及完整 audit/compat 回归通过。OpenUI 的新字段在旧位置参数之后保持 optional；生成提示词由 `npm run prompt:openui` 验证示例并重新生成；来源清单保留原 source SHA，只更新实际 target SHA 和改编标记。打包通过 `npm run preview`，全部运行资源继续随 tgz 安装，无额外 CDN。上面的初次包体积记录来自动效追加前；订阅计时使用复审修正后的夹具重测。
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
@@ -55,7 +57,21 @@ npm run preview
 
 另用隔离的真实 rc.4 宿主与本地固定模型检查 1365px 桌面和 390px 手机视口：模型菜单、侧栏更多菜单、侧栏开关、手机退出/重新打开及 reduced-motion 均通过，未记录 pageerror；63 个侧栏展开样本的手柄边界偏差小于 0.001px。该 smoke 不访问日常 profile 或外部模型。数值证明对应测试场景的几何稳定，不代表真实设备帧率或主观自然度；原生 macOS 合成、Safari/WebKit、真实手机键盘和复杂第三方嵌套模态尚未实测。
 
-整合后本地 lint 检查 635 个文件，client/Host typecheck、292 项 unit 和 307 项 audit/compat 全部通过；随后补充 Tooltip 定位回归，`surface-motion` 7 项通过，当前验收用例共 600 项。最终 client 为 9,746,814 原始字节、2,123,267 gzip 字节，仍低于既定预算；来源目标摘要已同步。
+动效追加后的首轮验收中，本地 lint 检查 635 个文件，client/Host typecheck、292 项 unit 和 307 项 audit/compat 全部通过；随后补充 Tooltip 定位回归，CI 在 `f75d765` 上通过 600 项测试。该阶段 client 为 9,746,814 原始字节、2,123,267 gzip 字节，低于既定预算。
+
+## PR #56 复审补修
+
+复审基准为 `f75d765e05a2c1cc53bdf2d62196820348909fb1`，四个 P2 缺口和一项 P3 测试问题均先核对触发路径，再增加针对性回归。
+
+- **R01**：audit 目录和 metafile 输入共用缓存的 `realpath` 解析，输出保留逻辑安装路径、原始输入键、物理目录及逐输入映射。无法解析时标记 `incomplete`，使门禁失败。真实 esbuild 覆盖普通树、整个 `node_modules` 链接、单包链接；各布局同时包含根修补版与嵌套受影响版，分别验证代码保留、只参与解析后被剔除，以及输入或包目录消失。原脚本在两种链接布局中均将实际保留的 marker 报告为零并放行；新脚本正确阻断，`parsedOnly` 场景则完整记录输入后通过。
+- **R02**：记录实际持焦点的 tab DOM 节点；节点卸载且焦点落到 BODY 时才恢复，优先活动 tab、其次活动 panel，并清除旧焦点归属。jsdom 和真实 Edge 均验证 3 → 2、2 → 1：被移除的 Files、仍保留但随整条 tablist 消失的 Chat 都能恢复到正确位置；外部按钮焦点保持不变。真实浏览器使用实际会话组件和简化插槽，不等同实体读屏器验收。
+- **R03**：无文本的 Popover 组件触发器使用 trim 后的 title 命名；旧 DSL 未提供 title 或只提供空白时使用现有本地化 Details。字符串、Text 和原生 Button 的名称保持不变，不引入嵌套按钮。真实 Renderer 检查关闭时的具名角色查询，以及 Enter/Space 打开、Escape 返回。
+- **R04**：scatter tooltip 与替代表共用 `pointNameKey`，保留既有“首行第一个非 x 字符串字段”规则。名称作为行标题，数值 x 独立保留；覆盖不同名称但坐标相同、多系列、缺失数值、德语精度与无名称字段降级。
+- **T01**：流式回归与 profile 使用实际 rc.4 `block-start { index, blockType }`、`text-delta { index, text }` 契约。根与 continuable 子会话将 Session 接受后的事件传入真实 Chat 投影，每次验证累计正文及 dock/chain/view 收到的完整 snapshot，补足过去只验证通知的证据。新性能数据和夹具边界见上文。
+
+本轮本地 lint（636 文件）、client/Host typecheck、291 项 unit 和 317 项 audit/compat 均通过，合计 608 项；客户端为 9,747,267 原始字节、2,123,477 gzip 字节，保持在预算内。重新获取的 audit 快照仍有 14 条独立公告；更新后的真实路径门禁完整核对通过，无 `incompletePaths`、受影响保留输入或未声明 Host import。该结果不豁免宿主外置依赖，也不消除下面列明的上游风险。
+
+本次补修不改变 SEC-R01 的开放状态，也不将依赖门禁通过解释为上游公告已消除。
 
 ## SEC-R01 与依赖公告的剩余边界
 
