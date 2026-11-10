@@ -2,7 +2,7 @@
 import { useCallback, useRef } from 'react'
 import clsx from 'clsx'
 import type { ConversationHeaderProps } from '../contract/slots.ts'
-import { conversationPhase } from '../contract/snapshot.ts'
+import { blankConversation } from './session-phase.ts'
 import css from './ConversationRoot.module.css'
 
 /**
@@ -11,8 +11,8 @@ import css from './ConversationRoot.module.css'
  * @returns The persistent header with any selected Session's title and views.
  */
 export function ConversationHeader({ sessionId, useSession, useConversation, renderSlot }: ConversationHeaderProps) {
-  const session = useSession(s => s)
-  const conversation = useConversation(s => s)
+  const hasActiveTargets = useConversation(s => s === undefined ? undefined : s.activeTargets.size > 0)
+  const blank = useSession(s => blankConversation(s, hasActiveTargets)) ?? true
   // The active wide layout floats the header over the transcript; the panel root
   // pads its scrollport by this block size (ConversationRoot.module.css).
   const headerObserver = useRef<{ observer: ResizeObserver; root: HTMLElement } | null>(null)
@@ -29,8 +29,6 @@ export function ConversationHeader({ sessionId, useSession, useConversation, ren
     observer.observe(header)
     headerObserver.current = { observer, root }
   }, [])
-  const blank = session === undefined || conversation === undefined
-    || (session.blank && conversationPhase(session, conversation) === 'blank')
   return (
     <header ref={headerResizeRef} className={clsx(css.header, blank && css.headerBlank, sessionId === undefined && css.headerSessionless)} data-window-drag>
       <div className={css.headerLeading} data-conversation-header-leading="">

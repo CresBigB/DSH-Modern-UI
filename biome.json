@@ -2,7 +2,17 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
-    "includes": ["scripts/**/*.mjs", "tests/**/*.mjs", "tests/**/*.ts", "*.mjs", "*.json", "!package-lock.json", "!tests/compat/fixtures"]
+    "includes": [
+      "scripts/**/*.mjs",
+      "tests/**/*.mjs",
+      "tests/**/*.ts",
+      "packages/modern-ui/src/**/*.ts",
+      "packages/modern-ui/src/**/*.tsx",
+      "*.mjs",
+      "*.json",
+      "!package-lock.json",
+      "!tests/compat/fixtures"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -29,6 +39,24 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["packages/modern-ui/src/vendor/**", "packages/modern-ui/src/host-compat/**"],
+      "formatter": { "enabled": false },
+      "linter": {
+        "rules": {
+          "preset": "none",
+          "correctness": {
+            "preset": "none",
+            "noUnreachable": "error",
+            "useValidTypeof": "error",
+            "useExhaustiveDependencies": "off",
+            "noComponentHookFactories": "off"
+          },
+          "suspicious": { "preset": "none", "noDuplicateParameters": "error", "noDoubleEquals": "error", "noDebugger": "error", "noArrayIndexKey": "off" },
+          "security": { "preset": "none", "noDangerouslySetInnerHtml": "off" }
+        }
+      }
+    },
     {
       "includes": ["tests/**"],
       "linter": {

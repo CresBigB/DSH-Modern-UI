@@ -1,5 +1,6 @@
 // Adapted from deepseek-ai/deepseek-harness ui-tool/src/client/apply.ts (MIT), checked against rc.4 lib/client.js.
 /** Own the Tool UI subtree; tool execution and all Host services remain official. */
+// biome-ignore-all lint/performance/noDynamicNamespaceImportAccess: All eight locale exports are intentionally registered for live language switching.
 import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
 import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
@@ -32,18 +33,43 @@ export function apply(ctx: Context): void {
     'codeBlock.expand': chatLocale[language]['codeBlock.expand'],
     ...jevToolLocale[language],
   })
-  const dictionaries = { zh: dictionary('zh'), en: dictionary('en'), ja: dictionary('ja'), es: dictionary('es'),
-    fr: dictionary('fr'), de: dictionary('de'), ru: dictionary('ru'), pt: dictionary('pt') }
+  const dictionaries = {
+    zh: dictionary('zh'),
+    en: dictionary('en'),
+    ja: dictionary('ja'),
+    es: dictionary('es'),
+    fr: dictionary('fr'),
+    de: dictionary('de'),
+    ru: dictionary('ru'),
+    pt: dictionary('pt'),
+  }
   ctx.effect(() => ctx.locale.register(NS, dictionaries))
   const hostInfo: HostObservable<RemoteHostFacts> = {
     getSnapshot: () => ctx.remote.$host,
     subscribe: listener => ctx.on('connection/reset', listener),
   }
-  ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
-    name: 'conversation.chat.node', key: 'tool-call', locale: NS,
-    children: { 'tool.call.toolview': { kind: 'keyed', scope: 'session' } },
-    inject: () => ({ hooks: { hostInfo } }),
-  }, ToolCallTree))
-  for (const view of [bashToolviewSample, readToolview, readImageToolview, fileMutationToolview,
-    searchToolview, webToolview, todoToolview, detailsToolview, askQuestionToolview]) ctx.plugin(view)
+  ctx.slots.inject('conversation.chat.node', () =>
+    ctx.slots.register(
+      {
+        name: 'conversation.chat.node',
+        key: 'tool-call',
+        locale: NS,
+        children: { 'tool.call.toolview': { kind: 'keyed', scope: 'session' } },
+        inject: () => ({ hooks: { hostInfo } }),
+      },
+      ToolCallTree,
+    ),
+  )
+  for (const view of [
+    bashToolviewSample,
+    readToolview,
+    readImageToolview,
+    fileMutationToolview,
+    searchToolview,
+    webToolview,
+    todoToolview,
+    detailsToolview,
+    askQuestionToolview,
+  ])
+    ctx.plugin(view)
 }

@@ -636,3 +636,12 @@
     transition: none;
   }
 }
+
+.renameInput:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .renameInput:focus-visible { outline-color: Highlight; }
+}

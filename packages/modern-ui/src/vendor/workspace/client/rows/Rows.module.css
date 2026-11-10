@@ -131,7 +131,7 @@
 }
 
 .projectRow .rowActions {
-  height: 20px;
+  height: 24px;
 }
 
 /* Session cell: Cloud-Monitor .nav-item row */
@@ -290,12 +290,12 @@
   flex: none;
 }
 
-/* Trailing action buttons surface on hover with bare 16px glyphs. */
+/* Trailing actions retain 16px glyphs within separate 24px targets. */
 .rowActions {
   flex: none;
   display: none;
   align-items: center;
-  gap: 15px;
+  gap: 7px;
 }
 
 @media (hover: hover) {
@@ -471,8 +471,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: var(--dsw-radius-xs);
   padding: 0;
@@ -499,3 +499,13 @@
     transition: none;
   }
 }
+
+@media (pointer: coarse) {
+  .iconButton { width: 44px; height: 44px; }
+  .projectRow, .sessionRow { min-height: 44px; }
+  .rowActions { gap: 4px; }
+}
+
+:global(html[data-input-modality='keyboard']) .projectRow:focus-within .rowActions,
+:global(html[data-input-modality='keyboard']) .searchResultRow:focus-within .rowActions { display: inline-flex; }
+@media (pointer: coarse) { .projectRow .rowActions { height: auto; } }

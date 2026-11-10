@@ -235,7 +235,8 @@
 }
 
 /* Drag handles are frame children (columns clip overflow): an 8px hit strip
-   centered on the column border via inline left, above column content. No
+   centered on the column border. The sidebar uses the live grid line rather
+   than easing a second pixel position independently of the track. No
    handle draws a visible pill: the details column was the only one that did,
    and the right column never had one. The right handle sits above the right
    panel (which states z-index 10) so it stays grabbable when the panel hangs
@@ -257,6 +258,11 @@
    and while dragging. */
 .frame[data-animating] .handle {
   transition: left var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+/* The expanded drag range applies once the opening track has settled. */
+.frame[data-animating]:not([data-dragging]) .handle[data-side='sidebar'] {
+  pointer-events: none;
 }
 
 .frame[data-dragging] .handle {

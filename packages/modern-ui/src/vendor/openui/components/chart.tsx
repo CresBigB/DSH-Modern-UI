@@ -1,5 +1,6 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { useUiLocale, useUiText } from "./ui-text";
 import { z } from "zod/v4";
 import { bar, curve, makeFormat, niceStep, polyline, stackAreas, valueDomain, type Domain, type Format, type Range } from "./chart-math";
 
@@ -12,6 +13,8 @@ type Spec = {
   stacked: boolean;
   height: number;
   format: Format;
+  locale: string;
+  name: string;
   /** Fixed value-axis bounds from the min and max props. */
   range: Range;
 };
@@ -94,7 +97,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
   const tip = hover === null ? null : rows[hover];
   return (
     <div className="iui-chart-plot" style={{ height }}>
-      <svg width={width} height={height} role="img" aria-label={`${type} chart of ${series.join(", ")} by ${x}`} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+      <svg width={width} height={height} role="img" aria-label={spec.name} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
         <defs>
           {series.map((s, si) => (
             <linearGradient key={s} id={`${gradient}-${si}`} x1="0" x2="0" y1="0" y2="1">
@@ -195,11 +198,15 @@ function axis(values: number[], zero: boolean) {
   return { lo, hi, step, ticks: Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) };
 }
 
-/** Points with a numeric x; each series is a color. The first text key names a point in its tooltip. */
+function pointNameKey({ rows, x }: Spec): string | undefined {
+  return rows[0] ? Object.keys(rows[0]).find((key) => key !== x && typeof rows[0][key] === "string") : undefined;
+}
+
+/** Points with a numeric x; each series is a color. The first text key names a point. */
 function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const [hover, setHover] = useState<{ i: number; si: number } | null>(null);
   const { rows, series, height, format, x } = spec;
-  const name = rows[0] ? Object.keys(rows[0]).find((k) => k !== x && typeof rows[0][k] === "string") : undefined;
+  const name = pointNameKey(spec);
   // Fixed min and max widen the value axis the same way they do for bars and lines.
   const bounds = [spec.range.min, spec.range.max].filter((v): v is number => v !== undefined);
   const ya = axis([...rows.flatMap((r) => series.map((s) => num(r[s]))), ...bounds], false);
@@ -211,14 +218,14 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const px = (v: number) => pad.left + ((v - xa.lo) / (xa.hi - xa.lo)) * w;
   const py = (v: number) => pad.top + h - ((v - ya.lo) / (ya.hi - ya.lo)) * h;
   // The x axis is a plain number axis: the chart's format (currency, percent) describes the series values.
-  const xFormat = makeFormat("number", undefined);
+  const xFormat = makeFormat("number", undefined, spec.locale);
   const xLabels = xa.ticks.map((t) => xFormat(t, true, xa.step));
   // Label every nth tick so written-out numbers ("1,000,000.2") never overlap.
   const every = Math.max(1, Math.ceil((xa.ticks.length * Math.max(44, ...xLabels.map((l) => l.length * 6.6 + 10))) / w));
   const tip = hover && rows[hover.i];
   return (
     <div className="iui-chart-plot" style={{ height }}>
-      <svg width={width} height={height} role="img" aria-label={`scatter chart of ${series.join(", ")} by ${x}`} onPointerLeave={() => setHover(null)}>
+      <svg width={width} height={height} role="img" aria-label={spec.name} onPointerLeave={() => setHover(null)}>
         {ya.ticks.map((t) => (
           <g key={`y${t}`}>
             <line x1={pad.left} x2={pad.left + w} y1={py(t)} y2={py(t)} className="iui-chart-grid" strokeDasharray="3 4" />
@@ -234,7 +241,7 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
       </svg>
       {tip && hover && (
         <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(px(num(tip[x])), 70), width - 70), top: Math.max(0, py(num(tip[series[hover.si]])) - 70) }}>
-          <strong>{name ? String(tip[name]) : series[hover.si]}</strong>
+          <strong>{name ? label(tip, name) : series[hover.si]}</strong>
           <span>{x} <b>{xFormat(num(tip[x]), false, xa.step)}</b></span>
           <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]), false, ya.step)}</b></span>
         </div>
@@ -254,7 +261,7 @@ function Pie({ spec, width }: { spec: Spec; width: number }) {
   const point = (radius: number, a: number) => `${(r + radius * Math.cos(a)).toFixed(2)},${(r + radius * Math.sin(a)).toFixed(2)}`;
   return (
     <div className="iui-pie">
-      <svg width={size} height={size} role="img" aria-label={`${spec.type} chart of ${key ?? "values"} by ${spec.x}`}>
+      <svg width={size} height={size} role="img" aria-label={spec.name}>
         {items.map((item, i) => {
           const sweep = (item.value / total) * Math.PI * 2;
           const a0 = angle;
@@ -281,7 +288,7 @@ function Pie({ spec, width }: { spec: Spec; width: number }) {
           <div key={i}>
             <i style={{ background: seriesColor(i) }} />
             <span>{item.label}</span>
-            <b>{`${Math.round((item.value / total) * 1000) / 10}%`}</b>
+            <b>{(item.value / total).toLocaleString(spec.locale, { style: "percent", maximumFractionDigits: 1 })}</b>
           </div>
         ))}
       </div>
@@ -300,9 +307,10 @@ const chartProps = z.object({
   height: z.number().optional(),
   min: z.number().optional(),
   max: z.number().optional(),
+  summary: z.string().optional(),
 });
 
-function toSpec(props: z.infer<typeof chartProps>): Spec | null {
+function toSpec(props: z.infer<typeof chartProps>, locale: string, name: string): Spec | null {
   const rows = ((Array.isArray(props.data) ? props.data : []) as unknown[]).filter((r): r is Row => !!r && typeof r === "object" && !Array.isArray(r));
   const first = rows[0];
   if (!first) return null;
@@ -316,7 +324,9 @@ function toSpec(props: z.infer<typeof chartProps>): Spec | null {
     series,
     stacked: !!props.stacked,
     height: Math.min(480, Math.max(140, props.height ?? 240)),
-    format: makeFormat(props.format, props.currency),
+    format: makeFormat(props.format, props.currency, locale),
+    locale,
+    name: `${name}: ${series.join(", ")} / ${x}`,
     range: {
       ...(typeof props.min === "number" && Number.isFinite(props.min) ? { min: props.min } : {}),
       ...(typeof props.max === "number" && Number.isFinite(props.max) ? { max: props.max } : {}),
@@ -324,18 +334,50 @@ function toSpec(props: z.infer<typeof chartProps>): Spec | null {
   };
 }
 
+/** Data alternatives preserve the complete numeric value rather than the chart axis precision. */
+function dataFormat(locale: string, kind?: string, currency?: string): (value: number) => string {
+  const code = typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
+  const number = new Intl.NumberFormat(locale, {
+    maximumSignificantDigits: 21,
+    ...(kind === "currency" ? { style: "currency", currency: code } as const : {}),
+  });
+  // DSL percentages are already percentage points (45 means 45%). Replacing the numeric part avoids
+  // dividing the smallest finite values by 100, which would underflow to zero.
+  const percentParts = new Intl.NumberFormat(locale, { style: "percent", useGrouping: false }).formatToParts(1);
+  return value => kind === "percent"
+    ? percentParts.map(part => part.type === "integer" ? number.format(value) : part.value).join("")
+    : number.format(value);
+}
+
 export const Chart = defineComponent({
   name: "Chart",
   props: chartProps,
-  description: 'Rows of data; x is the category key (a number key for scatter), series the value keys (default: every number key). percent values are like 45; currency is a code like "EUR". min and max fix the value axis: when a Slider or Input changes the data, pass the range its values can reach so the bars or line keep their scale.',
+  description: 'summary explains the comparison or trend. All data is also available in an expandable table. Rows of data; x is the category key (a number key for scatter), series the value keys (default: every number key). percent values are like 45; currency is a code like "EUR". min and max fix the value axis: when a Slider or Input changes the data, pass the range its values can reach so the bars or line keep their scale.',
   component: function ChartView({ props }) {
     const [ref, width] = useWidth();
-    const spec = toSpec(props);
+    const locale = useUiLocale();
+    const text = useUiText();
+    const spec = toSpec(props, locale, text.chart);
+    const xData = dataFormat(locale);
+    const yData = dataFormat(locale, props.format, props.currency);
     const pie = spec?.type === "pie" || spec?.type === "donut";
+    const pointName = spec?.type === "scatter" ? pointNameKey(spec) : undefined;
     return (
       <figure className="iui-chart" ref={ref}>
         {spec && width > 0 ? pie ? <Pie spec={spec} width={width} /> : spec.type === "scatter" ? <Scatter spec={spec} width={width} /> : <Cartesian spec={spec} width={width} /> : <div style={{ height: spec?.height ?? 240 }} />}
         {spec && !pie && <Legend series={spec.series} />}
+        {props.summary && <figcaption>{props.summary}</figcaption>}
+        {spec && <details>
+          <summary>{text.chartData}</summary>
+          <div className="iui-table-scroll"><table className="iui-table">
+            <caption>{props.summary || spec.name}</caption>
+            <thead><tr>{pointName && <th scope="col">{pointName}</th>}<th scope="col">{spec.x}</th>{(pie ? spec.series.slice(0, 1) : spec.series).map(s => <th key={s} scope="col">{s}</th>)}</tr></thead>
+            <tbody>{spec.rows.map((row, i) => <tr key={i}>
+              {pointName ? <><th scope="row">{label(row, pointName)}</th><td>{xData(num(row[spec.x]))}</td></> : <th scope="row">{spec.type === "scatter" ? xData(num(row[spec.x])) : label(row, spec.x)}</th>}
+              {(pie ? spec.series.slice(0, 1) : spec.series).map(s => <td key={s}>{yData(pie ? Math.max(0, num(row[s])) : num(row[s]))}</td>)}
+            </tr>)}</tbody>
+          </table></div>
+        </details>}
       </figure>
     );
   },

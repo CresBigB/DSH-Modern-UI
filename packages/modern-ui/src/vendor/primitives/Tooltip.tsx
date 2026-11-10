@@ -208,7 +208,7 @@ export function Tooltip({ label, shortcutKeys, side = 'right', align = 'center',
   const content = visible && !suppressed && (
     <span
       ref={bubble}
-      id={openOnClick ? id : undefined}
+      id={id}
       className={css.bubble}
       data-side={side}
       data-portal={portal || undefined}
@@ -228,8 +228,8 @@ export function Tooltip({ label, shortcutKeys, side = 'right', align = 'center',
     <TooltipSuppression.Provider value={setSuppressed}>
       {cloneElement(children, {
         ref: mergedRef,
-        'aria-describedby': openOnClick && visible
-          ? [children.props['aria-describedby'], id].filter(Boolean).join(' ')
+        'aria-describedby': visible && !suppressed
+          ? [...new Set([...(children.props['aria-describedby']?.split(/\s+/).filter(Boolean) ?? []), id])].join(' ')
           : children.props['aria-describedby'],
         onPointerEnter: (e) => {
           children.props.onPointerEnter?.(e)

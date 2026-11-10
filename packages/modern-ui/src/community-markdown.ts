@@ -71,8 +71,15 @@ export function installCommunityMarkdown(ctx: Context): void {
         const banner = block.querySelector<HTMLElement>('[data-code-block-banner]')
         const content = block.querySelector<HTMLElement>(':scope > [data-code-block-content]')
         const existingToggle = banner?.querySelector(`button[aria-expanded][aria-controls]:not([${BUTTON}])`)
-        if (!block.matches(BLOCKS) || block.hasAttribute('data-mermaid-processed') || block.closest('[data-dsh-html-segment]')
-          || !banner || banner.closest('.md-code-block') !== block || !content || existingToggle) {
+        if (
+          !block.matches(BLOCKS) ||
+          block.hasAttribute('data-mermaid-processed') ||
+          block.closest('[data-dsh-html-segment]') ||
+          !banner ||
+          banner.closest('.md-code-block') !== block ||
+          !content ||
+          existingToggle
+        ) {
           if (previous) withdraw(previous)
           return
         }
@@ -86,7 +93,9 @@ export function installCommunityMarkdown(ctx: Context): void {
         const id = content.getAttribute('id')
         let assignedId = id
         if (!assignedId) {
-          do { assignedId = `modern-community-code-${++sequence}` } while (document.getElementById(assignedId))
+          do {
+            assignedId = `modern-community-code-${++sequence}`
+          } while (document.getElementById(assignedId))
           content.id = assignedId
         }
         const button = document.createElement('button')
@@ -103,8 +112,21 @@ export function installCommunityMarkdown(ctx: Context): void {
         arrow.setAttribute('stroke-width', '1.5')
         icon.appendChild(arrow)
         button.appendChild(icon)
-        const fold: Fold = { block, banner, content, button, collapsed, hidden: content.getAttribute('hidden'), id, assignedId, marker: block.getAttribute(COLLAPSED) }
-        button.addEventListener('click', () => { fold.collapsed = !fold.collapsed; paint(fold) })
+        const fold: Fold = {
+          block,
+          banner,
+          content,
+          button,
+          collapsed,
+          hidden: content.getAttribute('hidden'),
+          id,
+          assignedId,
+          marker: block.getAttribute(COLLAPSED),
+        }
+        button.addEventListener('click', () => {
+          fold.collapsed = !fold.collapsed
+          paint(fold)
+        })
         folds.set(block, fold)
         paint(fold)
         banner.prepend(button)
@@ -139,16 +161,21 @@ export function installCommunityMarkdown(ctx: Context): void {
       })
       observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-mermaid-processed'] })
       const unsubscribe = ctx.locale.subscribe(() => folds.forEach(label))
-      owner = { count: 0, dispose() {
-        observer.disconnect()
-        unsubscribe()
-        for (const fold of folds.values()) withdraw(fold)
-        style.remove()
-        owners.delete(document)
-      } }
+      owner = {
+        count: 0,
+        dispose() {
+          observer.disconnect()
+          unsubscribe()
+          for (const fold of folds.values()) withdraw(fold)
+          style.remove()
+          owners.delete(document)
+        },
+      }
       owners.set(document, owner)
     }
     owner.count++
-    return () => { if (--owner.count === 0) owner.dispose() }
+    return () => {
+      if (--owner.count === 0) owner.dispose()
+    }
   }, 'modern-ui: community Markdown code visibility')
 }

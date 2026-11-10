@@ -5,16 +5,23 @@ import type { ConversationInteractionRegistry } from './vendor/conversation/clie
 import type { TextInteractionSurface } from './vendor/conversation/client/contract/text-interaction.ts'
 
 export type {
-  TextInteractionDefinition, TextInteractionGesture, TextInteractionRequest,
-  TextInteractionSurface, TextInteractionTrigger,
+  TextInteractionDefinition,
+  TextInteractionGesture,
+  TextInteractionRequest,
+  TextInteractionSurface,
+  TextInteractionTrigger,
 } from './vendor/conversation/client/contract/text-interaction.ts'
 export type { ConversationInteractionRegistry } from './vendor/conversation/client/conversation/interaction-registry.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   /** Available while Modern's Conversation owner is selected. */
-  interface UiConversation { readonly interactions: ConversationInteractionRegistry }
+  interface UiConversation {
+    readonly interactions: ConversationInteractionRegistry
+  }
   /** Modern's input owner retains the legacy atomic quote action. */
-  interface InputActions { insertQuote(text: string): boolean }
+  interface InputActions {
+    insertQuote(text: string): boolean
+  }
 }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {

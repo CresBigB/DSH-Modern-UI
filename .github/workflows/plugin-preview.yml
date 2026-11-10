@@ -5,6 +5,20 @@ name: Official runtime plugin preview
 # pushing a release tag (CONTRIBUTING.md). Pull requests get the fast gate in pr.yml instead.
 on:
   workflow_dispatch:
+    inputs:
+      host:
+        description: 'Verified host to recheck (empty: all verified hosts)'
+        type: string
+        default: ''
+      runner:
+        description: 'Compatibility runner to recheck'
+        type: choice
+        default: all
+        options: [all, ubuntu-24.04, windows-2025]
+      skip_consumers:
+        description: 'Reuse already-passing five-platform installs for a test-only change'
+        type: boolean
+        default: false
   push:
     tags: ['v*']
 
@@ -32,7 +46,16 @@ jobs:
       - run: node scripts/create-preview.mjs
       - name: Read the verified compatibility targets
         id: compatibility
-        run: node --input-type=module -e "import fs from 'node:fs'; import { supportedHostVersions } from './scripts/distribution/compatibility.mjs'; fs.appendFileSync(process.env.GITHUB_OUTPUT, 'hosts=' + JSON.stringify(supportedHostVersions) + '\n')"
+        env:
+          REQUESTED_HOST: ${{ inputs.host }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import { supportedHostVersions } from './scripts/distribution/compatibility.mjs'
+          const requested = process.env.REQUESTED_HOST
+          if (requested && !supportedHostVersions.includes(requested)) throw new Error('Requested host is not in the verified compatibility manifest')
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'hosts=' + JSON.stringify(requested ? [requested] : supportedHostVersions) + '\n')
+          NODE
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: modern-ui-precompiled-preview
@@ -47,12 +70,7 @@ jobs:
       fail-fast: false
       matrix:
         host: ${{ fromJSON(needs.plugin.outputs.hosts) }}
-        runner: [ubuntu-24.04, windows-2025]
-        include:
-          - runner: ubuntu-24.04
-            platform: linux-x64
-          - runner: windows-2025
-            platform: win32-x64
+        runner: ${{ fromJSON(inputs.runner == 'windows-2025' && '["windows-2025"]' || inputs.runner == 'ubuntu-24.04' && '["ubuntu-24.04"]' || '["ubuntu-24.04","windows-2025"]') }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -67,7 +85,7 @@ jobs:
       - name: Install only the browser driver
         shell: bash
         run: |
-          npm install --prefix "$RUNNER_TEMP/compat-driver" --ignore-scripts --no-audit --no-fund playwright-core@1.64.1
+          npm install --prefix "$RUNNER_TEMP/compat-driver" --ignore-scripts --no-audit --no-fund playwright-core@1.64.1 typescript@6.0.3
           node "$RUNNER_TEMP/compat-driver/node_modules/playwright-core/cli.js" install chromium
           echo "COMPAT_TEST_DRIVER=$RUNNER_TEMP/compat-driver" >> "$GITHUB_ENV"
           node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'MODERN_UI_BROWSER=' + require(process.env.RUNNER_TEMP + '/compat-driver/node_modules/playwright-core').chromium.executablePath() + '\n')"
@@ -81,7 +99,7 @@ jobs:
       - uses: actions/upload-artifact@v7.0.1
         if: always()
         with:
-          name: compatibility-${{ matrix.host }}-${{ matrix.platform }}
+          name: compatibility-${{ matrix.host }}-${{ runner.os == 'Windows' && 'win32-x64' || 'linux-x64' }}
           path: |
             ${{ runner.temp }}/compatibility/results-*/**/*.json
             ${{ runner.temp }}/compatibility/results-*/**/*.log
@@ -92,6 +110,7 @@ jobs:
 
   consumer:
     needs: plugin
+    if: ${{ !inputs.skip_consumers }}
     # No checkout here: the application must run from the precompiled preview alone.
     strategy:
       fail-fast: false

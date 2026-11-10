@@ -1,21 +1,113 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { Button } from '@iroha1145/dsh-modern-ui/primitives'
 import { PreferenceRow } from './vendor/chat/client/settings/PreferenceRow.tsx'
 import type { ConversationWidthControlsInputProps } from './vendor/conversation/client/contract/slots.ts'
-import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, LAYOUT_WIDTHS, MAX_LAYOUT_WIDTH, MIN_LAYOUT_WIDTH, draggedLayoutWidth, readLayoutPreference, resolveLayoutWidth, selectLayoutMode, type ConversationLayoutMode, type ConversationLayoutPreference } from './conversation-layout-state.ts'
+import {
+  DEFAULT_LAYOUT,
+  LAYOUT_STORAGE_KEY,
+  LAYOUT_WIDTHS,
+  MAX_LAYOUT_WIDTH,
+  MIN_LAYOUT_WIDTH,
+  draggedLayoutWidth,
+  readLayoutPreference,
+  resolveLayoutWidth,
+  selectLayoutMode,
+  type ConversationLayoutMode,
+  type ConversationLayoutPreference,
+} from './conversation-layout-state.ts'
 import css from './conversation-layout.module.css'
 
 export const layoutLabels = {
-  zh: { label: '对话宽度', reading: '阅读', standard: '标准', wide: '宽屏', custom: '自定义', resize: '拖动两侧调宽，松手即保存', done: '完成', cancel: '取消', hint: '方向键微调，Shift 加速，Home / End 到最小 / 最大宽度；Enter 完成，Escape 取消。' },
-  en: { label: 'Chat width', reading: 'Reading', standard: 'Standard', wide: 'Wide', custom: 'Custom', resize: 'Drag either edge; release to save', done: 'Done', cancel: 'Cancel', hint: 'Arrow keys adjust, Shift accelerates, Home / End select minimum / maximum. Enter saves; Escape cancels.' },
-  ja: { label: '会話の幅', reading: '読書', standard: '標準', wide: 'ワイド', custom: 'カスタム', resize: '両端をドラッグし、離すと保存', done: '完了', cancel: 'キャンセル', hint: '矢印キーで調整、Shift で加速、Home / End で最小 / 最大。Enter で保存、Escape でキャンセル。' },
-  es: { label: 'Ancho del chat', reading: 'Lectura', standard: 'Estándar', wide: 'Amplio', custom: 'Personalizado', resize: 'Arrastra un borde; suelta para guardar', done: 'Listo', cancel: 'Cancelar', hint: 'Flechas para ajustar, Shift acelera, Home / End para mínimo / máximo. Enter guarda; Escape cancela.' },
-  fr: { label: 'Largeur du chat', reading: 'Lecture', standard: 'Standard', wide: 'Large', custom: 'Personnalisé', resize: 'Glissez un bord ; relâchez pour enregistrer', done: 'Terminé', cancel: 'Annuler', hint: 'Flèches pour ajuster, Shift accélère, Home / End pour minimum / maximum. Entrée enregistre ; Échap annule.' },
-  de: { label: 'Chatbreite', reading: 'Lesen', standard: 'Standard', wide: 'Breit', custom: 'Angepasst', resize: 'Rand ziehen; Loslassen speichert', done: 'Fertig', cancel: 'Abbrechen', hint: 'Pfeiltasten ändern, Shift beschleunigt, Home / End wählen Minimum / Maximum. Enter speichert; Escape verwirft.' },
-  ru: { label: 'Ширина чата', reading: 'Чтение', standard: 'Обычная', wide: 'Широкая', custom: 'Своя', resize: 'Перетащите край; отпустите для сохранения', done: 'Готово', cancel: 'Отмена', hint: 'Стрелки меняют ширину, Shift ускоряет, Home / End — минимум / максимум. Enter сохраняет, Escape отменяет.' },
-  pt: { label: 'Largura do chat', reading: 'Leitura', standard: 'Padrão', wide: 'Amplo', custom: 'Personalizado', resize: 'Arraste uma borda; solte para salvar', done: 'Concluir', cancel: 'Cancelar', hint: 'Setas ajustam, Shift acelera, Home / End selecionam mínimo / máximo. Enter salva; Escape cancela.' },
+  zh: {
+    label: '对话宽度',
+    reading: '阅读',
+    standard: '标准',
+    wide: '宽屏',
+    custom: '自定义',
+    resize: '拖动两侧调宽，松手即保存',
+    done: '完成',
+    cancel: '取消',
+    hint: '方向键微调，Shift 加速，Home / End 到最小 / 最大宽度；Enter 完成，Escape 取消。',
+  },
+  en: {
+    label: 'Chat width',
+    reading: 'Reading',
+    standard: 'Standard',
+    wide: 'Wide',
+    custom: 'Custom',
+    resize: 'Drag either edge; release to save',
+    done: 'Done',
+    cancel: 'Cancel',
+    hint: 'Arrow keys adjust, Shift accelerates, Home / End select minimum / maximum. Enter saves; Escape cancels.',
+  },
+  ja: {
+    label: '会話の幅',
+    reading: '読書',
+    standard: '標準',
+    wide: 'ワイド',
+    custom: 'カスタム',
+    resize: '両端をドラッグし、離すと保存',
+    done: '完了',
+    cancel: 'キャンセル',
+    hint: '矢印キーで調整、Shift で加速、Home / End で最小 / 最大。Enter で保存、Escape でキャンセル。',
+  },
+  es: {
+    label: 'Ancho del chat',
+    reading: 'Lectura',
+    standard: 'Estándar',
+    wide: 'Amplio',
+    custom: 'Personalizado',
+    resize: 'Arrastra un borde; suelta para guardar',
+    done: 'Listo',
+    cancel: 'Cancelar',
+    hint: 'Flechas para ajustar, Shift acelera, Home / End para mínimo / máximo. Enter guarda; Escape cancela.',
+  },
+  fr: {
+    label: 'Largeur du chat',
+    reading: 'Lecture',
+    standard: 'Standard',
+    wide: 'Large',
+    custom: 'Personnalisé',
+    resize: 'Glissez un bord ; relâchez pour enregistrer',
+    done: 'Terminé',
+    cancel: 'Annuler',
+    hint: 'Flèches pour ajuster, Shift accélère, Home / End pour minimum / maximum. Entrée enregistre ; Échap annule.',
+  },
+  de: {
+    label: 'Chatbreite',
+    reading: 'Lesen',
+    standard: 'Standard',
+    wide: 'Breit',
+    custom: 'Angepasst',
+    resize: 'Rand ziehen; Loslassen speichert',
+    done: 'Fertig',
+    cancel: 'Abbrechen',
+    hint: 'Pfeiltasten ändern, Shift beschleunigt, Home / End wählen Minimum / Maximum. Enter speichert; Escape verwirft.',
+  },
+  ru: {
+    label: 'Ширина чата',
+    reading: 'Чтение',
+    standard: 'Обычная',
+    wide: 'Широкая',
+    custom: 'Своя',
+    resize: 'Перетащите край; отпустите для сохранения',
+    done: 'Готово',
+    cancel: 'Отмена',
+    hint: 'Стрелки меняют ширину, Shift ускоряет, Home / End — минимум / максимум. Enter сохраняет, Escape отменяет.',
+  },
+  pt: {
+    label: 'Largura do chat',
+    reading: 'Leitura',
+    standard: 'Padrão',
+    wide: 'Amplo',
+    custom: 'Personalizado',
+    resize: 'Arraste uma borda; solte para salvar',
+    done: 'Concluir',
+    cancel: 'Cancelar',
+    hint: 'Setas ajustam, Shift acelera, Home / End selecionam mínimo / máximo. Enter salva; Escape cancela.',
+  },
 } as const
 const language = createSnapshotStore<keyof typeof layoutLabels>('en')
 const layoutDescriptions = {
@@ -36,12 +128,21 @@ let loaded = false
 function loadPreference(): void {
   if (loaded) return
   loaded = true
-  try { preference.set(readLayoutPreference(localStorage.getItem(LAYOUT_STORAGE_KEY))) } catch { /* Storage may be disabled. */ }
+  try {
+    preference.set(readLayoutPreference(localStorage.getItem(LAYOUT_STORAGE_KEY)))
+  } catch {
+    /* Storage may be disabled. */
+  }
 }
 
 function savePreference(value: ConversationLayoutPreference, persist = true): void {
   preference.set(value)
-  if (persist) try { localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(value)) } catch { /* Keep the current view usable without storage. */ }
+  if (persist)
+    try {
+      localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(value))
+    } catch {
+      /* Keep the current view usable without storage. */
+    }
 }
 
 function usePreference(): ConversationLayoutPreference {
@@ -58,17 +159,21 @@ export function ConversationLayoutSettings() {
   const current = usePreference()
   const labels = useLabels()
   const activeLanguage = useSyncExternalStore(language.subscribe, language.getSnapshot, language.getSnapshot)
-  return <div data-conversation-layout-settings><PreferenceRow
-    title={labels.label}
-    description={layoutDescriptions[activeLanguage]}
-    value={current.mode}
-    selectedLabel={current.mode === 'custom' ? `${labels.custom} · ${current.customWidth ?? LAYOUT_WIDTHS.standard}px` : labels[current.mode]}
-    options={[...Object.keys(LAYOUT_WIDTHS), 'custom'].map(id => ({ id, label: labels[id as ConversationLayoutMode] }))}
-    onSelect={value => {
-      editing.set(value === 'custom' ? current : null)
-      savePreference(selectLayoutMode(current, value as ConversationLayoutMode))
-    }}
-  /></div>
+  return (
+    <div data-conversation-layout-settings>
+      <PreferenceRow
+        title={labels.label}
+        description={layoutDescriptions[activeLanguage]}
+        value={current.mode}
+        selectedLabel={current.mode === 'custom' ? `${labels.custom} · ${current.customWidth ?? LAYOUT_WIDTHS.standard}px` : labels[current.mode]}
+        options={[...Object.keys(LAYOUT_WIDTHS), 'custom'].map(id => ({ id, label: labels[id as ConversationLayoutMode] }))}
+        onSelect={value => {
+          editing.set(value === 'custom' ? current : null)
+          savePreference(selectLayoutMode(current, value as ConversationLayoutMode))
+        }}
+      />
+    </div>
+  )
 }
 
 /** A component in the public conversation Factory's widthControls slot; no Host mutation is involved. */
@@ -93,14 +198,18 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
       const offset = scroll.getBoundingClientRect().left - container.getBoundingClientRect().left + scroll.clientWidth / 2 - container.clientWidth / 2
       // Same breakpoint as ConversationRoot's phone rule, which gives the input card the full width.
       const phone = window.matchMedia('(max-width: 640px)').matches
-      setGeometry(previous => previous.available === available && previous.offset === offset && previous.phone === phone ? previous : { available, offset, phone })
+      setGeometry(previous =>
+        previous.available === available && previous.offset === offset && previous.phone === phone ? previous : { available, offset, phone },
+      )
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(scroll)
     // The side clearance follows a container query on the pane; observe it too, not only the scroll box.
     if (scroll !== container) observer.observe(container)
-    return () => { observer.disconnect() }
+    return () => {
+      observer.disconnect()
+    }
   }, [container])
 
   // The composer seat publishes its height on the scroll box, a sibling of these controls. Mirror it onto the
@@ -129,8 +238,8 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     // On phones the stylesheet's full-width rule keeps the input card wider than the transcript; inline widths
     // would override it and leave the card narrower than the text.
     const names = phone
-      ? ['--dsh-layout-center-offset'] as const
-      : ['--dsh-chat-content-width', '--dsh-composer-card-max-width', '--dsh-layout-center-offset'] as const
+      ? (['--dsh-layout-center-offset'] as const)
+      : (['--dsh-chat-content-width', '--dsh-composer-card-max-width', '--dsh-layout-center-offset'] as const)
     const previous = names.map(name => [name, container.style.getPropertyValue(name), container.style.getPropertyPriority(name)] as const)
     for (const name of names) container.style.setProperty(name, `${name === '--dsh-layout-center-offset' ? offset : actual}px`)
     container.dataset.conversationLayout = current.mode
@@ -143,17 +252,17 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     }
   }, [container, actual, available, current.mode, offset, phone])
 
-  const clearFrame = () => {
+  const clearFrame = useCallback(() => {
     if (frame.current !== null) cancelAnimationFrame(frame.current)
     frame.current = null
-  }
+  }, [])
   const finish = (cancel: boolean) => {
     const active = drag.current
     const before = editing.getSnapshot()
     if (before === null) return
     clearFrame()
     drag.current = null
-    savePreference(cancel ? before : pending.current ?? preference.getSnapshot())
+    savePreference(cancel ? before : (pending.current ?? preference.getSnapshot()))
     pending.current = null
     container?.removeAttribute('data-layout-dragging')
     editing.set(null)
@@ -161,11 +270,14 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     const composer = container?.querySelector<HTMLElement>('[data-composer-card]')
     if (active !== null || container?.contains(document.activeElement)) composer?.focus({ preventScroll: true })
   }
-  useEffect(() => () => {
-    if (frame.current !== null) cancelAnimationFrame(frame.current)
-    if (drag.current !== null) savePreference(drag.current.before, false)
-    container?.removeAttribute('data-layout-dragging')
-  }, [container])
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current)
+      if (drag.current !== null) savePreference(drag.current.before, false)
+      container?.removeAttribute('data-layout-dragging')
+    },
+    [container],
+  )
   // Another tab can end the edit mid-drag; the guides then unmount before finish() runs, so release the drag here.
   useEffect(() => {
     if (editBefore !== null || drag.current === null) return
@@ -173,7 +285,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     drag.current = null
     pending.current = null
     container?.removeAttribute('data-layout-dragging')
-  }, [editBefore, container])
+  }, [editBefore, container, clearFrame])
   // Phones and panes too narrow for both guides show the full-width transcript whatever is chosen, so a temporary
   // edit there could only change a number the reader never sees; end it rather than offer it.
   const adjustable = !phone && available >= MIN_LAYOUT_WIDTH + 64
@@ -200,7 +312,11 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     })
   }
   const key = (event: KeyboardEvent<HTMLDivElement>, side: 'left' | 'right') => {
-    if (event.key === 'Escape' || event.key === 'Enter') { event.preventDefault(); finish(event.key === 'Escape'); return }
+    if (event.key === 'Escape' || event.key === 'Enter') {
+      event.preventDefault()
+      finish(event.key === 'Escape')
+      return
+    }
     const step = event.shiftKey ? 40 : 8
     let width: number
     if (event.key === 'Home') width = Math.min(MIN_LAYOUT_WIDTH, available)
@@ -213,35 +329,94 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
   }
 
   if (phase !== 'active' || actual === 0 || current.mode !== 'custom' || editBefore === null || !adjustable) return null
-  return <><div className={css.adjustment} data-conversation-width-adjustment role="group" aria-label={labels.label}
-    onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); finish(true) } }}>
-    <span title={labels.hint}>{labels.resize} · {Math.round(actual)}px</span>
-    <Button size="sm" onClick={() => { finish(true) }}>{labels.cancel}</Button>
-    <Button size="sm" variant="primary" onClick={() => { finish(false) }}>{labels.done}</Button>
-  </div>{(['left', 'right'] as const).map(side => <div key={side} className={css.handle}
-    data-conversation-width-handle={side} data-side={side} role="separator" tabIndex={0}
-    aria-orientation="vertical" aria-label={labels.resize} aria-valuemin={MIN_LAYOUT_WIDTH}
-    aria-valuemax={Math.min(MAX_LAYOUT_WIDTH, available)} aria-valuenow={Math.round(actual)} title={labels.hint}
-    onPointerDown={start} onPointerMove={event => { move(event, side) }}
-    onPointerUp={event => { move(event, side); finish(false) }} onPointerCancel={() => { finish(true) }}
-    // pointerup and pointercancel finish first; a capture lost without either (the window lost focus mid-drag)
-    // is not a release, so it restores the width from before the drag.
-    onLostPointerCapture={() => { if (drag.current !== null) finish(true) }} onKeyDown={event => { key(event, side) }}
-    onWheel={event => {
-      if (event.ctrlKey || event.deltaY === 0) return
-      const scroll = container?.querySelector<HTMLElement>(':scope > [data-conversation-scroll]')
-      if (scroll === null || scroll === undefined) return
-      const unit = event.deltaMode === 1 ? Number.parseFloat(getComputedStyle(scroll).lineHeight) || 16 : event.deltaMode === 2 ? scroll.clientHeight : 1
-      scroll.scrollBy({ top: event.deltaY * unit })
-    }}
-  />)}</>
+  return (
+    <>
+      {/* biome-ignore lint/a11y/useSemanticElements: This groups resize actions, not form fields. */}
+      <div
+        className={css.adjustment}
+        data-conversation-width-adjustment
+        role="group"
+        aria-label={labels.label}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            finish(true)
+          }
+        }}
+      >
+        <span title={labels.hint}>
+          {labels.resize} · {Math.round(actual)}px
+        </span>
+        <Button
+          size="sm"
+          onClick={() => {
+            finish(true)
+          }}
+        >
+          {labels.cancel}
+        </Button>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={() => {
+            finish(false)
+          }}
+        >
+          {labels.done}
+        </Button>
+      </div>
+      {(['left', 'right'] as const).map(side => (
+        // biome-ignore lint/a11y/useSemanticElements: This is an interactive splitter with a value, not a document rule.
+        <div
+          key={side}
+          className={css.handle}
+          data-conversation-width-handle={side}
+          data-side={side}
+          role="separator"
+          tabIndex={0}
+          aria-orientation="vertical"
+          aria-label={labels.resize}
+          aria-valuemin={MIN_LAYOUT_WIDTH}
+          aria-valuemax={Math.min(MAX_LAYOUT_WIDTH, available)}
+          aria-valuenow={Math.round(actual)}
+          title={labels.hint}
+          onPointerDown={start}
+          onPointerMove={event => {
+            move(event, side)
+          }}
+          onPointerUp={event => {
+            move(event, side)
+            finish(false)
+          }}
+          onPointerCancel={() => {
+            finish(true)
+          }}
+          // pointerup and pointercancel finish first; a capture lost without either (the window lost focus mid-drag)
+          // is not a release, so it restores the width from before the drag.
+          onLostPointerCapture={() => {
+            if (drag.current !== null) finish(true)
+          }}
+          onKeyDown={event => {
+            key(event, side)
+          }}
+          onWheel={event => {
+            if (event.ctrlKey || event.deltaY === 0) return
+            const scroll = container?.querySelector<HTMLElement>(':scope > [data-conversation-scroll]')
+            if (scroll === null || scroll === undefined) return
+            const unit = event.deltaMode === 1 ? Number.parseFloat(getComputedStyle(scroll).lineHeight) || 16 : event.deltaMode === 2 ? scroll.clientHeight : 1
+            scroll.scrollBy({ top: event.deltaY * unit })
+          }}
+        />
+      ))}
+    </>
+  )
 }
 
 export function installConversationLayout(ctx: Context): void {
   ctx.effect(() => {
     const sync = () => {
       const active = ctx.locale.getLocale().active
-      language.set(Object.hasOwn(layoutLabels, active) ? active as keyof typeof layoutLabels : 'en')
+      language.set(Object.hasOwn(layoutLabels, active) ? (active as keyof typeof layoutLabels) : 'en')
     }
     sync()
     const stop = ctx.locale.subscribe(sync)
@@ -252,9 +427,19 @@ export function installConversationLayout(ctx: Context): void {
       }
     }
     window.addEventListener('storage', onStorage)
-    return () => { stop(); window.removeEventListener('storage', onStorage) }
+    return () => {
+      stop()
+      window.removeEventListener('storage', onStorage)
+    }
   })
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item', id: 'modern-conversation-layout', order: 15,
-  }, ConversationLayoutSettings))
+  ctx.slots.inject('settings.general.item', () =>
+    ctx.slots.register(
+      {
+        name: 'settings.general.item',
+        id: 'modern-conversation-layout',
+        order: 15,
+      },
+      ConversationLayoutSettings,
+    ),
+  )
 }

@@ -156,6 +156,7 @@ test('a control trigger toggles once per key in a real browser, whether it is a 
       await page.keyboard.press('Enter')
       assert.equal(await panels(), 1, 'Enter opens it')
       assert.equal(await control.getAttribute('aria-expanded'), 'true')
+      await control.focus()
       await page.keyboard.press(' ')
       assert.equal(await panels(), 0, 'Space closes it')
       assert.equal(await control.getAttribute('aria-expanded'), 'false')

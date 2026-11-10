@@ -19,16 +19,13 @@ function NoConversationWidthControls() {
  * @param props - Factory input, standard Session sources, and Conversation seats.
  * @returns the Conversation view, Composer, and optional width controls.
  */
-export function ConversationContent(props: ConversationContentProps) {
+function ConversationComposer(props: ConversationContentProps) {
   const {
-    sessionId, phase, hero, useSession, useSessions, useSessionStatus,
+    sessionId, hero, useSession, useSessions, useSessionStatus,
     useWorkspaces, useInput, useComposerBlock, renderSlot, renderSlotChain,
-    selectWorkspace, t, useFactorySlot,
+    selectWorkspace, t,
   } = props
   const session = useSession(snapshot => snapshot)
-  const Views = useFactorySlot('views', ConversationSessionView)
-  const WidthControls = useFactorySlot('widthControls', NoConversationWidthControls)
-  const [body, setBody] = useState<HTMLDivElement | null>(null)
   const pendingInteraction = useSessionStatus(snapshot =>
     sessionId === undefined ? undefined : snapshot.get(sessionId)?.pendingInteraction)
   const inputState = useInput(s => s)
@@ -144,11 +141,19 @@ export function ConversationContent(props: ConversationContentProps) {
     { fallback: composerBar, fallbackOnly: sessionId === undefined, overlay: true },
   )
 
-  const composerSeat = (
+  return (
     <div ref={seatResizeRef} className={css.composerSeat} data-composer-seat="" data-conversation-region="composer">
       {composer}
     </div>
   )
+}
+
+/** Keep streaming Session subscriptions inside the composer extension boundary. */
+export function ConversationContent(props: ConversationContentProps) {
+  const { sessionId, phase, useFactorySlot } = props
+  const Views = useFactorySlot('views', ConversationSessionView)
+  const WidthControls = useFactorySlot('widthControls', NoConversationWidthControls)
+  const [body, setBody] = useState<HTMLDivElement | null>(null)
 
   return (
     <div
@@ -161,7 +166,7 @@ export function ConversationContent(props: ConversationContentProps) {
     >
       <div className={css.scrollBody} data-conversation-scroll="">
         {sessionId === undefined ? null : <Views />}
-        {composerSeat}
+        <ConversationComposer {...props} />
       </div>
       <WidthControls container={body} phase={phase} />
     </div>

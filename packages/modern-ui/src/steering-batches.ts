@@ -1,34 +1,53 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  ConversationNodeDefinition, ConversationPreviousContext, ConversationViewDefinition, ConversationViewNode,
+  ConversationNodeDefinition,
+  ConversationPreviousContext,
+  ConversationViewDefinition,
+  ConversationViewNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-llm-retry/types'
 import './steering-batches.css'
 
 // Adapted from the MIT-licensed patched UI's inbox.ts and turn-process.ts.
 // These definitions publish only our display metadata; the official Chat owns all message nodes.
-interface InboxIdentity { readonly id: string; readonly source: { readonly kind: string } }
+interface InboxIdentity {
+  readonly id: string
+  readonly source: { readonly kind: string }
+}
 interface InboxSplice {
   readonly start: number
   readonly removedCount?: number
   readonly inserted: readonly InboxIdentity[]
   readonly outcome?: 'canceled'
 }
-type PendingState = { readonly kind: 'snapshot'; readonly ids: readonly InboxIdentity[] } | {
-  readonly kind: 'splice'; readonly previous: PendingState; readonly start: number
-  readonly removedCount: number; readonly inserted: readonly InboxIdentity[]
-}
+type PendingState =
+  | { readonly kind: 'snapshot'; readonly ids: readonly InboxIdentity[] }
+  | {
+      readonly kind: 'splice'
+      readonly previous: PendingState
+      readonly start: number
+      readonly removedCount: number
+      readonly inserted: readonly InboxIdentity[]
+    }
 interface InboxState {
   readonly pending: PendingState
   readonly currentClaimed: ReadonlySet<string>
   readonly firstClaimedHuman: string | undefined
 }
-interface ProcessEvidence { readonly turn: number }
-interface Marker { readonly messageId: string; readonly turn: number; readonly batchStart: boolean }
+interface ProcessEvidence {
+  readonly turn: number
+}
+interface Marker {
+  readonly messageId: string
+  readonly turn: number
+  readonly batchStart: boolean
+}
 type Event = Parameters<ConversationNodeDefinition['match']>[0]
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
-  interface ConversationViewSnapshotMap { 'modern-steering': ReadonlySet<string> }
+  interface ConversationViewSnapshotMap {
+    'modern-steering': ReadonlySet<string>
+  }
 }
 
 const INBOX = 'modern-inbox-next-step'
@@ -39,7 +58,10 @@ const EMPTY_CLAIM: ReadonlySet<string> = new Set()
 function materialize(state: PendingState): InboxIdentity[] {
   const splices: Extract<PendingState, { kind: 'splice' }>[] = []
   let current = state
-  while (current.kind === 'splice') { splices.push(current); current = current.previous }
+  while (current.kind === 'splice') {
+    splices.push(current)
+    current = current.previous
+  }
   const pending = [...current.ids]
   for (const splice of splices.reverse()) pending.splice(splice.start, splice.removedCount, ...splice.inserted)
   return pending
@@ -51,9 +73,11 @@ function applySplice(previous: ConversationPreviousContext<InboxState> | undefin
   if (removedCount > 0 && splice.outcome !== 'canceled') {
     const pending = materialize(prior)
     const removed = pending.splice(splice.start, removedCount, ...splice.inserted)
-    return { pending: { kind: 'snapshot', ids: pending },
+    return {
+      pending: { kind: 'snapshot', ids: pending },
       currentClaimed: new Set(removed.map(message => message.id)),
-      firstClaimedHuman: removed.find(message => message.source.kind === 'user')?.id }
+      firstClaimedHuman: removed.find(message => message.source.kind === 'user')?.id,
+    }
   }
   const claimed = previous?.state.currentClaimed ?? EMPTY_CLAIM
   const reinserted = splice.inserted.some(message => claimed.has(message.id))
@@ -64,16 +88,17 @@ function applySplice(previous: ConversationPreviousContext<InboxState> | undefin
   }
 }
 
-function processCoordinates(event: Event): ProcessEvidence & { readonly step: number } | undefined {
+function processCoordinates(event: Event): (ProcessEvidence & { readonly step: number }) | undefined {
   if (event.type === 'assistant/message') {
-    const visible = event.surfaceOp === 'append' && event.data.message.content.some(block => {
-      if (block.type === 'tool-call') return false
-      return block.type === 'text' || block.type === 'reasoning' ? block.text.trim() !== '' : true
-    })
+    const visible =
+      event.surfaceOp === 'append' &&
+      event.data.message.content.some(block => {
+        if (block.type === 'tool-call') return false
+        return block.type === 'text' || block.type === 'reasoning' ? block.text.trim() !== '' : true
+      })
     return visible ? { turn: event.data.turn, step: event.data.step } : undefined
   }
-  if (event.type === 'tool/call' || event.type === 'llm/retry'
-    || (event.type === 'tool/result' && event.surfaceOp === 'append')) {
+  if (event.type === 'tool/call' || event.type === 'llm/retry' || (event.type === 'tool/result' && event.surfaceOp === 'append')) {
     return { turn: event.data.turn, step: event.data.step }
   }
   return undefined
@@ -81,8 +106,7 @@ function processCoordinates(event: Event): ProcessEvidence & { readonly step: nu
 
 export const inboxDefinition: ConversationNodeDefinition<InboxState> = {
   kind: INBOX,
-  match: event => event.type === 'agent/inbox/spliced' && event.data.target === 'next-step'
-    ? { id: String(event.seq), role: 'start' } : null,
+  match: event => (event.type === 'agent/inbox/spliced' && event.data.target === 'next-step' ? { id: String(event.seq), role: 'start' } : null),
   start: (_context, match, reader) => {
     if (match.event.type !== 'agent/inbox/spliced') throw new Error('Expected an inbox splice')
     return applySplice(reader.previous<InboxState>(INBOX), match.event.data)
@@ -109,8 +133,8 @@ export const processDefinition: ConversationNodeDefinition<ProcessEvidence> = {
 export const markerDefinition: ConversationNodeDefinition<Marker> = {
   kind: 'modern-steering-marker',
   target: 'modern-steering',
-  match: event => event.type === 'user/message' && event.surfaceOp === 'append' && event.data.source.kind === 'user'
-    ? { id: String(event.data.id), role: 'start' } : null,
+  match: event =>
+    event.type === 'user/message' && event.surfaceOp === 'append' && event.data.source.kind === 'user' ? { id: String(event.data.id), role: 'start' } : null,
   start: (_context, match, reader) => {
     if (match.event.type !== 'user/message') throw new Error('Expected a human message')
     const messageId = String(match.event.data.id)
@@ -118,8 +142,11 @@ export const markerDefinition: ConversationNodeDefinition<Marker> = {
     const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : -1
     const claim = reader.previous<InboxState>(INBOX)?.state
     const evidence = reader.previous<ProcessEvidence>(PROCESS)?.state
-    return { messageId, turn, batchStart: turn >= 0 && evidence?.turn === turn
-      && claim?.firstClaimedHuman === messageId && claim.currentClaimed.has(messageId) }
+    return {
+      messageId,
+      turn,
+      batchStart: turn >= 0 && evidence?.turn === turn && claim?.firstClaimedHuman === messageId && claim.currentClaimed.has(messageId),
+    }
   },
   update: context => context.state,
   buildViewNode: context => {
@@ -143,9 +170,7 @@ export const steeringViewDefinition: ConversationViewDefinition<ConversationView
       if (next.size !== accepted.size || [...next].some(id => !accepted.has(id))) accepted = next
       return accepted
     }
-    return { empty: accepted,
-      replace: input => apply(input.nodes, true),
-      apply: input => apply(input.upserts, false) }
+    return { empty: accepted, replace: input => apply(input.nodes, true), apply: input => apply(input.upserts, false) }
   },
 }
 

@@ -15,6 +15,10 @@
   --ds-transition-duration: var(--dsh-feel-dialog-duration);
   --ds-transition-duration-fast: var(--dsh-feel-control-duration);
   --ds-transition-duration-slow: var(--dsh-feel-panel-duration);
+  /* Color and opacity feedback should be visible immediately; spatial movement keeps the Feel response. */
+  --dsh-motion-feedback-duration: 120ms;
+  --dsh-motion-feedback-curve: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dsh-motion-press-duration: 80ms;
 
   /* Cloud-Monitor typography & spacing scale */
   --fs-meta: 0.75rem;

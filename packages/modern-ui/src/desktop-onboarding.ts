@@ -16,7 +16,7 @@ export const CHAT_NAMESPACE = 'ui-chat'
 /** The progress fields the account plugin declares for the onboarding. */
 export const ONBOARDING_FIELDS = ['version', 'step', 'purpose', 'process', 'completion', 'usage', 'developerTools'] as const
 
-type Progress = Partial<Record<typeof ONBOARDING_FIELDS[number], unknown>>
+type Progress = Partial<Record<(typeof ONBOARDING_FIELDS)[number], unknown>>
 
 /**
  * Select the user-layer progress fields that hold an unfinished onboarding over this bundle's skipped composition.
@@ -43,13 +43,20 @@ export function installDesktopOnboarding(ctx: Context): void {
     if (fields.length === 0) return
     attempted = true
     // `unset` over an inherited field stores the composed value, so the record matches a skip.
-    onboarding.mutate(fields.map(field => ({ op: 'unset', path: [field] })))
-      .then(accepted => { if (!accepted) ctx.logger.warn('desktop onboarding: the Host refused to re-inherit the skipped onboarding') })
-      .catch(() => { ctx.logger.warn('desktop onboarding: could not re-inherit the skipped onboarding') })
+    onboarding
+      .mutate(fields.map(field => ({ op: 'unset', path: [field] })))
+      .then(accepted => {
+        if (!accepted) ctx.logger.warn('desktop onboarding: the Host refused to re-inherit the skipped onboarding')
+      })
+      .catch(() => {
+        ctx.logger.warn('desktop onboarding: could not re-inherit the skipped onboarding')
+      })
   }
   ctx.effect(() => {
     const disposers = [chat.subscribe(check), onboarding.subscribe(check)]
     check()
-    return () => { for (const dispose of disposers) dispose() }
+    return () => {
+      for (const dispose of disposers) dispose()
+    }
   }, 'modern-ui: stranded desktop onboarding')
 }

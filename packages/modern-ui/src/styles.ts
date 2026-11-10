@@ -1,7 +1,9 @@
 import type { Context } from '@deepseek-ai/cordis'
 
 const sheets = new Map<string, string>()
-export function registerStyle(name: string, css: string): void { sheets.set(name, css) }
+export function registerStyle(name: string, css: string): void {
+  sheets.set(name, css)
+}
 
 /** Factory evaluation only records text; Cordis owns every installed DOM node. */
 export function installPluginStyles(ctx: Context): void {

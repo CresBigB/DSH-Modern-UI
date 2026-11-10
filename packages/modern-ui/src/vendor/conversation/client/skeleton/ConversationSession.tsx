@@ -10,6 +10,7 @@ import type {
 } from '../contract/slots.ts'
 import { resolveActiveView } from '../view-selection.ts'
 import { FIXED_VIEW_ID } from '../view-pins.ts'
+import { viewTabIds } from './view-tab-ids.ts'
 import { DefaultConversationViews } from './DefaultConversationViews.tsx'
 import css from './ConversationRoot.module.css'
 
@@ -131,10 +132,32 @@ export function ConversationSessionHeader({
       ...tabs.filter(tab => tab.id !== FIXED_VIEW_ID && !unpinned.includes(tab.id)),
     ]
     const visibleTabs = hasMenu ? preferred.slice(0, visibleViewLimit) : preferred
+    // An opened overflow view needs a resident tab and name without changing its pin preference.
+    if (active !== undefined && !visibleTabs.some(tab => tab.id === active.id)) visibleTabs.push(active)
     const visibleIds = new Set(visibleTabs.map(tab => tab.id))
     return { visibleTabs, moreTabs: tabs.filter(tab => !visibleIds.has(tab.id)) }
-  }, [tabs, unpinned, hasMenu, visibleViewLimit])
+  }, [tabs, unpinned, hasMenu, visibleViewLimit, active])
   const currentInMore = moreTabs.some(tab => tab.id === active?.id)
+  const focusAfterMenu = useRef(false)
+  const focusedTab = useRef<HTMLButtonElement | null>(null)
+  useLayoutEffect(() => {
+    const focusRemoved = focusedTab.current !== null && !focusedTab.current.isConnected
+      && document.activeElement === document.body
+    if (!focusAfterMenu.current && !focusRemoved) return
+    focusAfterMenu.current = false
+    focusedTab.current = null
+    const target = active ?? visibleTabs[0]
+    if (target !== undefined) {
+      const ids = viewTabIds(sessionId, target.id)
+      const destination = document.getElementById(ids.tab) ?? document.getElementById(ids.panel)
+      // The panel is the whole transcript; moving focus to it must not scroll a long conversation.
+      destination?.focus({ preventScroll: true })
+    }
+  }, [visibleTabs, active, sessionId, showTabs])
+  const openFromMenu = (id: string): void => {
+    focusAfterMenu.current = true
+    selectView(id)
+  }
   return (
     <>
       {pinSaveFailed && <span role="alert">{t('settings.saveFailed')}</span>}
@@ -208,13 +231,32 @@ export function ConversationSessionHeader({
       </div>
       {showTabs && (
         <div ref={tabRow} className={css.tabs}>
-          <div className={css.viewTabs} role="tablist" data-conversation-tabs="">
+          <div className={css.viewTabs} role="tablist" aria-label={t('session.tabVisibility')} data-conversation-tabs="">
             {visibleTabs.map(viewTab => (
               <button
                 key={viewTab.id}
                 type="button"
                 role="tab"
+                id={viewTabIds(sessionId, viewTab.id).tab}
+                aria-controls={viewTabIds(sessionId, viewTab.id).panel}
                 aria-selected={viewTab.id === active?.id}
+                tabIndex={viewTab.id === (active?.id ?? visibleTabs[0]?.id) ? 0 : -1}
+                onFocus={event => { focusedTab.current = event.currentTarget }}
+                onBlur={event => {
+                  if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node | null)) focusedTab.current = null
+                }}
+                onKeyDown={event => {
+                  const index = visibleTabs.findIndex(tab => tab.id === viewTab.id)
+                  const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? visibleTabs.length - 1
+                    : event.key === 'ArrowRight' ? (index + 1) % visibleTabs.length
+                      : event.key === 'ArrowLeft' ? (index - 1 + visibleTabs.length) % visibleTabs.length : undefined
+                  if (nextIndex === undefined) return
+                  event.preventDefault()
+                  const next = visibleTabs[nextIndex]
+                  if (next === undefined) return
+                  selectView(next.id)
+                  document.getElementById(viewTabIds(sessionId, next.id).tab)?.focus()
+                }}
                 className={clsx(css.tab, viewTab.id === active?.id && css.tabActive)}
                 onClick={() => { selectView(viewTab.id) }}
               >
@@ -236,7 +278,7 @@ export function ConversationSessionHeader({
                 id: viewTab.id, label: viewTab.label,
                 pinned: !unpinned.includes(viewTab.id), active: viewTab.id === active?.id,
               }))}
-              onOpen={selectView}
+              onOpen={openFromMenu}
               onPinnedChange={setPinned}
               renderSlot={renderSlot}
             />

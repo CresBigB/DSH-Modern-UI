@@ -645,7 +645,7 @@
       "source": "packages/client/ui-conversation/src/client/locales.ts",
       "target": "src/vendor/conversation/client/locales.ts",
       "sourceSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
-      "targetSha256": "df0c00b17e76bbbd3e017d52dfb1de940ee131617f6a7eac0c3381270600bc83",
+      "targetSha256": "2aa97709e1d8cee2e06ab0c1f924459bd148f17007fbe582189879c04df97331",
       "adapted": true
     },
     {
@@ -709,21 +709,21 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationContent.tsx",
       "sourceSha256": "b9237b69ccc6f43c240e35dc8ac29a1b12e307f602c57f1052f47ef460901b31",
-      "targetSha256": "4b9d197fd202459a5814334c35a58980d4e4f3a70d6170282eb12cb569fcad9c",
+      "targetSha256": "39cf1258f802b1648200c858bfbab7773806875b7b3ce49f3f5465aecb23f669",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationHeader.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationHeader.tsx",
       "sourceSha256": "4d8eb123dfcda64d1930ec59402f72b1fcda1f6c63197243a33c52069c57ab94",
-      "targetSha256": "27e531c95a2296266324a8cca54fd10f915696406907b13b7799301f54499591",
+      "targetSha256": "1f7988d051b9f6eeec5e3f906593fa195cf8b97c1429aee4c62e89ea266e3712",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationMainPanel.tsx",
       "sourceSha256": "957332ceb570923cb2bf5c44650513aa97866ea9cbb635013acec91e024c2300",
-      "targetSha256": "afa56d69b857a434ed4194bcedf43deff970602d3a5f84141bca81ca84a39334",
+      "targetSha256": "2585347602bf147cf85fb53deadecdcd79b2c25b3ff222974d0df59daa8ee6c3",
       "adapted": true
     },
     {
@@ -751,15 +751,15 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationSession.tsx",
       "sourceSha256": "dfcd81e81a7b5c9a98d1ea3c5d68b30d3607b8cb539b47872d037bf82cd2a9e7",
-      "targetSha256": "c5fb60a5effae3ce4858c3e9f3a47e724b17a7fc164e75c23b682419be51cf9a",
+      "targetSha256": "d4fe6ee0e4ea547c469274f042acc3a0127d76c2de27782fff02034cedad9f65",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/DefaultConversationViews.tsx",
       "target": "src/vendor/conversation/client/skeleton/DefaultConversationViews.tsx",
       "sourceSha256": "c4d76f4860134df110df58963778669a37ebbc1a4f42b1acf165b20304db2e01",
-      "targetSha256": "c4d76f4860134df110df58963778669a37ebbc1a4f42b1acf165b20304db2e01",
-      "adapted": false
+      "targetSha256": "4f770b92523a9c4d23e81e9684576fca93ec73dc781c26aa73fa3d737775a3f5",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/EmptyHero.tsx",
@@ -892,7 +892,7 @@
       "source": "packages/client/ui-intelligent-ui/src/client/locales.ts",
       "target": "src/vendor/intelligent/client/locales.ts",
       "sourceSha256": "46b05428e5dd7446004d066cdbc5cc4cd1eabade373b0b6ade4b687048317dc5",
-      "targetSha256": "24bc341f7b1d870d320ab97bb6ef7730c0358a649bf9bf37ae8ef8f95b48d04d",
+      "targetSha256": "af483864c5c2243e07a5582741fdb650b6f7c621f8914b8b4d9ec747222d37fe",
       "adapted": true
     },
     {
@@ -913,14 +913,14 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "5b374799f5883ac626cc9c62b697c2588c044ec082b1f047169a36a1a7f99bd9",
+      "targetSha256": "6315165904c7837af493f0804b26258af4937a3eed1e68af2268fc8c37872d0b",
       "adapted": true
     },
     {
       "source": "packages/client/ui-layout/src/client/AppFrame.tsx",
       "target": "src/vendor/layout/AppFrame.tsx",
       "sourceSha256": "f4d0ff65db73b83c93f2d068991c2c02e1018adacc4979c17b188d76e81b29d1",
-      "targetSha256": "9582cd0beb9c76777dce92000da245a5fcac7b96751222ae0f71ec030c081037",
+      "targetSha256": "e1bd884faa6b809fc466722eb07dd9663fde535e315d16fe013389ed3dccecc3",
       "adapted": true
     },
     {
@@ -990,7 +990,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "12a9e8bbe6de32b7a85c57d525e8f8cab6cfc5befcb1c394f07bd6095befd944",
+      "targetSha256": "a6ebc5f6c41e5aebbe6fe950bf57cdcd60a632a6de2b7b2cf6be3c8e9c359874",
       "adapted": true,
       "adaptation": "Phone-width composer rows (container ≤480px) keep only the bulb for the effort and drop the chevron; the trigger cap adds the row slack that control-row-layout.ts publishes."
     },
@@ -998,7 +998,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
       "target": "src/vendor/model/client/ModelSelect.tsx",
       "sourceSha256": "72cdaf8eee5362562440ddd86519b039da7d012b1b980db40d283f148dad7d1e",
-      "targetSha256": "b25cae0f5bc19eb7df68ac453a012f609f10887c702531e9f5acd0fefb8a70e5",
+      "targetSha256": "0835414cba30d573dde56c8e71c7ec2f31f0608abf3873fda3419e11a810163f",
       "adapted": true
     },
     {
@@ -1131,8 +1131,8 @@
       "source": "packages/client/ui-primitives/src/Button.module.css",
       "target": "src/vendor/primitives/Button.module.css",
       "sourceSha256": "65c7e37f50b79a051bf75f91bb9acb91847d006256470a9caa81440bc781546c",
-      "targetSha256": "65c7e37f50b79a051bf75f91bb9acb91847d006256470a9caa81440bc781546c",
-      "adapted": false
+      "targetSha256": "6a9b623b6f132a851be768f5bdd1eed8befaf10d5260458eb1f8bb87de6e2de3",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Button.tsx",
@@ -1418,8 +1418,8 @@
       "source": "packages/client/ui-primitives/src/InlineEditor.module.css",
       "target": "src/vendor/primitives/InlineEditor.module.css",
       "sourceSha256": "3b4c0bb10cba65579f49161c99d222d7834b05fafb268ca7c1cac7d4f17558a3",
-      "targetSha256": "3b4c0bb10cba65579f49161c99d222d7834b05fafb268ca7c1cac7d4f17558a3",
-      "adapted": false
+      "targetSha256": "e7c3cb92d326be14514a943f4b114f75f0200d527d475288611a70b3f10d774c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/InlineEditor.tsx",
@@ -1439,8 +1439,8 @@
       "source": "packages/client/ui-primitives/src/Input.module.css",
       "target": "src/vendor/primitives/Input.module.css",
       "sourceSha256": "d188d33aa5e3a1999b017754727f4fa13894209b397377c0a5cac4ff336b95f9",
-      "targetSha256": "d188d33aa5e3a1999b017754727f4fa13894209b397377c0a5cac4ff336b95f9",
-      "adapted": false
+      "targetSha256": "e9d22ea306ee1455ee1f6ce747c3f1ecb1e33a7c7d5469ec14b5a2ffb72663ac",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Input.tsx",
@@ -1631,14 +1631,14 @@
       "source": "packages/client/ui-primitives/src/Menu.module.css",
       "target": "src/vendor/primitives/Menu.module.css",
       "sourceSha256": "11059a50119654e9bd3735cbe73bf918f78ade59fa8d49e6b7b2d3492b066a37",
-      "targetSha256": "11059a50119654e9bd3735cbe73bf918f78ade59fa8d49e6b7b2d3492b066a37",
-      "adapted": false
+      "targetSha256": "867e476d6868924a87c18c40bcff37cb83d50ea2d31ab760da8ab3cf81c22b6b",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Menu.tsx",
       "target": "src/vendor/primitives/Menu.tsx",
       "sourceSha256": "cf0333db81f314e6d1e49f44109499e2443e1301dd42a455429942cacb793b8c",
-      "targetSha256": "5a6e4643128c8435adebe155a250eb840b14eed24cc9aa5897a49d87ce3b373d",
+      "targetSha256": "4cdf1b00ba545969f79ff91740ff673c9d951fe8aa9858bdfc04ff56c999a805",
       "adapted": true
     },
     {
@@ -1673,8 +1673,8 @@
       "source": "packages/client/ui-primitives/src/Modal.module.css",
       "target": "src/vendor/primitives/Modal.module.css",
       "sourceSha256": "651082405cea026fd7c9a3f3390ecaf9b09f88c0da40248ae1b4c74afca46629",
-      "targetSha256": "651082405cea026fd7c9a3f3390ecaf9b09f88c0da40248ae1b4c74afca46629",
-      "adapted": false
+      "targetSha256": "f9d31e6b67fe2e104e8573a4f37674a7d97515b297aa6fe74f95aad06119ff4d",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Modal.tsx",
@@ -1897,15 +1897,15 @@
       "source": "packages/client/ui-primitives/src/Tooltip.module.css",
       "target": "src/vendor/primitives/Tooltip.module.css",
       "sourceSha256": "531b7d7e4e17a73978c43b492308519944894e635d247ed404f2b910a93774c9",
-      "targetSha256": "531b7d7e4e17a73978c43b492308519944894e635d247ed404f2b910a93774c9",
-      "adapted": false
+      "targetSha256": "c47f5a8eae6ebac3106d810aa6c70b52da300a1f8f3c9541cbdb692aca06565c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Tooltip.tsx",
       "target": "src/vendor/primitives/Tooltip.tsx",
       "sourceSha256": "c2f931a12e7bf7ae2d5d0adbd6296ace2e4605e5415978a4e503fe8e63e41c7c",
-      "targetSha256": "c2f931a12e7bf7ae2d5d0adbd6296ace2e4605e5415978a4e503fe8e63e41c7c",
-      "adapted": false
+      "targetSha256": "c8cc63a8de42615744aa86aa48308d6bf3f6160d627e69e994fdb9b4aacb733c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/use-clipboard-copy.ts",
@@ -2009,7 +2009,7 @@
       "source": "packages/client/ui-sidebar/src/client/locales.ts",
       "target": "src/vendor/sidebar/client/locales.ts",
       "sourceSha256": "97cc1d3cb1358b97c82484704b24b456738a6d4fe10c20cc1c86f2011f276858",
-      "targetSha256": "1cfac804765655a6f77f3247fe0cf07bfeea7a8d70ab8fd364e9e18c2b02c4d2",
+      "targetSha256": "db34723ada8e9bc983e09ad694ed83971db83cc5899239c5f29a98b633274f12",
       "adapted": true
     },
     {
@@ -2030,14 +2030,14 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "659b0db92e413f21f3444244ad9a78aa889d69504d046cf6457031e5c770ef04",
+      "targetSha256": "e31892e0062ed53a6797d833315b1bbe36d6a0786ba12da20ba0981f1691a022",
       "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
       "target": "src/vendor/sidebar/client/SidebarRoot.tsx",
       "sourceSha256": "9b0f10a46deb7900d5d583ad1228bab540c7385a437c445c013ff2ce3689b291",
-      "targetSha256": "a814314f804181e45c357ee95f90bd54347fa253f91e9198dd4b25ef7acb1abb",
+      "targetSha256": "c993ea4424e9bb7526d889df30283ecbba0a52937360a2350c065efd8ccd6c3e",
       "adapted": true
     },
     {
@@ -2114,7 +2114,7 @@
       "source": "packages/client/ui-theme/src/styles/base.css",
       "target": "src/vendor/theme/styles/base.css",
       "sourceSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "targetSha256": "7a5a4bf8b4cc5421833f01534784126d0bb1d0336d9afdbe8c0352d245dfd86c",
+      "targetSha256": "a1b1d61e8d5ccdd34e7331676567ac06a015b20a813b4a414f5b520db0332820",
       "adapted": true
     },
     {
@@ -2205,8 +2205,8 @@
       "source": "packages/client/ui-conversation/src/client/locales.ts",
       "target": "src/vendor/tool/client/dictionaries.ts",
       "sourceSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
-      "targetSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
-      "adapted": false
+      "targetSha256": "908884d3de9f07618cd89391a18958843a83a740e15dabbf1b7d454cb830c1a1",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/locale.ts",
@@ -2577,7 +2577,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/Rows.module.css",
       "target": "src/vendor/workspace/client/rows/Rows.module.css",
       "sourceSha256": "7de834ab539a77ac47a6bd2aa6cd548eea9caec33db51007c739b3b04d82ef1f",
-      "targetSha256": "4c75e1ec25f6331751651d380e107aef58ccbcf2fcc92cd517d6404ab1d5cff4",
+      "targetSha256": "2fc109488662c46b323c6eaeb73100ca8f354c5614bd89adabef025f81842703",
       "adapted": true
     },
     {
@@ -2591,7 +2591,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
       "target": "src/vendor/workspace/client/rows/WorkspaceBrowser.module.css",
       "sourceSha256": "177921134100acc06b6e49c442f0595b7f35d2933b690712dfe65a8d3570201b",
-      "targetSha256": "8f55b969bc6864fb20e845f6440aff611c78fe084942a364c2611d52be620b91",
+      "targetSha256": "ecf397240988ab5d08a3446cf375630f1b754ecb282894f1d99a6cf2f3da6098",
       "adapted": true
     },
     {
@@ -3556,6 +3556,14 @@
       "target": "src/vendor/tool/client/tool/toolviews/bash-sample.tsx",
       "targetSha256": "2b2ddbd59011f54fb630fb448754345475e61592fd549f7db73c934905cf41d7",
       "adapted": true
+    },
+    {
+      "source": "packages/client/ui-conversation/src/client/locales.ts",
+      "target": "src/vendor/shared/conversation-dictionaries.ts",
+      "sourceSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
+      "targetSha256": "0d848f27f8a436043e95b803f880cd3e9a2df7f219c7d563cd7407188a02ab39",
+      "adapted": true,
+      "description": "Moved the existing eight-language shared base here; Tool and Conversation retain their namespace adapters without duplicate key/value copies."
     }
   ],
   "authored": [
@@ -3576,7 +3584,7 @@
     },
     {
       "target": "src/previews.ts",
-      "targetSha256": "a5acb1356841f068892ac430e87b8aad59d35fed22b3d02edd8ad4d5dc07b07f",
+      "targetSha256": "7f047c8bf580552f78c132417f8b2c3034b393b037abf61bf74d03337fdc9599",
       "description": "Registers the Modern Markdown file preview body and plan preview body that shadow the official keyed entries (priority -100) so both previews fold code fences."
     },
     {
@@ -3596,42 +3604,42 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "b6edcf89775df2af45373e2dc830550115b9925b59eb8d00b4e8a7a7af6ad952",
+      "targetSha256": "7bfdb34a5f2f30aa92eb7b37a763e4a11ea041819c63e5607c4b4424ea26c9b6",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
       "target": "src/desktop-onboarding.ts",
-      "targetSha256": "1cb25a3b2faa7936aa1d9b69159b4f21d9b6c77950b6a1a36427c85ff9dc37f0",
+      "targetSha256": "8c60d3803d89edbe486986ed0f45b8396f3ae0249cfef3528cbd62bef471caf0",
       "description": "Original Desktop onboarding recovery: re-inherits progress saved over the bundle patch's skipped onboarding composition through the public settings form."
     },
     {
       "target": "src/community-markdown.ts",
-      "targetSha256": "f1f7588537be1b2838fc2be4449c6b93d3cd5a29139195a637f81d989b4f61e9",
+      "targetSha256": "2f3ceb4eaa30a000b96e5d8d81b1f8180a4088dda262d3b90b9e372394fe3486",
       "description": "Original reversible code-disclosure DOM adapter for the observed dsh-better-sidebar 0.28.0 public preview markup. No community controller, viewer, editor or library code is copied."
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "affaebeb6a1442d502e1102a7d67f03d3d4c6325b770818f07de3222fc468348",
+      "targetSha256": "8f99166d5843ae2275874ac608c99a523abb87a386200a882addd3ce66eba3f7",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
       "target": "src/official-controls.ts",
-      "targetSha256": "9ecc6a1f06169855c8b7ea489ede239721c2fbc7e4236c36f2405a8ba5d523e8",
+      "targetSha256": "666232003cf5bbaac79a8130f99ac4e91fcf268855d47d5ef35569dc2b8446bf",
       "description": "Original reversible exact-class rc.4 style/DOM adapter. It observes official controlled switch state through the attributed Feel solver without replacing official handlers or services."
     },
     {
       "target": "src/plugin-documents/index.tsx",
-      "targetSha256": "c72fab50e4654958bd022876e011ce209fa3f09a08ba94a1ad9e7e8c2461aeac",
+      "targetSha256": "6f5b6e0f66a417d108da8f186299a60b42fdcd6a748884474b708e06f2de3cad",
       "description": "Original public plugin detail-section registration and discovery-presentation adapter over the official inventory, installer, locale and controller faces."
     },
     {
       "target": "src/plugin-documents/PluginDocument.tsx",
-      "targetSha256": "8ca69f76a987e29de89915255504d66957ed3890c641d767a5ff54e10e2272fa",
+      "targetSha256": "a0ce8e5bb10f09b1aeedee9b20bfa15bc0ac4ddb67d99f2bb0b038bff48cae40",
       "description": "Original authenticated document/image request, cancellation and retry wrapper over the attributed DetailDocument presenter."
     },
     {
       "target": "src/presentation-parity.ts",
-      "targetSha256": "dd2efe5cbcd3f68d227709c07b4af5ca2f16387b93aa0020524fa62664b6fd16",
+      "targetSha256": "1169a3aa1f84c1e82e2f89d46b078978303042df2e3c4b0e589fc50fe1b9debd",
       "description": "Original public presentation adapter for ordinary questions, sharing the official controller face and question draft-store handle. Plan-review and the Agent presets settings section stay official; added disclosure labels are plugin-owned eight-language copy."
     },
     {
@@ -3641,7 +3649,7 @@
     },
     {
       "target": "src/tool-cards.tsx",
-      "targetSha256": "dfb0d0c68318a0819cc28010259925b6c5d16f5ee821057c2c9f944bb1257ad7",
+      "targetSha256": "f6b83374a384b9836456a148aed6159bb7e0570915d9732e127c46d10cde6a05",
       "description": "Original activation wrapper selecting the attributed complete Tool UI owner."
     },
     {
@@ -3656,12 +3664,12 @@
     },
     {
       "target": "src/quotes-contract.ts",
-      "targetSha256": "bf77270704fe55b85fe4ef1af775ed3a872f7450b7a138b78c15be628b6cc005",
+      "targetSha256": "c18abfd64ca4040ac4be8b7db0f06875b1a9b1d7f9f0168a717468f5f9c31123",
       "description": "Type-only package contract and official module augmentations for third-party text interaction consumers; emitted as the ./quotes declaration export."
     },
     {
       "target": "src/plugin-documents/discover-navigation.ts",
-      "targetSha256": "d309a21eba3a348104c0ec74a7bb918dd952a2485a365d97c9c1afc59309b140",
+      "targetSha256": "21d8ac63f1c7f86112679587bdb34b8f95699e7cb95f7369f934a9f07ecf1edb",
       "description": "Arrow, Home and End navigation over the visible tabs of the official plugin tab ledger, whose duplicated Discover entry stays hidden."
     },
     {
@@ -3681,7 +3689,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
-      "targetSha256": "747b6cf1e103e755ff020e6ffc7bb7f36c3ed1f9e09b6b3923d7292fb9be12ad",
+      "targetSha256": "7e27e46d8cd5392acd58c7308e306229736022d7ef9dc69dfd6bd9a0e1d3cc49",
       "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
     },
     {
@@ -3696,7 +3704,7 @@
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "9f8116d540320588d30d93fc2c68c3b4a268c358df3cf6595c4ddc259f2aa947",
+      "targetSha256": "d8dace0ccd0b2922c16ca763c14eb051c2f569041fb11140c644d0a32fa16a37",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
@@ -3706,12 +3714,12 @@
     },
     {
       "target": "src/jev-settings-state.ts",
-      "targetSha256": "407a9e5a85a28b5e2ab9779de32673b57533409f77ac5e3f24174f428da255d8",
+      "targetSha256": "ef0fdaad5c063e6b20d9191a9823a222cc554ca4989be82357881de03631264e",
       "description": "Original state for the Jev settings row: the jev.enabled switch through the Modern UI config form and the TypeSafe key through the official credentials Remote, which never returns the value."
     },
     {
       "target": "src/jev-settings.tsx",
-      "targetSha256": "b912e9d19fb9ca48d52496886e33ad1b97a09e5c534aaaaa94b682ddfcf279ca",
+      "targetSha256": "bbee484f07478f8a080321bf2eed72950b764257be54151ff6708683e4df46d0",
       "description": "Original Settings → General row for the optional Jev presentation advice tool: what it does, a write-only key field built from the official SettingsSecretField, and the switch once a key exists."
     },
     {
@@ -3728,12 +3736,22 @@
       "target": "src/host-contract.ts",
       "targetSha256": "008253a2fd8b9b9fb4437934eb0305e79e396716ce8b5f63dc0d2e737fa3b8bd",
       "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2)."
+    },
+    {
+      "target": "src/vendor/conversation/client/skeleton/session-phase.ts",
+      "targetSha256": "e1a1e36b7d3ea68fcffb116caefbb9c5db4dcb61fd503ce770e0ae9bf80ef4c7",
+      "description": "Original scalar lifecycle selectors preserving the existing main/header/view phase semantics."
+    },
+    {
+      "target": "src/vendor/conversation/client/skeleton/view-tab-ids.ts",
+      "targetSha256": "690ac8d764702f1564f961d125247007dd914f644df599f750940554e44f0f9a",
+      "description": "Original stable tab/panel IDs shared by the conversation header and view shell."
     }
   ],
   "adapters": [
     {
       "target": "src/steering-batches.ts",
-      "targetSha256": "b09cf99c545481cf9ccc3ae9f85445e1f1293d1f36caf0385256f1b0a04be4de",
+      "targetSha256": "7413dc4f0b7cc3999de9fe18836a677329baa5375998be87e22d29608f20a433",
       "sources": [
         {
           "source": "packages/client/ui-chat/src/client/conversation-nodes/inbox.ts",
@@ -3779,13 +3797,13 @@
     },
     {
       "target": "src/markdown-scope.tsx",
-      "targetSha256": "f728cc97be868656d9ec65d7f4dd5c50ef4333362e2c5b6ce25f837177bfe3ce",
+      "targetSha256": "8b4a04b3e2be4e398eee6d52b2f9bf659e7d6d5ef04581e6a8872bdd3624f162",
       "sources": [],
       "description": "Bridge the public chat owner workspace and navigation capabilities into Modern Markdown; resolve local image and file paths with the official workspace-path helper."
     },
     {
       "target": "src/official-surfaces.css",
-      "targetSha256": "887735bd87ae5b8ab808595267635a2f978d16e129a9f7919a062994b3e37680",
+      "targetSha256": "1eb61bfd82c3edc2d09937adad03e9f254e89d42a2766abb7255e18c75fed845",
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
@@ -3859,7 +3877,7 @@
     },
     {
       "target": "src/file-drag.ts",
-      "targetSha256": "c18c20b62b5c44a9c32872c0173c9e0bec6527f05380cbee2accb0411f2f9cdd",
+      "targetSha256": "78598da8715cf939c0992d50214f5e44381e964919f74492346308922fa22212",
       "sources": [
         {
           "source": "packages/client/ui-file-drag/src/client/index.ts",
@@ -3874,7 +3892,7 @@
     },
     {
       "target": "src/model-owner.ts",
-      "targetSha256": "7a0a5055d8068eb1e8584479ef3946500a3aaa496b685875ee53f52b909a7ea5",
+      "targetSha256": "5b9be4575f8fdf5c85fe7665addf024ec06043e6dffc1ff374d6821a73e6dfed",
       "sources": [
         {
           "source": "packages/client/ui-model-selection/src/client/index.ts",
@@ -3889,7 +3907,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "7413256fe91af087d5361fd42bd42558394c1e4045e6464aae25353ba531069c",
+      "targetSha256": "7e2c12b911465e0bed9f950eb8f14bc12335fd5d33c411b4de2f674220edd312",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -3980,7 +3998,7 @@
     },
     {
       "target": "src/plugin-documents/locales.ts",
-      "targetSha256": "b6bc3811aa1de1a6923861fc47047d476b11c9d14d37367bdc97133c24ebbafd",
+      "targetSha256": "613f6a3b14820b06fbdccef83ac1984690e9dfac1e34cd9243d572c03ff0104e",
       "sources": [
         {
           "source": "packages/client/ui-plugin-market/src/client/locales.ts",
@@ -3995,7 +4013,7 @@
     },
     {
       "target": "src/quotes.ts",
-      "targetSha256": "a0b6adb675e0f927bd3c81cc2dc253c29e5f71f7dc46e453b6aa13ca472f60e5",
+      "targetSha256": "51ee6436bc37e043bc19938cc0caa33f570bb2ea0dd9e65fa6c67231a547f9dc",
       "sources": [
         {
           "source": "packages/session/message-quotes/src/client/index.ts",
@@ -4006,7 +4024,7 @@
     },
     {
       "target": "src/tool-owner.ts",
-      "targetSha256": "18c43219ddf82a7cfc57be43d7691974d6cac2dcfb80aff1ca1bffb60baa50b8",
+      "targetSha256": "21f5e9e0b5328851338b94705c92821b939c2020a45b02548524775866562b6f",
       "sources": [
         {
           "source": "packages/client/ui-tool/src/client/apply.ts",
@@ -4845,7 +4863,7 @@
     {
       "namespace": "modern-plugin-documents",
       "target": "src/plugin-documents/locales.ts",
-      "targetSha256": "b6bc3811aa1de1a6923861fc47047d476b11c9d14d37367bdc97133c24ebbafd",
+      "targetSha256": "613f6a3b14820b06fbdccef83ac1984690e9dfac1e34cd9243d572c03ff0104e",
       "languages": [
         "zh",
         "en",
@@ -4870,7 +4888,7 @@
     {
       "namespace": "modern-presentation",
       "target": "src/presentation-parity.ts",
-      "targetSha256": "dd2efe5cbcd3f68d227709c07b4af5ca2f16387b93aa0020524fa62664b6fd16",
+      "targetSha256": "1169a3aa1f84c1e82e2f89d46b078978303042df2e3c4b0e589fc50fe1b9debd",
       "languages": [
         "zh",
         "en",

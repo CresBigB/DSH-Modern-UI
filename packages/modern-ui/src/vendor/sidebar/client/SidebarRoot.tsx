@@ -1,12 +1,11 @@
 // Derived from deepseek-ai/deepseek-harness (MIT); see package LICENSE.
 /**
  * Sidebar shell: Cloud-Monitor floating frosted-glass navigation (.feel-navigation).
- * Collapse is a slide plus crossfade:
+ * Collapse is a clipped column resize plus a short crossfade:
  * content freezes at its expanded width (inline style) and fades out in place
  * while the sliding column (AppFrame grid tracks) clips it — nothing reflows
  * mid-slide. At settle the wide-only content unmounts and the upper
- * controls enter the rail from the same horizontal offset on one fade that
- * ends with the slide.
+ * controls fade into their final rail positions, without an independent slide.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from 'react'
 import clsx from 'clsx'
@@ -22,9 +21,6 @@ import type {
 import { FIXED_PANEL_ID } from './panel-pins.ts'
 import { MobileHeader } from './MobileHeader.tsx'
 import css from './SidebarRoot.module.css'
-
-/** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
-const COLLAPSE_SETTLE_MS = 150
 
 /**
  * How long the column's scrollbars stay drawn after the pointer leaves it.
@@ -129,6 +125,7 @@ export function SidebarRoot({
   renderSlot,
 }: SidebarRootComponentProps) {
   const mobile = useModernViewport(snapshot => snapshot.mobile)
+  const column = useRef<HTMLDivElement>(null)
   const mobileTrigger = useRef<HTMLButtonElement>(null)
   const sidebarToggle = useRef<HTMLButtonElement>(null)
   const mobileReturnFocus = useRef<HTMLButtonElement | null>(null)
@@ -162,11 +159,26 @@ export function SidebarRoot({
   const toggleLabel = collapsed ? t('toggle.open') : t('toggle.collapse')
 
   const [settled, setSettled] = useState(collapsed)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!collapsed) { setSettled(false); return }
-    const timer = window.setTimeout(() => { setSettled(true) }, COLLAPSE_SETTLE_MS)
-    return () => { window.clearTimeout(timer) }
-  }, [collapsed])
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (reducedMotion.matches) { setSettled(true); return }
+    const token = mobile ? '--dsh-feel-panel-duration' : '--dsh-motion-feedback-duration'
+    const value = getComputedStyle(column.current ?? document.documentElement).getPropertyValue(token).trim()
+    const amount = Number.parseFloat(value)
+    const duration = Number.isFinite(amount) ? amount * (value.endsWith('ms') ? 1 : 1000) : mobile ? 297 : 120
+    const timer = window.setTimeout(() => { setSettled(true) }, duration)
+    const onReducedMotion = () => {
+      if (!reducedMotion.matches) return
+      window.clearTimeout(timer)
+      setSettled(true)
+    }
+    reducedMotion.addEventListener('change', onReducedMotion)
+    return () => {
+      window.clearTimeout(timer)
+      reducedMotion.removeEventListener('change', onReducedMotion)
+    }
+  }, [collapsed, mobile])
   const windowsTitlebar = document.documentElement.hasAttribute('data-windows-titlebar')
   const wide = mobile || (windowsTitlebar ? !collapsed : !collapsed || !settled)
 
@@ -183,7 +195,6 @@ export function SidebarRoot({
   const everWide = useRef(!collapsed)
   if (!collapsed) everWide.current = true
 
-  const column = useRef<HTMLDivElement>(null)
   useModalLayer(column, mobile && !collapsed, closeMobileDrawer)
   const drawerWasOpen = useRef(mobile && !collapsed)
   useLayoutEffect(() => {
@@ -243,10 +254,10 @@ export function SidebarRoot({
   }, [pointerInside])
 
   const buildVersion = installedVersion
-  const [copiedToast, setCopiedToast] = useState<number | null>(null)
+  const [copiedToast, setCopiedToast] = useState<{ sequence: number; ok: boolean } | null>(null)
   const copyVersion = (version: string) => (): void => {
     void writeClipboard(version).then((ok) => {
-      if (ok) setCopiedToast(seq => (seq ?? 0) + 1)
+      setCopiedToast(previous => ({ sequence: (previous?.sequence ?? 0) + 1, ok }))
     })
   }
 
@@ -301,16 +312,19 @@ export function SidebarRoot({
           {collapsed && newSession}
         </div>
       )}
-      {mobile && !collapsed && <div className={css.mobileBackdrop} aria-hidden="true" onClick={closeMobileDrawer} />}
+      {mobile && (!collapsed || !settled) && <div className={css.mobileBackdrop} data-open={!collapsed || undefined} aria-hidden="true" onClick={closeMobileDrawer} />}
       <div
         ref={column}
         onFocusCapture={rememberMobileFocus}
         onBlurCapture={leaveMobileFocus}
-        hidden={collapsed && (mobile || (width === 0 && settled))}
+        hidden={collapsed && settled && (mobile || width === 0)}
+        aria-hidden={mobile && collapsed ? true : undefined}
+        {...mobile && collapsed ? { inert: '' } : {}}
         role={mobile && !collapsed ? 'dialog' : undefined}
         aria-modal={mobile && !collapsed ? true : undefined}
         aria-label={mobile ? t('mobile.sessions') : undefined}
         data-mobile-drawer={mobile || undefined}
+        data-drawer-open={mobile && !collapsed || undefined}
         className={clsx(
           css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
           collapsed && wide && css.fading, !pointerInside && css.quietBars,
@@ -340,23 +354,14 @@ export function SidebarRoot({
               <span className={css.brandIdentity} aria-hidden="true">
                 <span className={css.brandMark}>
                   {renderSlot('sidebar.brand.mark', { size: 24 }, {
-                    fallback: buildVersion === undefined
-                      ? <FishLogo size={24} />
-                      : (
-                        <span className={css.copyVersion} data-copy-version onClick={copyVersion(buildVersion)}>
-                          <FishLogo size={24} />
-                        </span>
-                      ),
+                    fallback: <FishLogo size={24} />,
                   })}
                 </span>
                 <span className={css.brandName}>
                   {renderSlot('sidebar.brand.name', {}, {
                     fallback: (
                       <span
-                        className={clsx(css.fallbackBrandName, buildVersion !== undefined && css.copyVersion)}
-                        data-copy-version={buildVersion !== undefined ? '' : undefined}
-                        title={buildVersion}
-                        onClick={buildVersion === undefined ? undefined : copyVersion(buildVersion)}>
+                        className={css.fallbackBrandName}>
                         {t('brand.name')}
                       </span>
                     ),
@@ -372,10 +377,7 @@ export function SidebarRoot({
                   className={clsx(css.brand, css.wide)}
                   aria-label={t('session.new.label')}
                   aria-keyshortcuts={newShortcut?.aria}
-                  onClick={(event) => {
-                    if ((event.target as Element).closest('[data-copy-version]') !== null) return
-                    openNewSession()
-                  }}
+                  onClick={openNewSession}
                 >
                   {identity}
                 </button>
@@ -383,6 +385,12 @@ export function SidebarRoot({
           })()}
           {!darwinDesktop && !windowsCaption && toggle}
         </div>
+
+        {wide && buildVersion !== undefined && (
+          <button type="button" className={css.copyVersion} onClick={copyVersion(buildVersion)} title={buildVersion}>
+            {t('version.copy')}
+          </button>
+        )}
 
         {wide && <p hidden={mobile} className={clsx(css.navSectionLabel, css.wide)}>{t('panels.label')}</p>}
 
@@ -430,7 +438,7 @@ export function SidebarRoot({
         </div>
 
         {copiedToast !== null && (
-          <Toast key={copiedToast} tone="success" text={t('version.copied')} onDone={() => { setCopiedToast(null) }} />
+          <Toast key={copiedToast.sequence} tone={copiedToast.ok ? 'success' : undefined} text={t(copiedToast.ok ? 'version.copied' : 'version.failed')} onDone={() => { setCopiedToast(null) }} />
         )}
 
         {/* Cloud-Monitor .sidebar-bottom: connection status bar + settings trigger */}

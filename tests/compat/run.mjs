@@ -13,6 +13,8 @@ import { PROBE as lifecycleFixtureName } from './fixtures/lifecycle/protocol.mjs
 import { runBrowserChecks, browserFixtureName } from './browser.mjs'
 import { checkFailedUpgrade } from './install-failure.mjs'
 import { runWebConfigChecks } from './web-config.mjs'
+import { runOfficialControlsChecks } from './official-controls.mjs'
+import { inspectRuntimeDependencies } from '../../scripts/dependency-exposure.mjs'
 
 const execute = promisify(execFile)
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -153,6 +155,24 @@ for (const version of versions) {
       runtime: { node: state.node, nodeVersion: state.compatibility.node, pnpm: state.pnpm, pnpmVersion: state.compatibility.pnpm },
     }
     result.layers.officialBefore = { state: 'passed', result: await main(['verify', '--root', state.root]) }
+    // The exact-selector contract is recorded against verified hosts. An in-range host that is not verified yet may
+    // ship other hashed class names; the overrides then do not apply there, which is reported rather than failing
+    // every later layer for that host.
+    result.layers.officialControls = await runOfficialControlsChecks(state.backend).then(
+      checked => ({ state: 'passed', result: checked }),
+      error => {
+        if ((result.hostStatus ?? state.compatibility?.status) !== 'unverified') throw error
+        return { state: 'unverified', reason: error.message }
+      },
+    )
+    const runtimeDependencies = await inspectRuntimeDependencies(path.join(state.plugin.path, 'package.json'), state.backend)
+    const installedPlugin = await json(path.join(state.plugin.path, 'package.json'))
+    for (const dependency of runtimeDependencies.plugin.filter(item => item.declared)) {
+      assert.equal(dependency.status, 'resolved', `Installed plugin runtime dependency ${dependency.name} must resolve`)
+      assert.equal(dependency.version, installedPlugin.dependencies[dependency.name], `Installed plugin must use its pinned ${dependency.name}`)
+    }
+    await save(path.join(evidence, 'runtime-dependencies.json'), runtimeDependencies)
+    result.layers.runtimeDependencies = { state: 'passed', evidence: 'runtime-dependencies.json', scope: 'resolution, not a vulnerability exemption' }
     const cleanupFixtures = async names => {
       const errors = []
       for (const name of names) {

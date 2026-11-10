@@ -50,21 +50,35 @@ export const Now = defineFunction({
   fn: () => new Date().toISOString(),
 });
 
+/**
+ * The language tag for a date. A model asked to pass the reader's language also writes "zh_CN", "" or a language
+ * name; Intl throws on those, which would leave the date blank, so they read as the nearest valid tag or the default.
+ */
+export function languageTag(locale: unknown): string {
+  if (typeof locale !== "string") return "en-US";
+  try {
+    return Intl.getCanonicalLocales(locale.trim().replace(/_/g, "-"))[0] ?? "en-US";
+  } catch {
+    return "en-US";
+  }
+}
+
 export const FormatDate = defineFunction({
   name: "FormatDate",
   description:
-    'A date as text: "date" Oct 9, 2026 (default), "short" Oct 9, "long" Friday, October 9, 2026, "weekday" Fri, "month" Oct 2026, "time" 9:30 PM, "datetime", "iso" 2026-10-09. Dates are "YYYY-MM-DD", ISO or a timestamp',
+    'A date as text: "date" Oct 9, 2026 (default), "short" Oct 9, "long" Friday, October 9, 2026, "weekday" Fri, "month" Oct 2026, "time" 9:30 PM, "datetime", "iso" 2026-10-09. Dates are "YYYY-MM-DD", ISO or a timestamp. Optional locale is a BCP 47 language tag; omitted preserves English text',
   params: z.object({
     date: date(),
     style: z.enum(["date", "short", "long", "weekday", "month", "time", "datetime", "iso"]).optional(),
+    locale: z.string().optional(),
   }),
   returns: z.string(),
-  fn: ({ date, style = "date" }) => {
+  fn: ({ date, style = "date", locale = "en-US" }) => {
     const { day, instant } = parseDate(date);
     if (style === "iso") return isoDay(day);
     // A calendar date formats in UTC so its day never shifts with the viewer's zone
     const at = instant ?? new Date(day * DAY);
-    return at.toLocaleString("en-US", { ...STYLES[style], ...(instant ? {} : { timeZone: "UTC" }) });
+    return at.toLocaleString(languageTag(locale), { ...STYLES[style], ...(instant ? {} : { timeZone: "UTC" }) });
   },
 });
 

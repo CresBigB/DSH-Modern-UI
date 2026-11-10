@@ -13,15 +13,18 @@ export function installDiscoverTabNavigation(document: Document): () => void {
     // The official list slot includes both the original Discover entry and our
     // presentation shadow. CSS hides its duplicate; the Host still indexes it.
     if (!list.querySelector(':scope > [role="tab"][id$="-discover"] ~ [role="tab"][id$="-discover"]')) return
-    const tabs = Array.from(list.children).filter((tab): tab is HTMLElement =>
-      tab instanceof view.HTMLElement && tab.getAttribute('role') === 'tab'
-      && !tab.hidden && !tab.hasAttribute('disabled')
-      && view.getComputedStyle(tab).display !== 'none'
-      && view.getComputedStyle(tab).visibility !== 'hidden')
+    const tabs = Array.from(list.children).filter(
+      (tab): tab is HTMLElement =>
+        tab instanceof view.HTMLElement &&
+        tab.getAttribute('role') === 'tab' &&
+        !tab.hidden &&
+        !tab.hasAttribute('disabled') &&
+        view.getComputedStyle(tab).display !== 'none' &&
+        view.getComputedStyle(tab).visibility !== 'hidden',
+    )
     const index = tabs.indexOf(current)
     if (index < 0) return
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
     event.preventDefault()
     event.stopPropagation()
     tabs[next]?.focus()

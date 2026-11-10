@@ -32,4 +32,3 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.chat.message.code': { kind: 'chain'; scope: 'session'; owner: MessageCodeOwnerProps }
   }
 }
-

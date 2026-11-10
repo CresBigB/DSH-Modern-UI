@@ -30,6 +30,7 @@ const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 2400;
 const AUTO_START = 360;
 const KIND = "dsh:openui-html-view:v1";
+const HEARTBEAT_TIMEOUT = 5000;
 const COLOR = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color)\([\w\s.,%/+-]{1,80}\))$/i;
 
 const data = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
@@ -43,13 +44,15 @@ const THEMER = `<script>addEventListener("message",function(e){if(e.source!==par
 
 // Reports the content height to the outer frame, which forwards it.
 const REPORTER = `<script>(function(){var last=0;function send(){var h=Math.ceil(document.documentElement.getBoundingClientRect().height);if(Math.abs(h-last)>1){last=h;parent.postMessage({type:"${KIND}",height:h},"*")}}addEventListener("load",send);new ResizeObserver(send).observe(document.documentElement);send()})()</script>`;
+// A responsiveness watchdog, not a CPU quota: termination still depends on the browser isolating the frame's event loop.
+const HEARTBEAT = `<script>(function(){function beat(){parent.postMessage({type:"${KIND}",heartbeat:true},"*")}setInterval(beat,250);beat()})()</script>`;
 
 type Palette = { fg: string; bg: string; muted: string; line: string; accent: string };
 
 function innerDocument(html: string, scheme: "light" | "dark", palette: Palette) {
   const vars = `--fg:${palette.fg};--bg:${palette.bg};--muted:${palette.muted};--line:${palette.line};--accent:${palette.accent}`;
   // The policy comes first, so it covers everything in the model's markup.
-  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${INNER_CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:${scheme};${vars}}html,body{margin:0;background:transparent;color:var(--fg)}body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>${NO_WEBRTC}${THEMER}${REPORTER}${html}`;
+  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${INNER_CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:${scheme};${vars}}html,body{margin:0;background:transparent;color:var(--fg)}body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>${NO_WEBRTC}${THEMER}${REPORTER}${HEARTBEAT}${html}`;
 }
 
 function outerDocument(inner: string, token: string, title: string) {
@@ -69,6 +72,7 @@ addEventListener('message',event=>{
     return;
   }
   if(event.source!==frame.contentWindow)return;
+  if(d&&d.type===kind&&d.heartbeat===true){parent.postMessage({type:kind,token,heartbeat:true},'*');return;}
   if(!d||d.type!==kind||typeof d.height!=='number'||!Number.isFinite(d.height))return;
   parent.postMessage({type:kind,token,height:d.height},'*');
 });
@@ -119,10 +123,13 @@ export const HtmlView = defineComponent({
     const scheme = useColorScheme(box);
     const fixed = typeof props.height === "number" && props.height > 0 ? Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, props.height)) : null;
     const [measured, setMeasured] = useState<number | null>(null);
-    const [failed, setFailed] = useState(false);
+    const [stopped, setStopped] = useState<"navigation" | "unresponsive" | "user" | null>(null);
+    const [retry, setRetry] = useState(0);
+    const failed = stopped !== null;
     const html = typeof props.html === "string" ? props.html : "";
     const title = props.title || text.interactiveView;
-    const token = useMemo(newToken, []);
+    const token = useMemo(newToken, [html, retry]);
+    const lastHeartbeat = useRef(0);
     const [palette, setPalette] = useState<Palette | null>(null);
     useEffect(() => {
       setPalette(readPalette(box.current));
@@ -145,17 +152,33 @@ export const HtmlView = defineComponent({
     // after a resize mark it, and the view stops growing instead of climbing to the maximum.
     const growth = useRef({ height: AUTO_START, at: 0, delta: 0, streak: 0, frozen: false });
     useLayoutEffect(() => {
-      setFailed(false);
+      setStopped(null);
       setMeasured(null);
       growth.current = { height: AUTO_START, at: 0, delta: 0, streak: 0, frozen: false };
-    }, [html]);
+    }, [html, retry]);
+
+    useEffect(() => {
+      if (streaming || !srcDoc || failed) return;
+      const reset = () => { lastHeartbeat.current = performance.now(); };
+      reset();
+      const timer = window.setInterval(() => {
+        if (document.hidden) reset();
+        else if (performance.now() - lastHeartbeat.current > HEARTBEAT_TIMEOUT) setStopped("unresponsive");
+      }, 1000);
+      document.addEventListener("visibilitychange", reset);
+      return () => {
+        window.clearInterval(timer);
+        document.removeEventListener("visibilitychange", reset);
+      };
+    }, [srcDoc, streaming, failed]);
 
     useEffect(() => {
       const onMessage = (event: MessageEvent) => {
         if (event.source !== frame.current?.contentWindow) return;
-        const message = event.data as { type?: unknown; token?: unknown; height?: unknown; state?: unknown };
+        const message = event.data as { type?: unknown; token?: unknown; height?: unknown; state?: unknown; heartbeat?: unknown };
         if (message?.type !== KIND || message.token !== token) return;
-        if (message.state === "failed") setFailed(true);
+        if (message.heartbeat === true) lastHeartbeat.current = performance.now();
+        else if (message.state === "failed") setStopped("navigation");
         else if (!fixed && typeof message.height === "number" && Number.isFinite(message.height)) {
           const next = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(message.height)));
           const g = growth.current;
@@ -181,16 +204,24 @@ export const HtmlView = defineComponent({
     // A page that is still streaming would reload on every chunk; it runs once complete.
     const height = fixed ?? measured ?? AUTO_START;
     return (
-      <div ref={box} className="iui-html-view" style={{ height: failed ? undefined : height }}>
-        {failed ? (
-          <div className="iui-html-view-wait">{text.viewStopped}</div>
-        ) : streaming || !srcDoc ? (
-          <div className="iui-html-view-wait">{text.preparingView}</div>
-        ) : (
-          // A switch while the page streamed, or one posted before the frames listened, is in neither the built
-          // document nor a delivered message. The outer load waits for the inner page, so both listen by now.
-          <iframe ref={frame} title={title} sandbox="allow-scripts" allow={DENIED} srcDoc={srcDoc} referrerPolicy="no-referrer" onLoad={postTheme} />
-        )}
+      <div className="iui-html-view-container">
+        {!streaming && srcDoc && <div className="iui-html-view-controls">
+          <button type="button" onClick={() => failed ? setRetry(value => value + 1) : setStopped("user")}>{failed ? text.restartView : text.stopView}</button>
+        </div>}
+        <div ref={box} className="iui-html-view" style={{ height: failed ? undefined : height }}>
+          {failed ? (
+            <div className="iui-html-view-stopped">
+              <p role="status">{stopped === "navigation" ? text.viewStopped : stopped === "unresponsive" ? text.viewUnresponsive : text.viewClosed}</p>
+              <details><summary>{text.code}</summary><pre>{html}</pre></details>
+            </div>
+          ) : streaming || !srcDoc ? (
+            <div className="iui-html-view-wait">{text.preparingView}</div>
+          ) : (
+            // A switch while the page streamed, or one posted before the frames listened, is in neither the built
+            // document nor a delivered message. The outer load waits for the inner page, so both listen by now.
+            <iframe ref={frame} title={title} sandbox="allow-scripts" allow={DENIED} srcDoc={srcDoc} referrerPolicy="no-referrer" onLoad={postTheme} />
+          )}
+        </div>
       </div>
     );
   },

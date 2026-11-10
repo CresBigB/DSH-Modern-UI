@@ -32,28 +32,28 @@
       "source": "src/lib/components/chart.tsx",
       "target": "src/vendor/openui/components/chart.tsx",
       "sourceSha256": "61a270bc9aa80ead37631c90ea525052f60482ff904544b7d32cbd2d0e60bef3",
-      "targetSha256": "bafe1be7603587e09ab3ca303598562858982e758b913f9d4fb69b6ebc504af0",
+      "targetSha256": "51dc06c6409efd366ebee6dcc805117266ae31fad9025069b8c7713799647863",
       "adapted": true
     },
     {
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "3ae6645eacb7ee0d6c038effe92aa81728b010bb321cf3863f4190201e033841",
+      "targetSha256": "bf94c5d1918933996834ec2b271f03a8297b689996d9469d6c7eea4c55c4137c",
       "adapted": true
     },
     {
       "source": "src/lib/components/controls.tsx",
       "target": "src/vendor/openui/components/controls.tsx",
       "sourceSha256": "3a372d84ff59b02136eb1c78d72080b6b7ce41387b55bd455b8e757095414762",
-      "targetSha256": "ed8a3910b93a63364c9fc99b4f3f24a9eaa400d86dbc5217d436a6106fc517cd",
+      "targetSha256": "205105476c46984a2ad8662fc28afcc19d153efa5a3a8d543b1b7bd069aab1ea",
       "adapted": true
     },
     {
       "source": "src/lib/components/extra.tsx",
       "target": "src/vendor/openui/components/extra.tsx",
       "sourceSha256": "586d1a898eb6405fea4fab136b3ca0a4db626b559a17ee9125b4232de312ae1d",
-      "targetSha256": "4a21eeb962da18228f9fb6ba42a1ac553c6beed9f92da796edb9ccd3356ca56b",
+      "targetSha256": "37c21d3ae8ee7701a00eebc6dc8d259ab70b84d54eedd042d81b82212d36d4c0",
       "adapted": true
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "target": "src/vendor/openui/components/chart-math.ts",
-      "targetSha256": "79cc8dfa8d688c919984d0fb7911fe71463e347f85bf5660bb4a0d61bcda04a4",
+      "targetSha256": "dd4ad0bcd2c0b38b690fd06c18cd3573c182a58500177e92d829218e00551e70",
       "authored": true
     },
     {
@@ -82,7 +82,7 @@
       "source": "src/lib/components/html-view.tsx",
       "target": "src/vendor/openui/components/html-view.tsx",
       "sourceSha256": "39bc4730a8fd87dacbde2f3b16ec13d1882f1e085f511a9b0dbe3b3a4167cecf",
-      "targetSha256": "e8f74cebafadfe88d4c1ffac1d8feeef357584ee6ecbd66455373ba327123ba1",
+      "targetSha256": "3704e00824cecaa94d75243dff243feeb502a4f9632f9dcf66dff72631030169",
       "adapted": true
     },
     {
@@ -138,14 +138,14 @@
       "source": "src/lib/components/svg.tsx",
       "target": "src/vendor/openui/components/svg.tsx",
       "sourceSha256": "b4607d3889eea6566ab489b60b845a1c70c5c4a29f62b5d5db5dd72f057006fa",
-      "targetSha256": "4ce318ec902ccbeb92fd1a31719aff0f39165985e301f0e8e86abab05a1accf2",
+      "targetSha256": "8a62dfe4b8b766fce9522dc39849c007f5714e427ed29cfd7f6f367216505ea2",
       "adapted": true
     },
     {
       "source": "src/lib/components/table.tsx",
       "target": "src/vendor/openui/components/table.tsx",
       "sourceSha256": "d6713d6f0330c760d5c5feb491b4a7bc79a205b15961e9ef8673c0a90e90e492",
-      "targetSha256": "c44e6c8e066301e291d41561c40cee8d96578f9593f355d52c919bd18d876c3b",
+      "targetSha256": "d3c925fdeac512711308e1c4de10120c34eb2f2fd47f15f89223cee6a0c8e9c4",
       "adapted": true
     },
     {
@@ -164,15 +164,15 @@
     },
     {
       "target": "src/vendor/openui/components/ui-text.ts",
-      "targetSha256": "065cce0dffd3113369d5d2f12ec547c883d2310153ee3046140c027134c7e84d",
+      "targetSha256": "d0dcde02c1e85e363bd99c897b96e3c41b0cc2ccd065d9671b179dfbbfde7d37",
       "authored": true
     },
     {
       "source": "src/lib/functions/dates.ts",
       "target": "src/vendor/openui/functions/dates.ts",
       "sourceSha256": "5b3c634f418f6337dfeb6703677206394b8dd327a5614ec79d66c1063174854b",
-      "targetSha256": "5b3c634f418f6337dfeb6703677206394b8dd327a5614ec79d66c1063174854b",
-      "adapted": false
+      "targetSha256": "37574e54ff7c846a9a44f73718e5a003c667ceb38f0c70236505e08e1d4b2d98",
+      "adapted": true
     },
     {
       "source": "src/lib/functions/index.ts",
@@ -220,12 +220,12 @@
       "source": "src/lib/prompt-options.ts",
       "target": "src/vendor/openui/prompt-options.ts",
       "sourceSha256": "af940aab9435ee2a5400f965e8d5f3d7a188d56987c7260082df738bb24e2eb2",
-      "targetSha256": "23b02ec04f0d92daf7669d36bc2e603b6b63b1cc6d21f4e3b67ae22258ac8134",
+      "targetSha256": "bc39c988dd165ad48bf5c04dcf5d823a2d72db5a1860f69e22d4b880af59de70",
       "adapted": true
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "2fc13f866f21f937016b4dff0454b61d1dda3a26b4f89f0457b182d5adc11e51",
+      "targetSha256": "66eee7970752f4479a003dcbbbc298648a10909e355c3007597871addc1b134e",
       "authored": true
     }
   ]

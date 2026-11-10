@@ -1,4 +1,6 @@
 import { defineComponent } from "@openuidev/react-lang";
+import { useId } from "react";
+import { useUiText } from "./ui-text";
 import { z } from "zod/v4";
 import { children, color, fg, length, size } from "./style";
 
@@ -42,15 +44,23 @@ export const Svg = defineComponent({
     viewBox: z.string(),
     width: length.optional(),
     height: length.optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    decorative: z.boolean().optional(),
   }),
-  description: "A drawing for steps, parts, mechanisms, diagrams and layouts. Scales to its width; its shapes take expressions, so state can move them.",
+  description: "A drawing for steps, parts, mechanisms, diagrams and layouts. Provide a meaningful title and description explaining relationships; decorative true hides pure decoration. Scales to its width; its shapes take expressions, so state can move them.",
   component: ({ props, renderNode }) => {
+    const id = useId();
+    const text = useUiText();
+    const title = props.title?.trim() || text.diagram;
     const viewBox = ok(props.viewBox, /^\s*[-\d.]+(\s*[\s,]\s*[-\d.]+){3}\s*$/) ?? "0 0 100 100";
     // Without a width it fills the column, up to 1.5x the viewBox (at least 280px), so text stays in scale.
     const natural = Number(viewBox.trim().split(/[\s,]+/)[2]);
     const maxWidth = props.width == null && natural > 0 ? `${Math.max(280, natural * 1.5)}px` : undefined;
     return (
-      <svg className="iui-svg" viewBox={viewBox} style={{ width: size(props.width) ?? "100%", maxWidth, height: size(props.height) }} role="img" preserveAspectRatio="xMidYMid meet">
+      <svg className="iui-svg" viewBox={viewBox} style={{ width: size(props.width) ?? "100%", maxWidth, height: size(props.height) }} role={props.decorative ? undefined : "img"} aria-hidden={props.decorative || undefined} aria-labelledby={props.decorative ? undefined : `${id}-title`} aria-describedby={!props.decorative && props.description ? `${id}-description` : undefined} preserveAspectRatio="xMidYMid meet">
+        {!props.decorative && <title id={`${id}-title`}>{title}</title>}
+        {!props.decorative && props.description && <desc id={`${id}-description`}>{props.description}</desc>}
         {renderNode(props.children)}
       </svg>
     );

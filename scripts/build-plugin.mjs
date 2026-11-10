@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildQuotesTypes } from './build-quotes-types.mjs'
 import { eachCounterPlugin } from './openui-each-counter.mjs'
+import { modernKatexFonts, logicalBuildInput, recordMetafile, recordClientMetrics } from './build-metrics.mjs'
 import { defaultHostVersion, hostRange, platformPeers, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -106,6 +107,7 @@ const stylePlugin = {
     }))
     const css = async args => {
       let source = await readFile(args.path, 'utf8')
+      if (/[/\\]katex[/\\]dist[/\\]katex(?:\.min)?\.css$/.test(args.path)) source = modernKatexFonts(source)
       // Keep font resources inside the precompiled artifact, with no external checkout paths.
       const matches = [...source.matchAll(/url\(([^)]+)\)/g)]
       for (const match of matches) {
@@ -176,7 +178,7 @@ const client = await build({
   banner: { js: `window.__ModuleLoader__.load({id:${JSON.stringify(id)},factory:(require)=>{const module={exports:{}};const exports=module.exports;` },
   footer: { js: 'return module.exports;}});' },
 })
-await build({
+const hostMain = await build({
   absWorkingDir: root,
   entryPoints: [path.join(pkg, 'src/index.ts')],
   outfile: path.join(pkg, 'lib/index.js'),
@@ -185,7 +187,11 @@ await build({
   format: 'esm',
   target: 'node24',
   external: ['@deepseek-ai/*'],
+  metafile: true,
 })
+await recordMetafile(root, 'client', client.metafile)
+await recordMetafile(root, 'host-main', hostMain.metafile)
+await recordClientMetrics(root, client.metafile)
 await import('./build-host.mjs')
 buildQuotesTypes()
 const licensed = new Map()
@@ -225,10 +231,7 @@ for (const [identity, { manifest, directory }] of [...licensed].sort(([left], [r
 }
 await writeFile(path.join(pkg, 'licenses/bundled-dependencies.json'), JSON.stringify(licenseIndex, null, 2) + '\n')
 function logicalInput(input) {
-  const prefix = input.match(/^(?:owned-css|inline-css):/)?.[0] ?? ''
-  const physical = path.resolve(root, input.slice(prefix.length)).replaceAll('\\', '/')
-  const dependency = physical.lastIndexOf('/node_modules/')
-  return prefix + (dependency < 0 ? path.relative(root, physical).replaceAll('\\', '/') : physical.slice(dependency + 1))
+  return logicalBuildInput(root, input)
 }
 await writeFile(
   path.join(pkg, 'lib/build-inputs.json'),

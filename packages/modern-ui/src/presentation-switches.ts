@@ -37,7 +37,8 @@ const en: Dictionary = {
   'settings.presentation.on': 'On',
   'settings.presentation.off': 'Off',
   'settings.progressive.title': 'Deliver results in stages',
-  'settings.progressive.description': 'Adds about 3 KB of instructions to the model prompt: when an answer takes several rounds of tool calls, each finished part is delivered before the next is researched',
+  'settings.progressive.description':
+    'Adds about 3 KB of instructions to the model prompt: when an answer takes several rounds of tool calls, each finished part is delivered before the next is researched',
 }
 const ja: Dictionary = {
   'settings.presentation.title': '回答のビジュアルコンポーネント',
@@ -46,7 +47,8 @@ const ja: Dictionary = {
   'settings.presentation.on': 'オン',
   'settings.presentation.off': 'オフ',
   'settings.progressive.title': '成果を段階的に届ける',
-  'settings.progressive.description': 'オンにするとモデルに約 3 KB の指示を追加し、何度もツールを呼ぶ回答では、調べ終えた部分から先に結果を届けてから次へ進みます',
+  'settings.progressive.description':
+    'オンにするとモデルに約 3 KB の指示を追加し、何度もツールを呼ぶ回答では、調べ終えた部分から先に結果を届けてから次へ進みます',
 }
 const es: Dictionary = {
   'settings.presentation.title': 'Componentes visuales en respuestas',
@@ -55,16 +57,19 @@ const es: Dictionary = {
   'settings.presentation.on': 'Activado',
   'settings.presentation.off': 'Desactivado',
   'settings.progressive.title': 'Entregar resultados por etapas',
-  'settings.progressive.description': 'Añade unos 3 KB de instrucciones al modelo: cuando una respuesta requiere varias rondas de herramientas, entrega cada parte terminada antes de investigar la siguiente',
+  'settings.progressive.description':
+    'Añade unos 3 KB de instrucciones al modelo: cuando una respuesta requiere varias rondas de herramientas, entrega cada parte terminada antes de investigar la siguiente',
 }
 const fr: Dictionary = {
   'settings.presentation.title': 'Composants visuels des réponses',
-  'settings.presentation.description': 'Ajoute environ 30 Ko d’instructions au modèle pour répondre avec des cartes, des diagrammes et des composants similaires',
+  'settings.presentation.description':
+    'Ajoute environ 30 Ko d’instructions au modèle pour répondre avec des cartes, des diagrammes et des composants similaires',
   'settings.presentation.saveFailed': 'Échec de l’enregistrement ; le réglage n’a pas changé. Réessayez.',
   'settings.presentation.on': 'Activé',
   'settings.presentation.off': 'Désactivé',
   'settings.progressive.title': 'Livrer les résultats par étapes',
-  'settings.progressive.description': 'Ajoute environ 3 Ko d’instructions au modèle : quand une réponse demande plusieurs séries d’outils, chaque partie terminée est livrée avant de chercher la suivante',
+  'settings.progressive.description':
+    'Ajoute environ 3 Ko d’instructions au modèle : quand une réponse demande plusieurs séries d’outils, chaque partie terminée est livrée avant de chercher la suivante',
 }
 const de: Dictionary = {
   'settings.presentation.title': 'Visuelle Antwortkomponenten',
@@ -73,7 +78,8 @@ const de: Dictionary = {
   'settings.presentation.on': 'An',
   'settings.presentation.off': 'Aus',
   'settings.progressive.title': 'Ergebnisse schrittweise liefern',
-  'settings.progressive.description': 'Fügt dem Modell etwa 3 KB Anweisungen hinzu: Braucht eine Antwort mehrere Werkzeugrunden, wird jeder fertige Teil geliefert, bevor der nächste recherchiert wird',
+  'settings.progressive.description':
+    'Fügt dem Modell etwa 3 KB Anweisungen hinzu: Braucht eine Antwort mehrere Werkzeugrunden, wird jeder fertige Teil geliefert, bevor der nächste recherchiert wird',
 }
 const ru: Dictionary = {
   'settings.presentation.title': 'Визуальные компоненты ответов',
@@ -82,7 +88,8 @@ const ru: Dictionary = {
   'settings.presentation.on': 'Вкл.',
   'settings.presentation.off': 'Выкл.',
   'settings.progressive.title': 'Выдавать результаты по этапам',
-  'settings.progressive.description': 'Добавляет модели около 3 КБ инструкций: если ответ требует нескольких раундов инструментов, каждая готовая часть выдаётся до поиска следующей',
+  'settings.progressive.description':
+    'Добавляет модели около 3 КБ инструкций: если ответ требует нескольких раундов инструментов, каждая готовая часть выдаётся до поиска следующей',
 }
 const pt: Dictionary = {
   'settings.presentation.title': 'Componentes visuais nas respostas',
@@ -91,13 +98,16 @@ const pt: Dictionary = {
   'settings.presentation.on': 'Ativado',
   'settings.presentation.off': 'Desativado',
   'settings.progressive.title': 'Entregar resultados por etapas',
-  'settings.progressive.description': 'Adiciona cerca de 3 KB de instruções ao modelo: quando uma resposta exige várias rodadas de ferramentas, cada parte concluída é entregue antes de pesquisar a próxima',
+  'settings.progressive.description':
+    'Adiciona cerca de 3 KB de instruções ao modelo: quando uma resposta exige várias rodadas de ferramentas, cada parte concluída é entregue antes de pesquisar a próxima',
 }
 /** Row copy in the eight interface languages. */
 export const presentationLocale = { zh, en, ja, es, fr, de, ru, pt }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap { 'modern-presentation-settings': keyof Dictionary }
+  interface LocaleNamespaceMap {
+    'modern-presentation-settings': keyof Dictionary
+  }
 }
 
 /**
@@ -106,8 +116,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * @returns complete switches.
  */
 export function readPresentation(value: unknown): PresentationSettings {
-  const section = value && typeof value === 'object' ? value as Partial<Record<keyof PresentationSettings, unknown>> : {}
-  const flag = (key: keyof PresentationSettings) => typeof section[key] === 'boolean' ? section[key] : DEFAULT_PRESENTATION[key]
+  const section = value && typeof value === 'object' ? (value as Partial<Record<keyof PresentationSettings, unknown>>) : {}
+  const flag = (key: keyof PresentationSettings) => (typeof section[key] === 'boolean' ? section[key] : DEFAULT_PRESENTATION[key])
   return { prompt: flag('prompt'), progressive: flag('progressive'), openui: flag('openui'), followups: flag('followups') }
 }
 
@@ -156,7 +166,9 @@ export function trackPresentation(form: PresentationForm): PresentationState {
         sync()
         saveFailed.set(!accepted)
       }
-      form.mutate([{ op: 'set', path: ['presentation', key], value: enabled }]).then(settle, () => { settle(false) })
+      form.mutate([{ op: 'set', path: ['presentation', key], value: enabled }]).then(settle, () => {
+        settle(false)
+      })
     }
     return { saveFailed, set }
   }

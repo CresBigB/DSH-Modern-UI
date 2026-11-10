@@ -533,6 +533,8 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       className={clsx(css.list, listClassName, dense && css.denseList, compact && css.compactList, scrollable && css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
       style={portal ? fixedPos ?? MEASURE_STYLE : undefined}
       role="menu"
+      data-menu-side={side}
+      data-menu-positioned={!portal || fixedPos !== null}
       // React portals bubble synthetic events through the REACT tree: without
       // this stop, an item click re-fires the anchor row's own onClick
       // (open/toggle) after onSelect. The same bubble is where every row's

@@ -25,7 +25,7 @@
 /* ==========================================================================
    ui-input-trigger: the "/" and "@" completion menu.
    Restores: 8px gap above the composer, 10px corners, raised shadow, and the
-   180ms scale-in (0.95 to 1) from the bottom edge.
+   a short upward entrance from the composer without changing the card's size.
    Hook: [data-trigger-menu] on MenuView's MenuSurface (rc.4 client.js:1734).
    Official rules: ._3e4SsG_menu (0,1,0) and the primitives' .surface (0,1,0);
    the doubled attribute makes this (0,2,0).
@@ -35,14 +35,14 @@
   border-radius: var(--bui-radius-card);
   box-shadow: var(--bui-shadow-raised);
   transform-origin: bottom center;
-  animation: promptMenuIn 180ms var(--bui-ease-out);
+  animation: promptMenuIn var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
 }
 
 /* Opacity is left alone on purpose: fading the menu would isolate its
    translucent material from the page behind it. */
 @keyframes promptMenuIn {
-  from { transform: scale(0.95); }
-  to { transform: scale(1); }
+  from { translate: 0 2px; }
+  to { translate: 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

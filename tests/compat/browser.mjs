@@ -17,6 +17,25 @@ const tooling = createRequire(
   process.env.COMPAT_TEST_DRIVER ? path.join(path.resolve(process.env.COMPAT_TEST_DRIVER), 'package.json') : path.resolve(here, '../../package.json'),
 )
 export const browserFixtureName = 'modern-compat-browser-fixture'
+
+/** Answer text can precede turn/end; wait for the disclosure belonging to this prompt. */
+export async function completedTurnProcess(page, prompt) {
+  await page.waitForFunction(
+    prompt => {
+      const report = document.querySelector('[data-compat-session-report]')?.textContent
+      return report !== undefined && JSON.parse(report).navigation.some(row => row.prompt === prompt)
+    },
+    prompt,
+    { timeout: 30000 },
+  )
+  const session = JSON.parse(await page.locator('[data-compat-session-report]').textContent())
+  const turn = session.navigation.find(row => row.prompt === prompt)?.turn
+  assert.notEqual(turn, undefined, `Navigation contains the ${prompt} turn`)
+  const process = page.locator(`[data-turn-process=${JSON.stringify(String(turn))}][data-process-outcome="completed"]`)
+  await process.waitFor({ state: 'visible', timeout: 30000 })
+  return process
+}
+
 const pngChunk = (name, bytes) => {
   const payload = Buffer.concat([Buffer.from(name), bytes])
   const length = Buffer.alloc(4)
@@ -525,8 +544,7 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     const flowPassed = await check('real-send-stream-tools-and-answer-region', async () => {
       await send('COMPAT_FLOW')
       await page.getByText('COMPAT_LATER_ANSWER', { exact: true }).waitFor({ timeout: 30000 })
-      const process = page.locator('[data-turn-process][data-process-outcome="completed"]').last()
-      await process.waitFor()
+      const process = await completedTurnProcess(page, 'COMPAT_FLOW')
       await page.waitForTimeout(800)
       // A just-closed Turn can still settle (more slowly inside Desktop) and fold again; expand until it stays open.
       for (let at = 0; at < 10 && (await process.getAttribute('aria-expanded')) !== 'true'; at++) {
@@ -549,6 +567,8 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       if ((await process.getAttribute('aria-expanded')) === 'true') await process.click()
       await page.getByText('COMPAT_FIRST_ANSWER', { exact: true }).waitFor({ state: 'visible' })
       await page.getByText('COMPAT_LATER_ANSWER', { exact: true }).waitFor({ state: 'visible' })
+      await page.locator('[data-compat-specific-tool="result"]').waitFor({ state: 'hidden' })
+      await page.getByText('COMPAT_TOOL_PROGRESS', { exact: true }).waitFor({ state: 'hidden' })
       assert.equal(await page.locator('[data-compat-specific-tool="result"]').isVisible(), false)
       assert.equal(await page.getByText('COMPAT_TOOL_PROGRESS', { exact: true }).isVisible(), false)
       const host = await evidence()

@@ -12,7 +12,9 @@
   npm run build
   COMPAT_BACKEND_PACKAGE=node_modules/@deepseek-ai/dsh/package.json npm test
   ```
-  `npm run format` 按 Biome 配置改写 `scripts/` 与 `tests/`。`packages/modern-ui/src` 不在 Biome 范围内：`provenance.json` 按原始字节记录这些文件的摘要，格式化会让摘要失配。
+  `npm run format` 按 Biome 配置改写 `scripts/`、`tests/` 和自有产品 TS/TSX。产品源码都纳入 lint；`vendor/` 与 `host-compat/` 保留上游格式，只启用配置中列出的基础规则。其 Hook factory、依赖捕获、按位置构造的静态子节点和经过边界处理的 HTML 各有原实现契约，暂不批量套用对应规则；修改时仍须行为审查、严格类型检查和回归测试。`provenance.json` 按原始字节记录登记文件的摘要，修改后须同步更新。
+
+构建会写入 `packages/modern-ui/lib/build-metrics.json`（原始字节、gzip level 9 / mtime 0、实际包版本与输出贡献）和 `.artifacts/build-metafiles/`（未丢失嵌套依赖位置的原始元数据），PR CI 保存这些附件。`scripts/client-budget.json` 限制客户端为 10,000,000 原始字节与 2,200,000 gzip 字节；超过时构建失败，调整预算须给出贡献分析与原因。KaTeX 每个字体保留 WOFF2，删除支持浏览器不会使用的重复 WOFF/TTF 内联副本；所有高亮语言仍随插件安装。
 
 ## 测试分层
 
@@ -24,6 +26,8 @@
 | compat（隔离消费者） | `tests/compat/run.mjs` | `npm run test:compat -- --preview .artifacts/plugin-preview --host <版本> --root <隔离目录>` | 装一套独立的官方宿主，跑 MCP、生命周期、浏览器、升级失败回滚等 9 层 | 改到安装或兼容逻辑时；CI 在手动触发和 `v*` tag 时跑 |
 
 [`pr.yml`](.github/workflows/pr.yml) 跑前三层；[`plugin-preview.yml`](.github/workflows/plugin-preview.yml) 跑已验证宿主 × Linux/Windows 的隔离消费者矩阵与五平台安装矩阵；[`upstream-canary.yml`](.github/workflows/upstream-canary.yml) 每天对上游新版本跑隔离消费者。
+
+仅测试脚本变化、已有同产物完整证据时，可手动填写 `host` / `runner` 定点重验并启用 `skip_consumers` 复用安装检查；默认手动运行和所有版本 tag 仍执行完整矩阵，`host` 必须在已验证清单内。
 
 ## 约束
 
@@ -56,5 +60,5 @@ canary 同时对每个宿主跑 `node scripts/vendor-drift.mjs --host <版本>`�
 2. 在 `scripts/distribution/compatibility.json#verifiedHosts` 加一项，复制相邻宿主的结构：`platforms`（只写实际有 CI 证据的平台）、`officialSource`（`name`、`version`、`channel: "exact npm release"`、`url`、`integrity`）、`communityPlugins`（只写和该宿主一起验证过的组合）。
 3. 如果新宿主要成为默认新装版本，同时改 `defaultHostVersion`。
 4. 版本落在 `hostRange` 之外（例如 `0.3.0`）时，先确认 `compatibility.json#platformPeers` 里的 peers（`@deepseek-ai/cordis`、`@deepseek-ai/schemastery`、`react`）仍与新宿主匹配（`npm view @deepseek-ai/dsh-client-ui-slots@<版本> dependencies`），再改 `hostRange`；已知不兼容的版本写进 `knownBroken` 并注明原因。
-5. `npm run build`，跑上面的回归测试，在 [`docs/compatibility.md`](docs/compatibility.md) 顶部矩阵加一行（插件版本、宿主、平台、日期）。
+5. `npm run build`，跑上面的回归测试（包含 `tests/compat/official-controls.mjs` 对实际官方发布 JS/CSS 的类名和结构契约检查），在 [`docs/compatibility.md`](docs/compatibility.md) 顶部矩阵加一行（插件版本、宿主、平台、日期）。独立消费者矩阵的 `COMPAT_TEST_DRIVER` 需同时安装 Playwright 和 TypeScript，后者只用于读取官方发布物的语法结构。
 6. 递增 `runtimeVersions.plugin` 的 patch 位（同步根 `package.json` 与 `package-lock.json`），提交后先在 main 上手动运行 [Official runtime plugin preview](.github/workflows/plugin-preview.yml)，五平台安装、隔离消费者与同一 tgz 的 `dsh plugin add` 一行安装全部通过后再打 `v<版本>` tag，由 release 工作流发布。release 工作流不等这些矩阵，tag 一推就会发布到 npm。

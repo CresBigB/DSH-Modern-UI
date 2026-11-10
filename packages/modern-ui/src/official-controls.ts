@@ -58,21 +58,26 @@ export function installOfficialControls(ctx: Context): void {
         }
       })
       observer.observe(body, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-checked'] })
-      owner = { count: 0, dispose() {
-        observer.disconnect()
-        for (const [element, motion] of motions) {
-          motion.dispose()
-          element.style.removeProperty('--dsh-switch-x')
-          element.style.removeProperty('--dsh-switch-fill')
-        }
-        style.remove()
-        if (previous === null) body.removeAttribute(SCOPE)
-        else body.setAttribute(SCOPE, previous)
-        owners.delete(document)
-      } }
+      owner = {
+        count: 0,
+        dispose() {
+          observer.disconnect()
+          for (const [element, motion] of motions) {
+            motion.dispose()
+            element.style.removeProperty('--dsh-switch-x')
+            element.style.removeProperty('--dsh-switch-fill')
+          }
+          style.remove()
+          if (previous === null) body.removeAttribute(SCOPE)
+          else body.setAttribute(SCOPE, previous)
+          owners.delete(document)
+        },
+      }
       owners.set(document, owner)
     }
     owner.count++
-    return () => { if (--owner.count === 0) owner.dispose() }
+    return () => {
+      if (--owner.count === 0) owner.dispose()
+    }
   }, 'modern-ui: official control styles and switch motion')
 }
