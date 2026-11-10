@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defaultHostVersion, supportedHostVersions } from './distribution/compatibility.mjs'
+import { recordMetafile } from './build-metrics.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(path.join(root, 'package.json'))
@@ -45,6 +46,7 @@ const result = await build({
   metafile: true,
 })
 const manifest = JSON.parse(await readFile(path.join(root, 'packages/modern-ui/package.json'), 'utf8'))
+await recordMetafile(root, 'host-compat', result.metafile)
 const dependencies = { ...manifest.dependencies, ...manifest.peerDependencies }
 for (const output of Object.values(result.metafile.outputs))
   for (const imported of output.imports) {

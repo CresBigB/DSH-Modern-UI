@@ -294,6 +294,16 @@
 }
 
 .copyVersion {
+  flex: none;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 3px 5px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 11px;
   display: inline-flex;
   cursor: pointer;
   -webkit-app-region: no-drag;
@@ -727,3 +737,7 @@
     animation: none;
   }
 }
+
+.copyVersion:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: -2px; }
+@media (pointer: coarse) { .copyVersion { min-height: 44px; } }
+@media (forced-colors: active) { .copyVersion:focus-visible { outline-color: Highlight; } }

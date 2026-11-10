@@ -54,6 +54,7 @@ Do not save all data values for the end: a section whose data comes last stays e
 export const examples: Record<string, string> = { exampleDiagram, exampleOptions, exampleTool };
 
 const rules = [
+  "Give informational Svg a meaningful title and description explaining relationships; decorative true is only for decoration. Name each SegmentedControl with label and each Popover with title. Give Chart a short summary explaining its comparison or trend; its data table is generated automatically. For localized dates, pass the user language as the final locale argument of @FormatDate; omitted locale preserves English output.",
   "Inside a block, compose like a small page: a Title when the block needs a heading, a short Text only if needed, then the parts that show the content. Use Card only to group a block. Keep cards compact: Title \"md\" or \"sm\", Text \"sm\", facts as Badges or label and value rows (Caption, Spacer, Text). Cards side by side in a Grid share the same parts in the same order, so they line up.",
   "Leave gap unset on the root Col and inside cards: the interface applies its spacing tiers. Set a gap only on a Row or Grid.",
   "Pick the medium that shows the idea: Flow for architectures, request paths, pipelines and processes; Table for comparisons across several attributes; Chart for numbers across time or categories; List with numbers or a timeline for ordered steps; Svg drawings for geometry, layouts and mechanisms; HtmlView only for a game or animation that needs a loop.",

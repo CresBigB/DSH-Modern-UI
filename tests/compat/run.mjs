@@ -13,6 +13,8 @@ import { PROBE as lifecycleFixtureName } from './fixtures/lifecycle/protocol.mjs
 import { runBrowserChecks, browserFixtureName } from './browser.mjs'
 import { checkFailedUpgrade } from './install-failure.mjs'
 import { runWebConfigChecks } from './web-config.mjs'
+import { runOfficialControlsChecks } from './official-controls.mjs'
+import { inspectRuntimeDependencies } from '../../scripts/dependency-exposure.mjs'
 
 const execute = promisify(execFile)
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -153,6 +155,13 @@ for (const version of versions) {
       runtime: { node: state.node, nodeVersion: state.compatibility.node, pnpm: state.pnpm, pnpmVersion: state.compatibility.pnpm },
     }
     result.layers.officialBefore = { state: 'passed', result: await main(['verify', '--root', state.root]) }
+    result.layers.officialControls = { state: 'passed', result: await runOfficialControlsChecks(state.backend) }
+    const runtimeDependencies = await inspectRuntimeDependencies(path.join(state.plugin.path, 'package.json'), state.backend)
+    for (const dependency of runtimeDependencies.plugin.filter(item => item.declared)) {
+      assert.equal(dependency.status, 'resolved', `Installed plugin runtime dependency ${dependency.name} must resolve`)
+    }
+    await save(path.join(evidence, 'runtime-dependencies.json'), runtimeDependencies)
+    result.layers.runtimeDependencies = { state: 'passed', evidence: 'runtime-dependencies.json', scope: 'resolution, not a vulnerability exemption' }
     const cleanupFixtures = async names => {
       const errors = []
       for (const name of names) {

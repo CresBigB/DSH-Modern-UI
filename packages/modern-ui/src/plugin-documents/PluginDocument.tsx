@@ -30,6 +30,7 @@ export function PluginDocument(props: DocumentProps) {
 function DocumentRead({ target, language, t }: DocumentProps) {
   const [read, setRead] = useState<ReadState>()
   const [retry, setRetry] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The parent keys this instance by every target field and language; only retry refetches.
   useEffect(() => {
     const controller = new AbortController()
     const url = new URL('api/modern-ui/plugin-document', document.baseURI)
@@ -56,6 +57,7 @@ function DocumentRead({ target, language, t }: DocumentProps) {
     // The instance is keyed by target and language, so only a retry reads again.
   }, [retry])
   const found = read !== undefined && 'value' in read && read.value.status === 'found' ? read.value : undefined
+  const documentId = found?.document
   const state: DetailDocumentState =
     read === undefined
       ? { status: 'loading' }
@@ -79,17 +81,17 @@ function DocumentRead({ target, language, t }: DocumentProps) {
   })
   const images = useMemo(
     () =>
-      found === undefined
+      documentId === undefined
         ? undefined
         : {
             resolve: (destination: string) => {
               const url = new URL('api/modern-ui/plugin-document-image', document.baseURI)
-              url.searchParams.set('document', found.document)
+              url.searchParams.set('document', documentId)
               url.searchParams.set('path', destination)
               return url.href
             },
           },
-    [found?.document],
+    [documentId],
   )
   return (
     <DetailDocument

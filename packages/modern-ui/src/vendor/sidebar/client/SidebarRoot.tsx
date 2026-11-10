@@ -243,10 +243,10 @@ export function SidebarRoot({
   }, [pointerInside])
 
   const buildVersion = installedVersion
-  const [copiedToast, setCopiedToast] = useState<number | null>(null)
+  const [copiedToast, setCopiedToast] = useState<{ sequence: number; ok: boolean } | null>(null)
   const copyVersion = (version: string) => (): void => {
     void writeClipboard(version).then((ok) => {
-      if (ok) setCopiedToast(seq => (seq ?? 0) + 1)
+      setCopiedToast(previous => ({ sequence: (previous?.sequence ?? 0) + 1, ok }))
     })
   }
 
@@ -340,23 +340,14 @@ export function SidebarRoot({
               <span className={css.brandIdentity} aria-hidden="true">
                 <span className={css.brandMark}>
                   {renderSlot('sidebar.brand.mark', { size: 24 }, {
-                    fallback: buildVersion === undefined
-                      ? <FishLogo size={24} />
-                      : (
-                        <span className={css.copyVersion} data-copy-version onClick={copyVersion(buildVersion)}>
-                          <FishLogo size={24} />
-                        </span>
-                      ),
+                    fallback: <FishLogo size={24} />,
                   })}
                 </span>
                 <span className={css.brandName}>
                   {renderSlot('sidebar.brand.name', {}, {
                     fallback: (
                       <span
-                        className={clsx(css.fallbackBrandName, buildVersion !== undefined && css.copyVersion)}
-                        data-copy-version={buildVersion !== undefined ? '' : undefined}
-                        title={buildVersion}
-                        onClick={buildVersion === undefined ? undefined : copyVersion(buildVersion)}>
+                        className={css.fallbackBrandName}>
                         {t('brand.name')}
                       </span>
                     ),
@@ -372,10 +363,7 @@ export function SidebarRoot({
                   className={clsx(css.brand, css.wide)}
                   aria-label={t('session.new.label')}
                   aria-keyshortcuts={newShortcut?.aria}
-                  onClick={(event) => {
-                    if ((event.target as Element).closest('[data-copy-version]') !== null) return
-                    openNewSession()
-                  }}
+                  onClick={openNewSession}
                 >
                   {identity}
                 </button>
@@ -383,6 +371,12 @@ export function SidebarRoot({
           })()}
           {!darwinDesktop && !windowsCaption && toggle}
         </div>
+
+        {wide && buildVersion !== undefined && (
+          <button type="button" className={css.copyVersion} onClick={copyVersion(buildVersion)} title={buildVersion}>
+            {t('version.copy')}
+          </button>
+        )}
 
         {wide && <p hidden={mobile} className={clsx(css.navSectionLabel, css.wide)}>{t('panels.label')}</p>}
 
@@ -430,7 +424,7 @@ export function SidebarRoot({
         </div>
 
         {copiedToast !== null && (
-          <Toast key={copiedToast} tone="success" text={t('version.copied')} onDone={() => { setCopiedToast(null) }} />
+          <Toast key={copiedToast.sequence} tone={copiedToast.ok ? 'success' : undefined} text={t(copiedToast.ok ? 'version.copied' : 'version.failed')} onDone={() => { setCopiedToast(null) }} />
         )}
 
         {/* Cloud-Monitor .sidebar-bottom: connection status bar + settings trigger */}

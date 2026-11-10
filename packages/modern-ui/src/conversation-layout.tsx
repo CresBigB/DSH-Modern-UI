@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { Button } from '@iroha1145/dsh-modern-ui/primitives'
@@ -252,10 +252,10 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     }
   }, [container, actual, available, current.mode, offset, phone])
 
-  const clearFrame = () => {
+  const clearFrame = useCallback(() => {
     if (frame.current !== null) cancelAnimationFrame(frame.current)
     frame.current = null
-  }
+  }, [])
   const finish = (cancel: boolean) => {
     const active = drag.current
     const before = editing.getSnapshot()
@@ -285,7 +285,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     drag.current = null
     pending.current = null
     container?.removeAttribute('data-layout-dragging')
-  }, [editBefore, container])
+  }, [editBefore, container, clearFrame])
   // Phones and panes too narrow for both guides show the full-width transcript whatever is chosen, so a temporary
   // edit there could only change a number the reader never sees; end it rather than offer it.
   const adjustable = !phone && available >= MIN_LAYOUT_WIDTH + 64
@@ -331,6 +331,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
   if (phase !== 'active' || actual === 0 || current.mode !== 'custom' || editBefore === null || !adjustable) return null
   return (
     <>
+      {/* biome-ignore lint/a11y/useSemanticElements: This groups resize actions, not form fields. */}
       <div
         className={css.adjustment}
         data-conversation-width-adjustment
@@ -365,6 +366,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
         </Button>
       </div>
       {(['left', 'right'] as const).map(side => (
+        // biome-ignore lint/a11y/useSemanticElements: This is an interactive splitter with a value, not a document rule.
         <div
           key={side}
           className={css.handle}

@@ -2,6 +2,15 @@
 
 /** zh dictionary. */
 export const zh = {
+  stopView: "停止视图",
+  restartView: "重新运行视图",
+  viewUnresponsive: "交互视图无响应，已关闭。",
+  viewClosed: "交互视图已关闭。",
+  diagram: '图示',
+  selection: '选项',
+  details: '详情',
+  chart: '图表',
+  chartData: '查看图表数据',
   insertRejected: '未能插入问题，草稿已保留。请稍后重试。',
   proposed: '已放进输入框，确认后按发送',
   copiedText: '已复制：',
@@ -44,6 +53,15 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** en dictionary. */
 export const en = {
+  stopView: "Stop view",
+  restartView: "Restart view",
+  viewUnresponsive: "This interactive view stopped responding and was closed.",
+  viewClosed: "Interactive view closed.",
+  diagram: 'Diagram',
+  selection: 'Selection',
+  details: 'Details',
+  chart: 'Chart',
+  chartData: 'View chart data',
   insertRejected: 'The question could not be inserted. Your draft is unchanged; try again shortly.',
   proposed: 'Added to the message box; review it, then send',
   copiedText: 'Copied:',
@@ -77,6 +95,15 @@ export const en = {
 
 /** ja dictionary. */
 export const ja = {
+  stopView: "表示を停止",
+  restartView: "表示を再実行",
+  viewUnresponsive: "応答しなくなったため、この対話型ビューを閉じました。",
+  viewClosed: "対話型ビューを閉じました。",
+  diagram: '図',
+  selection: '選択',
+  details: '詳細',
+  chart: 'グラフ',
+  chartData: 'グラフのデータを表示',
   insertRejected: '質問を挿入できませんでした。下書きは保持されています。少し待って再試行してください。',
   proposed: '入力欄に入れました。確認してから送信してください',
   copiedText: 'コピーしました：',
@@ -110,6 +137,15 @@ export const ja = {
 
 /** de dictionary. */
 export const de = {
+  stopView: "Ansicht stoppen",
+  restartView: "Ansicht neu starten",
+  viewUnresponsive: "Diese interaktive Ansicht reagierte nicht mehr und wurde geschlossen.",
+  viewClosed: "Interaktive Ansicht geschlossen.",
+  diagram: 'Diagramm',
+  selection: 'Auswahl',
+  details: 'Details',
+  chart: 'Diagramm',
+  chartData: 'Diagrammdaten anzeigen',
   insertRejected: 'Die Frage konnte nicht eingefügt werden. Ihr Entwurf bleibt erhalten. Versuchen Sie es gleich noch einmal.',
   proposed: 'Ins Eingabefeld übernommen; prüfen und dann senden',
   copiedText: 'Kopiert:',
@@ -143,6 +179,15 @@ export const de = {
 
 /** es dictionary. */
 export const es = {
+  stopView: "Detener vista",
+  restartView: "Reiniciar vista",
+  viewUnresponsive: "La vista interactiva dejó de responder y se cerró.",
+  viewClosed: "Vista interactiva cerrada.",
+  diagram: 'Diagrama',
+  selection: 'Selección',
+  details: 'Detalles',
+  chart: 'Gráfico',
+  chartData: 'Ver datos del gráfico',
   insertRejected: 'No se pudo insertar la pregunta. El borrador no ha cambiado. Inténtalo de nuevo en un momento.',
   proposed: 'Añadido al cuadro de mensaje; revísalo y envíalo',
   copiedText: 'Copiado:',
@@ -176,6 +221,15 @@ export const es = {
 
 /** fr dictionary. */
 export const fr = {
+  stopView: "Arrêter la vue",
+  restartView: "Relancer la vue",
+  viewUnresponsive: "Cette vue interactive ne répondait plus et a été fermée.",
+  viewClosed: "Vue interactive fermée.",
+  diagram: 'Schéma',
+  selection: 'Sélection',
+  details: 'Détails',
+  chart: 'Graphique',
+  chartData: 'Afficher les données',
   insertRejected: 'La question n’a pas pu être insérée. Votre brouillon est conservé. Réessayez dans un instant.',
   proposed: 'Ajouté à la zone de message ; vérifiez puis envoyez',
   copiedText: 'Copié :',
@@ -209,6 +263,15 @@ export const fr = {
 
 /** ru dictionary. */
 export const ru = {
+  stopView: "Остановить просмотр",
+  restartView: "Перезапустить просмотр",
+  viewUnresponsive: "Интерактивный просмотр перестал отвечать и был закрыт.",
+  viewClosed: "Интерактивный просмотр закрыт.",
+  diagram: 'Схема',
+  selection: 'Выбор',
+  details: 'Подробности',
+  chart: 'Диаграмма',
+  chartData: 'Показать данные',
   insertRejected: 'Не удалось вставить вопрос. Черновик сохранён. Повторите попытку чуть позже.',
   proposed: 'Добавлено в поле ввода; проверьте и отправьте',
   copiedText: 'Скопировано:',
@@ -242,6 +305,15 @@ export const ru = {
 
 /** pt dictionary. */
 export const pt = {
+  stopView: "Parar visualização",
+  restartView: "Reiniciar visualização",
+  viewUnresponsive: "Esta visualização interativa parou de responder e foi fechada.",
+  viewClosed: "Visualização interativa fechada.",
+  diagram: 'Diagrama',
+  selection: 'Seleção',
+  details: 'Detalhes',
+  chart: 'Gráfico',
+  chartData: 'Ver dados do gráfico',
   insertRejected: 'Não foi possível inserir a pergunta. O rascunho foi preservado. Tente novamente em instantes.',
   proposed: 'Adicionado à caixa de mensagem; revise e envie',
   copiedText: 'Copiado:',

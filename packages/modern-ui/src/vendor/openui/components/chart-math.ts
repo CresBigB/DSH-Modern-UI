@@ -6,12 +6,13 @@ export type Format = (value: number, compact?: boolean, step?: number) => string
 // The units en-US compact notation writes as T, B, M and K.
 const UNITS = [1e12, 1e9, 1e6, 1e3];
 
-export function makeFormat(kind: string | undefined, currency: string | undefined): Format {
+export function makeFormat(kind: string | undefined, currency: string | undefined, locale = "en-US"): Format {
   const code = typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
+  const percentParts = new Intl.NumberFormat(locale, { style: "percent", useGrouping: false }).formatToParts(1);
   const write = (value: number, options: Intl.NumberFormatOptions) =>
     kind === "percent"
-      ? `${value.toLocaleString("en-US", { ...options, useGrouping: false })}%`
-      : value.toLocaleString("en-US", kind === "currency" ? { ...options, style: "currency", currency: code } : options);
+      ? percentParts.map(part => part.type === "integer" ? value.toLocaleString(locale, { ...options, useGrouping: false }) : part.value).join("")
+      : value.toLocaleString(locale, kind === "currency" ? { ...options, style: "currency", currency: code } : options);
   // Ticks a step apart always read differently: compact where the unit keeps the step's precision ("$2B", "1.25B"),
   // written out where it cannot ("1,000,000.2", "2,021"), with the decimals the step needs ("0.0005"), and past the
   // 20 fraction digits Intl accepts in scientific notation ("2E-26"). Tooltips show the value itself: at least two
@@ -25,7 +26,7 @@ export function makeFormat(kind: string | undefined, currency: string | undefine
       const mantissa = stepDigits(step / 10 ** Math.floor(Math.log10(abs)));
       return write(value, compact ? { notation: "scientific", maximumFractionDigits: Math.min(20, mantissa) } : { notation: "scientific", maximumSignificantDigits: 3 });
     }
-    const unit = kind === "percent" ? undefined : UNITS.find((u) => abs >= u && (compact || u >= 1e6));
+    const unit = kind === "percent" || !/^en(?:-|$)/i.test(locale) ? undefined : UNITS.find((u) => abs >= u && (compact || u >= 1e6));
     // The unit keeps the step's precision in at most two decimals, so values on this axis read compact.
     const scaled = unit === undefined ? Number.POSITIVE_INFINITY : stepDigits(step / unit);
     if (unit !== undefined && scaled <= 2) {

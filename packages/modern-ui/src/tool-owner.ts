@@ -1,5 +1,6 @@
 // Adapted from deepseek-ai/deepseek-harness ui-tool/src/client/apply.ts (MIT), checked against rc.4 lib/client.js.
 /** Own the Tool UI subtree; tool execution and all Host services remain official. */
+// biome-ignore-all lint/performance/noDynamicNamespaceImportAccess: All eight locale exports are intentionally registered for live language switching.
 import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
 import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'

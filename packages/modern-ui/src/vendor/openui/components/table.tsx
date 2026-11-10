@@ -1,6 +1,7 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { z } from "zod/v4";
 import { inline } from "./markdown";
+import { useUiLocale } from "./ui-text";
 import { cx } from "./style";
 
 const NUMERIC = /^[-+−]?[$€£¥₹]?\s?\d[\d,]*(\.\d+)?\s?(%|[kKmMbB]|bn)?$/;
@@ -10,12 +11,13 @@ const isElement = (value: unknown) => !!value && typeof value === "object" && (v
  * A number cell without hiding small values: integers get separators, values of 1 or more keep up to four
  * decimals, smaller ones four significant digits, and tiny ones scientific notation.
  */
-export function numberText(value: number): string {
-  if (!Number.isFinite(value) || Number.isInteger(value)) return value.toLocaleString("en-US");
+export function numberText(value: number, locale = "en-US"): string {
+  locale = typeof locale === "string" ? locale : "en-US";
+  if (!Number.isFinite(value) || Number.isInteger(value)) return value.toLocaleString(locale);
   const abs = Math.abs(value);
-  if (abs < 1e-4) return value.toExponential(2);
-  if (abs < 1) return value.toLocaleString("en-US", { maximumSignificantDigits: 4 });
-  return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  if (abs < 1e-4) return locale === "en-US" ? value.toExponential(2) : value.toLocaleString(locale, { notation: "scientific", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (abs < 1) return value.toLocaleString(locale, { maximumSignificantDigits: 4 });
+  return value.toLocaleString(locale, { maximumFractionDigits: 4 });
 }
 
 export const Table = defineComponent({
@@ -26,6 +28,7 @@ export const Table = defineComponent({
   }),
   description: "Each row lists its cells in column order; a cell may be a component. Number columns align right.",
   component: ({ props, renderNode }) => {
+    const locale = useUiLocale();
     const columns = Array.isArray(props.columns) ? props.columns.map((c) => String(c ?? "")) : [];
     const rows = (Array.isArray(props.rows) ? props.rows : []).filter(Array.isArray) as unknown[][];
     // A column of numbers (or amounts like "$1.2k" and "45%") aligns right.
@@ -34,7 +37,7 @@ export const Table = defineComponent({
       return cells.length > 0 && cells.every((v) => typeof v === "number" || (typeof v === "string" && NUMERIC.test(v.trim())));
     });
     const cell = (value: unknown) =>
-      isElement(value) ? renderNode(value) : typeof value === "number" ? numberText(value) : inline(String(value ?? ""));
+      isElement(value) ? renderNode(value) : typeof value === "number" ? numberText(value, locale) : inline(String(value ?? ""));
     return (
       <div className="iui-table-scroll">
         <table className="iui-table">

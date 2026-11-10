@@ -40,6 +40,21 @@ jobs:
       - name: Install the browser for audit regressions
         run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run build
+      - name: Audit actual bundle and runtime dependency exposure
+        run: |
+          npm audit --json > .artifacts/npm-audit.json || test "$?" -eq 1
+          node scripts/dependency-exposure.mjs --audit .artifacts/npm-audit.json --output .artifacts/dependency-exposure.json
+      - name: Preserve bundle metrics and original dependency paths
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: build-metrics
+          path: |
+            packages/modern-ui/lib/build-metrics.json
+            packages/modern-ui/lib/build-inputs.json
+            .artifacts/build-metafiles/
+            .artifacts/npm-audit.json
+            .artifacts/dependency-exposure.json
       - name: Audit and compat regressions
         run: npx vitest run --project audit --project compat
         env:

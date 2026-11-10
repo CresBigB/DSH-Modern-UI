@@ -14,6 +14,8 @@ export const zh = {
   'panels.label': '全局面板',
   'panels.more': '更多',
   'version.copied': '版本号复制成功',
+  'version.copy': '复制版本号',
+  'version.failed': '版本号复制失败',
 } satisfies Record<string, string>
 
 /** The sidebar namespace key union. */
@@ -32,6 +34,8 @@ export const en = {
   'panels.label': 'Global panels',
   'panels.more': 'More',
   'version.copied': 'Version copied',
+  'version.copy': 'Copy version',
+  'version.failed': 'Could not copy version',
 } satisfies Record<SidebarKey, string>
 
 /** Japanese copy, checked against the English keys. */
@@ -47,6 +51,8 @@ export const ja = {
   'panels.label': 'グローバルパネル',
   'panels.more': 'その他',
   'version.copied': 'バージョンをコピーしました',
+  'version.copy': 'バージョンをコピー',
+  'version.failed': 'バージョンをコピーできませんでした',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -62,6 +68,8 @@ export const es = {
   'panels.label': 'Paneles globales',
   'panels.more': 'Más',
   'version.copied': 'Versión copiada',
+  'version.copy': 'Copiar versión',
+  'version.failed': 'No se pudo copiar la versión',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -77,6 +85,8 @@ export const fr = {
   'panels.label': 'Panneaux globaux',
   'panels.more': 'Plus',
   'version.copied': 'Version copiée',
+  'version.copy': 'Copier la version',
+  'version.failed': 'Impossible de copier la version',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -92,6 +102,8 @@ export const de = {
   'panels.label': 'Globale Bereiche',
   'panels.more': 'Mehr',
   'version.copied': 'Version kopiert',
+  'version.copy': 'Version kopieren',
+  'version.failed': 'Version konnte nicht kopiert werden',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -107,6 +119,8 @@ export const ru = {
   'panels.label': 'Глобальные панели',
   'panels.more': 'Ещё',
   'version.copied': 'Версия скопирована',
+  'version.copy': 'Копировать версию',
+  'version.failed': 'Не удалось скопировать версию',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -122,4 +136,6 @@ export const pt = {
   'panels.label': 'Painéis globais',
   'panels.more': 'Mais',
   'version.copied': 'Versão copiada',
+  'version.copy': 'Copiar versão',
+  'version.failed': 'Não foi possível copiar a versão',
 } satisfies Record<keyof typeof en, string>

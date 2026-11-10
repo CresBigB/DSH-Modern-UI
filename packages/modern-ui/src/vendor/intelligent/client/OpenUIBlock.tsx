@@ -9,14 +9,14 @@ import { library } from '../../openui/library.ts'
 import { runLibraryAction } from '../../openui/actions.ts'
 import { FieldRegistry, FieldRegistryContext } from '../../openui/components/fields.ts'
 import { webUrl } from '../../openui/components/style.ts'
-import { UI_TEXT, UiTextContext, type UiText } from '../../openui/components/ui-text.ts'
+import { UI_TEXT, UiLocaleContext, UiTextContext, type UiText } from '../../openui/components/ui-text.ts'
 import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate, NESTING_LIMIT, nestingDepth } from './openui-source.ts'
 import { budgeted, ExpansionBudget, ParseLimitError } from './openui-budget.ts'
 import './locales.ts'
 import css from './OpenUIBlock.module.css'
 
 /** Framework-bound resolved application palette. */
-export interface ThemeInjected { hooks: { theme: HostObservable<ThemeSnapshot> } }
+export interface ThemeInjected { hooks: { theme: HostObservable<ThemeSnapshot>; uiLocale: HostObservable<{ active: string }> } }
 type BlockProps = PropsRuntime<'conversation.chat.message.code'> & PropsLocale<'modern-intelligent'> & InjectFace<ThemeInjected> & { matched: object }
 type Notice = { key: 'proposed' | 'insertRejected' | 'copiedText' | 'copyFailed'; detail?: string }
 
@@ -71,6 +71,7 @@ class Boundary extends Component<{ fallback: ReactNode; retryKey: unknown; child
  */
 export function OpenUIBlock(props: BlockProps) {
   const { code, streaming, closed, labels, t, useTheme, inputActions, useInput, useSession, useAccess } = props
+  const language = props.useUiLocale?.(snapshot => snapshot.active) ?? "en-US"
   const scheme = useTheme(snapshot => snapshot.active.colorScheme)
   const busy = useInput(input => input.phase === 'adjudicating' || input.phase === 'submitting')
   const composerFree = useInput(input => input.phase === 'plain' && input.draft.trim() === '' && input.attachmentIds.length === 0)
@@ -148,14 +149,14 @@ export function OpenUIBlock(props: BlockProps) {
     {!rendered && <div className={css.placeholder} role="status"><TextShimmer active>{t('preparing')}</TextShimmer></div>}
     <div className={css.stage}>
       <Boundary retryKey={closed} fallback={preserved('invalid')}>
-        <UiTextContext.Provider value={text}>
+        <UiLocaleContext.Provider value={language}><UiTextContext.Provider value={text}>
           <FieldRegistryContext.Provider value={fields}>
             <div className="iui-root" data-theme={scheme}>
               <Renderer library={counted} response={code} isStreaming={arriving} onAction={onAction}
                 onStateUpdate={onStateUpdate} onError={(found) => { setRenderErrors(found.length) }} />
             </div>
           </FieldRegistryContext.Provider>
-        </UiTextContext.Provider>
+        </UiTextContext.Provider></UiLocaleContext.Provider>
       </Boundary>
     </div>
     {issues && <p className={css.status} role="status"><span>{t(unfinished || incomplete ? 'incomplete' : 'partial')}</span></p>}

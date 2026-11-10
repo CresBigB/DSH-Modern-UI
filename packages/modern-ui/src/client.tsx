@@ -175,6 +175,7 @@ function installPresentation(ctx: Context): void {
             },
             inject: (): ThemeInjected => ({
               hooks: {
+                uiLocale: ctx.locale,
                 theme: {
                   getSnapshot: () => ctx.theme.getTheme(),
                   subscribe: listener => ctx.on('theme/change', listener),

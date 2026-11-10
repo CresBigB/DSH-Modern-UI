@@ -317,6 +317,12 @@
   .iui-html-view { position: relative; width: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-lg); background: var(--iui-canvas); }
   .iui-html-view > iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
   .iui-html-view-wait { display: grid; place-items: center; height: 100%; color: var(--iui-muted); font-size: 13px; }
+  .iui-html-view-controls { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+  .iui-html-view-controls button { font: inherit; color: var(--iui-muted); background: transparent; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-sm); padding: 4px 8px; cursor: pointer; }
+  .iui-html-view-controls button:focus-visible, .iui-html-view-stopped summary:focus-visible { outline: 2px solid var(--iui-ink); outline-offset: 2px; }
+  .iui-html-view-stopped { padding: 12px; }
+  .iui-html-view-stopped p { margin: 0 0 8px; }
+  .iui-html-view-stopped pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
   /* Carousel, popover, code, quote, math, flashcard */
   /* Items keep their borders and rings inside themselves; the track's 4px block

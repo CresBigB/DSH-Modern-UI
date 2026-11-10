@@ -53,18 +53,19 @@ export const Now = defineFunction({
 export const FormatDate = defineFunction({
   name: "FormatDate",
   description:
-    'A date as text: "date" Oct 9, 2026 (default), "short" Oct 9, "long" Friday, October 9, 2026, "weekday" Fri, "month" Oct 2026, "time" 9:30 PM, "datetime", "iso" 2026-10-09. Dates are "YYYY-MM-DD", ISO or a timestamp',
+    'A date as text: "date" Oct 9, 2026 (default), "short" Oct 9, "long" Friday, October 9, 2026, "weekday" Fri, "month" Oct 2026, "time" 9:30 PM, "datetime", "iso" 2026-10-09. Dates are "YYYY-MM-DD", ISO or a timestamp. Optional locale is a BCP 47 language tag; omitted preserves English text',
   params: z.object({
     date: date(),
     style: z.enum(["date", "short", "long", "weekday", "month", "time", "datetime", "iso"]).optional(),
+    locale: z.string().optional(),
   }),
   returns: z.string(),
-  fn: ({ date, style = "date" }) => {
+  fn: ({ date, style = "date", locale = "en-US" }) => {
     const { day, instant } = parseDate(date);
     if (style === "iso") return isoDay(day);
     // A calendar date formats in UTC so its day never shifts with the viewer's zone
     const at = instant ?? new Date(day * DAY);
-    return at.toLocaleString("en-US", { ...STYLES[style], ...(instant ? {} : { timeZone: "UTC" }) });
+    return at.toLocaleString(locale, { ...STYLES[style], ...(instant ? {} : { timeZone: "UTC" }) });
   },
 });
 

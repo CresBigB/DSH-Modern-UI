@@ -12,7 +12,7 @@ import { z } from "zod/v4";
 import { FieldRegistryContext, useField, useFieldName } from "./fields";
 import { Glyph } from "./glyph";
 import { bg, children, color, onColor, cx, option, radius, radiusSchema, space, textOf, toOption, type Option } from "./style";
-import { useUiText } from "./ui-text";
+import { useUiLocale, useUiText } from "./ui-text";
 
 type Plan = Parameters<ReturnType<typeof useTriggerAction>>[2];
 
@@ -34,11 +34,11 @@ const decimals = (value: number) => {
 };
 
 /** A slider value with at least two decimals or as many as its step and minimum use, never a non-zero value as 0. */
-const numberText = (value: number, step: number, min: number) => {
+const numberText = (value: number, step: number, min: number, locale: string) => {
   if (!Number.isFinite(value)) return "";
   const places = Math.min(20, Math.max(2, decimals(step), decimals(min)));
-  const text = value.toLocaleString("en-US", { maximumFractionDigits: places });
-  return value !== 0 && /^-?0$/.test(text) ? value.toLocaleString("en-US", { maximumSignificantDigits: 2 }) : text;
+  const text = value.toLocaleString(locale, { maximumFractionDigits: places });
+  return value !== 0 && /^-?0$/.test(text) ? value.toLocaleString(locale, { maximumSignificantDigits: 2 }) : text;
 };
 
 /**
@@ -310,27 +310,51 @@ export const Select = defineComponent({
 
 export const SegmentedControl = defineComponent({
   name: "SegmentedControl",
-  props: z.object({ value: reactive(z.string()), options, block: z.boolean().optional() }),
-  description: "2 to 4 short choices in a row.",
+  props: z.object({ value: reactive(z.string()), options, block: z.boolean().optional(), label: z.string().optional(), description: z.string().optional() }),
+  description: "2 to 4 short choices in a row. Supply a label naming the choice and optional description.",
   component: function SegmentedView({ props, statementId }) {
-    const field = useField(undefined, statementId, props.value);
+    const text = useUiText();
+    const id = useId();
+    const field = useField(props.label, statementId, props.value);
     const choices = optionList(props.options);
     useClearMissingChoice(field, choices.map((o) => o.value));
     const value = field.value == null ? "" : String(field.value);
+    const group = useRef<HTMLDivElement>(null);
+    const focused = useRef(false);
+    const [focusIndex, setFocusIndex] = useState(0);
+    const selected = choices.findIndex(o => o.value === value);
+    const entry = selected >= 0 ? selected : Math.min(focusIndex, Math.max(0, choices.length - 1));
+    // Preserve focus after removal only while the group still has a valid destination.
+    useLayoutEffect(() => {
+      if (choices.length === 0) focused.current = false;
+      if (focused.current && !group.current?.contains(document.activeElement)) {
+        group.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[entry]?.focus();
+      }
+    });
     return (
-      <div className={cx("iui-segmented", props.block && "iui-block")} role="radiogroup">
-        {choices.map((o, i) => (
-          <button
-            key={`${o.value}-${i}`}
-            type="button"
-            role="radio"
-            aria-checked={o.value === value}
-            className={cx(o.value === value && "is-selected")}
-            onClick={() => field.setValue(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
+      <div className={props.block ? "iui-block" : undefined} style={{ maxWidth: "100%", alignSelf: props.block ? "stretch" : "flex-start" }}>
+        {props.label && <div id={id + "-label"} className="iui-label">{props.label}</div>}
+        {props.description && <p id={id + "-description"}>{props.description}</p>}
+        <div ref={group} className={cx("iui-segmented", props.block && "iui-block")} role="radiogroup"
+          aria-labelledby={props.label ? id + "-label" : undefined} aria-label={props.label ? undefined : text.selection}
+          aria-describedby={props.description ? id + "-description" : undefined}
+          onFocus={() => { focused.current = true; }}
+          onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) focused.current = false; }}>
+          {choices.map((o, i) => (
+            <button key={o.value + "-" + i} type="button" role="radio"
+              aria-checked={i === selected} tabIndex={i === entry ? 0 : -1}
+              className={cx(i === selected && "is-selected")}
+              onFocus={() => setFocusIndex(i)} onClick={() => field.setValue(o.value)}
+              onKeyDown={event => {
+                const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
+                if (!direction && event.key !== "Home" && event.key !== "End") return;
+                event.preventDefault();
+                const next = event.key === "Home" ? 0 : event.key === "End" ? choices.length - 1 : (i + direction + choices.length) % choices.length;
+                field.setValue(choices[next].value);
+                group.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
+              }}>{o.label}</button>
+          ))}
+        </div>
       </div>
     );
   },
@@ -390,7 +414,8 @@ export const Slider = defineComponent({
     });
     const unit = props.unit ?? "";
     const prefix = /^[$€£¥₹]/.test(unit);
-    const shown = numberText(value, step, min);
+    const locale = useUiLocale();
+    const shown = numberText(value, step, min, locale);
     const readout = prefix ? `${unit}${shown}` : `${shown}${unit}`;
     const marks = (props.marks ?? []).filter((m) => m && Number.isFinite(m.value) && m.value >= min && m.value <= max);
     const id = useId();

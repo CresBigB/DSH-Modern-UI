@@ -67,7 +67,7 @@ jobs:
       - name: Install only the browser driver
         shell: bash
         run: |
-          npm install --prefix "$RUNNER_TEMP/compat-driver" --ignore-scripts --no-audit --no-fund playwright-core@1.64.1
+          npm install --prefix "$RUNNER_TEMP/compat-driver" --ignore-scripts --no-audit --no-fund playwright-core@1.64.1 typescript@6.0.3
           node "$RUNNER_TEMP/compat-driver/node_modules/playwright-core/cli.js" install chromium
           echo "COMPAT_TEST_DRIVER=$RUNNER_TEMP/compat-driver" >> "$GITHUB_ENV"
           node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'MODERN_UI_BROWSER=' + require(process.env.RUNNER_TEMP + '/compat-driver/node_modules/playwright-core').chromium.executablePath() + '\n')"

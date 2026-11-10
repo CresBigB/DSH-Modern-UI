@@ -2,7 +2,7 @@ import { defineComponent } from "@openuidev/react-lang";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
 import { copy as copyText } from "../actions";
@@ -101,14 +101,25 @@ function place(trigger: HTMLElement, panel: HTMLElement): Placement {
 
 export const Popover = defineComponent({
   name: "Popover",
-  props: z.object({ trigger: slot, content: slot }),
-  description: 'Shows content in a small panel when the trigger is clicked: a definition, a source, details behind an Icon("info", "sm").',
+  props: z.object({ trigger: slot, content: slot, title: z.string().optional() }),
+  description: 'Shows content in a small panel when the trigger is clicked: title names the panel; always supply it for an icon trigger. A definition, a source, details behind an Icon("info", "sm").',
   component: function PopoverView({ props, renderNode }) {
+    const id = useId();
+    const text = useUiText();
+    const title = props.title?.trim();
     const [open, setOpen] = useState(false);
     const [at, setAt] = useState<Placement | null>(null);
     const button = useRef<HTMLElement>(null);
     const panel = useRef<HTMLDivElement>(null);
     const body = useRef<HTMLDivElement>(null);
+    const entered = useRef(false);
+    useLayoutEffect(() => {
+      if (!open) entered.current = false;
+      else if (at && !entered.current) {
+        panel.current?.focus();
+        entered.current = true;
+      }
+    });
     // A component trigger that draws its own control (a Button) opens the panel through that control, which then
     // neither runs its action nor sits inside a second focusable wrapper.
     const [control, setControl] = useState<HTMLElement | null>(null);
@@ -119,8 +130,9 @@ export const Popover = defineComponent({
     useLayoutEffect(() => {
       if (!control) return;
       control.setAttribute("aria-haspopup", "dialog");
+      control.setAttribute("aria-controls", `${id}-panel`);
       control.setAttribute("aria-expanded", String(open));
-    }, [control, open]);
+    }, [control, open, id]);
     // Measured before the first paint, and again whenever the viewport, the trigger or the content changes size.
     useLayoutEffect(() => {
       if (!open) return;
@@ -169,7 +181,7 @@ export const Popover = defineComponent({
     return (
       <>
         {typeof props.trigger === "string" ? (
-          <button ref={button as RefObject<HTMLButtonElement>} type="button" className="iui-popover-trigger" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <button ref={button as RefObject<HTMLButtonElement>} type="button" id={`${id}-trigger`} className="iui-popover-trigger" aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={open} onClick={() => setOpen(!open)}>
             {props.trigger}
           </button>
         ) : control ? (
@@ -177,7 +189,7 @@ export const Popover = defineComponent({
           // before they reach it.
           <span
             ref={button as RefObject<HTMLSpanElement>}
-            className="iui-popover-trigger"
+            id={`${id}-trigger`} className="iui-popover-trigger"
             onClickCapture={(event) => {
               event.stopPropagation();
               setOpen(!open);
@@ -199,8 +211,8 @@ export const Popover = defineComponent({
             ref={button as RefObject<HTMLSpanElement>}
             role="button"
             tabIndex={0}
-            className="iui-popover-trigger"
-            aria-expanded={open}
+            id={`${id}-trigger`} className="iui-popover-trigger"
+            aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={open}
             onClick={() => setOpen(!open)}
             onKeyDown={(event) => {
               if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
@@ -216,8 +228,9 @@ export const Popover = defineComponent({
             // The panel leaves the block's DOM, so it carries its own scope for the tokens and styles. It is laid out
             // hidden once, to be measured, before it is placed.
             <div className="iui-root iui-portal" data-theme={button.current?.closest("[data-theme]")?.getAttribute("data-theme") ?? undefined}>
-              <div ref={panel} role="dialog" className="iui-popover" style={at ? { left: at.left, top: at.top, maxHeight: at.maxHeight } : { left: 0, top: 0, visibility: "hidden" }}>
+              <div ref={panel} id={`${id}-panel`} role="dialog" tabIndex={-1} aria-labelledby={title ? `${id}-title` : typeof props.trigger === "string" ? `${id}-trigger` : undefined} aria-label={!title && typeof props.trigger !== "string" ? (control?.getAttribute("aria-label") || control?.textContent || button.current?.textContent)?.trim() || text.details : undefined} className="iui-popover" style={at ? { left: at.left, top: at.top, maxHeight: at.maxHeight } : { left: 0, top: 0, visibility: "hidden" }}>
                 <div ref={body} className="iui-popover-body">
+                  {title && <div id={`${id}-title`} className="iui-label">{title}</div>}
                   {renderSlot(props.content, renderNode)}
                 </div>
               </div>
