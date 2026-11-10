@@ -155,7 +155,16 @@ for (const version of versions) {
       runtime: { node: state.node, nodeVersion: state.compatibility.node, pnpm: state.pnpm, pnpmVersion: state.compatibility.pnpm },
     }
     result.layers.officialBefore = { state: 'passed', result: await main(['verify', '--root', state.root]) }
-    result.layers.officialControls = { state: 'passed', result: await runOfficialControlsChecks(state.backend) }
+    // The exact-selector contract is recorded against verified hosts. An in-range host that is not verified yet may
+    // ship other hashed class names; the overrides then do not apply there, which is reported rather than failing
+    // every later layer for that host.
+    result.layers.officialControls = await runOfficialControlsChecks(state.backend).then(
+      checked => ({ state: 'passed', result: checked }),
+      error => {
+        if ((result.hostStatus ?? state.compatibility?.status) !== 'unverified') throw error
+        return { state: 'unverified', reason: error.message }
+      },
+    )
     const runtimeDependencies = await inspectRuntimeDependencies(path.join(state.plugin.path, 'package.json'), state.backend)
     const installedPlugin = await json(path.join(state.plugin.path, 'package.json'))
     for (const dependency of runtimeDependencies.plugin.filter(item => item.declared)) {

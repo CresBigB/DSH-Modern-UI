@@ -168,7 +168,7 @@ test('end/top positioning remains inside the viewport while menu dimensions chan
     await page.waitForFunction(() => document.querySelector('[role="menu"]').offsetHeight > 300)
     await page.waitForFunction(() => {
       const r = document.querySelector('[role="menu"]').getBoundingClientRect()
-      return r.bottom <= 540
+      return r.bottom <= document.querySelector('#trigger').getBoundingClientRect().top
     })
     await page.locator('[role="menu"]').evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)))
     const grown = await bounds()
