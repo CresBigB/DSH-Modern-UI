@@ -26,7 +26,7 @@ import type { InputSubmitMode, MessageSubmission, MessageSubmissionState } from 
 import { serializeDraftPrompt } from './prompt.ts'
 import { SubmitMachine } from './machine.ts'
 import { resolveDraftInput, snapshotDraft } from '../draft.ts'
-import { DraftEditorRuntime } from './editor/runtime.ts'
+import { DRAFT_SUBMITTED_TAG, DraftEditorRuntime } from './editor/runtime.ts'
 import type { EditorProjection } from './editor/projection.ts'
 
 /** Popup face the shell needs (dismissal only; typed structurally to avoid a value import). */
@@ -182,6 +182,8 @@ export class SessionInputShell implements SessionInput {
   private failedSeq = 0
   private restoredRecordId: number | undefined
   private editEpoch = 0
+  /** Whether the editor commit being reported is the machine's own post-send clear. */
+  private sentClear = false
   private attachmentFlightSeq = 0
   /** Attachment-only sends retained until admission settles or scope disposal releases their attachments. */
   private readonly attachmentFlights = new Map<number, {
@@ -206,7 +208,16 @@ export class SessionInputShell implements SessionInput {
       lexicon: () => this.lexicon.getSnapshot(),
       resolveLexicon: () => this.deps.inputTriggers?.()?.lexicon,
     })
-    this.unregister = this.draftEditor.register()
+    // Update listeners run in registration order, so this one classifies a
+    // commit before the runtime's listener reports it to onEditorUpdate.
+    const offSentClear = this.editor.registerUpdateListener(({ tags }) => {
+      this.sentClear = tags.has(DRAFT_SUBMITTED_TAG)
+    })
+    const offEditor = this.draftEditor.register()
+    this.unregister = () => {
+      offEditor()
+      offSentClear()
+    }
     this.state = createSnapshotStore<InputState>(this.compose())
     this.unsubscribeInbox = deps.inbox?.subscribe(() => { this.publish() })
   }
@@ -222,7 +233,11 @@ export class SessionInputShell implements SessionInput {
     // caret motion and subscribers do not re-render per caret move.
     if (projectionContentChanged(prev, this.projection)) {
       this.rev += 1
-      this.editEpoch += 1
+      // The post-send clear is the machine's commit, not an edit. An Enter-key
+      // submit runs inside an editor update, where Lexical defers that clear
+      // until the detached send has already been stamped; counting it would
+      // cancel the failed message's recovery into its own untouched empty draft.
+      if (!this.sentClear) this.editEpoch += 1
       this.dispatchRun(({ type: 'draft-changed', command: this.projection.command }))
     }
     const caret = this.projection.caret
@@ -428,8 +443,10 @@ export class SessionInputShell implements SessionInput {
    * dismisses and the menu tracks frozen.
    */
   submit(mode: InputSubmitMode = 'queue', source?: 'click' | 'enter'): void {
-    this.editEpoch += 1
     if (this.disposed) return
+    // A gesture with nothing to send (a second Enter on the emptied composer)
+    // is not an edit and must not cancel an in-flight message's recovery.
+    if (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0) this.editEpoch += 1
     const timestamp = Date.now()
     let state: MessageSubmissionState | undefined
     if (this.snapshot.phase === 'plain' && (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0)) {

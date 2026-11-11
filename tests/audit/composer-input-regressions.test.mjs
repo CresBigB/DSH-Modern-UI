@@ -54,7 +54,7 @@ const bundle = await build({
     export { QueueDock } from './packages/modern-ui/src/vendor/conversation/client/queue/QueueDock.tsx';
     export { SessionInputShell } from './packages/modern-ui/src/vendor/conversation/client/input/facade.ts';
     export { InputBar } from './packages/modern-ui/src/vendor/conversation/client/skeleton/InputBar.tsx';
-    export { installDraftWheel } from './packages/modern-ui/src/vendor/conversation/client/input/editor/view-binding.ts';
+    export { installDraftWheel, installDraftKeymap } from './packages/modern-ui/src/vendor/conversation/client/input/editor/view-binding.ts';
     export { readFailedInputSends, writeFailedInputSends, readConversationDraft, readConversationViewPreference, writeRecoveredConversationDraft } from './packages/modern-ui/src/vendor/conversation/client/stores.ts';`,
     resolveDir: root,
     loader: 'tsx',
@@ -109,6 +109,7 @@ const {
   SessionInputShell,
   InputBar,
   installDraftWheel,
+  installDraftKeymap,
   readFailedInputSends,
   writeFailedInputSends,
   readConversationDraft,
@@ -355,6 +356,83 @@ test('untouched automatic recovery is atomic; an attachment-only newer draft blo
     assert.equal(shell.snapshot.failedSends[0].draft.text, 'first')
   } finally {
     shell.dispose()
+  }
+})
+
+// The real Enter gesture: a DOM keydown on the mounted root reaches the composer keymap as a Lexical command,
+// so submit() runs inside an editor update and the post-send clear is a nested, deferred update.
+function enterFixture() {
+  const fixture = shellFixture()
+  const host = document.createElement('div')
+  host.contentEditable = 'true'
+  document.body.append(host)
+  fixture.shell.editor.setRootElement(host)
+  const gate = {
+    current: {
+      locked: false,
+      machineBusy: false,
+      canSteerQueue: false,
+      running: false,
+      steeringAvailable: false,
+      busyEnter: 'queue',
+      intakeFiles() {},
+      uploadsPending: false,
+      uploadsHeldText: '',
+      showToast() {},
+      canAcceptDrop: true,
+    },
+  }
+  const offKeymap = installDraftKeymap(fixture.shell.editor, fixture.shell, gate)
+  return {
+    ...fixture,
+    enter: () => key(host, 'Enter', { code: 'Enter', keyCode: 13 }),
+    close() {
+      offKeymap()
+      fixture.shell.dispose()
+      host.remove()
+    },
+  }
+}
+
+test('an Enter-key send recovers into its own untouched empty draft like a clicked send; an empty Enter is not an edit', async () => {
+  const { shell, sends, enter, close } = enterFixture()
+  try {
+    shell.setDraft('typed then Enter')
+    shell.addAttachments(['A'])
+    enter()
+    assert.equal(sends.length, 1)
+    assert.equal(sends[0].text, 'typed then Enter')
+    assert.equal(shell.snapshot.draft, '')
+    enter()
+    assert.equal(sends.length, 1)
+    sends[0].reject(new Error('offline'))
+    await tick()
+    assert.equal(shell.snapshot.draft, 'typed then Enter')
+    assert.deepEqual(shell.snapshot.attachmentIds, ['A'])
+    assert.deepEqual(
+      shell.snapshot.failedSends.filter(record => record.restored !== true),
+      [],
+    )
+  } finally {
+    close()
+  }
+})
+
+test('an edit after an Enter-key send still keeps the failed message out of the newer draft', async () => {
+  const { shell, sends, enter, close } = enterFixture()
+  try {
+    shell.setDraft('first')
+    enter()
+    shell.setDraft('x')
+    shell.setDraft('')
+    sends[0].reject(new Error('offline'))
+    await tick()
+    assert.equal(shell.snapshot.draft, '')
+    assert.equal(shell.snapshot.failedSends.length, 1)
+    assert.equal(shell.snapshot.failedSends[0].draft.text, 'first')
+    assert.notEqual(shell.snapshot.failedSends[0].restored, true)
+  } finally {
+    close()
   }
 })
 
