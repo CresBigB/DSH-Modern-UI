@@ -696,6 +696,62 @@ export class SessionInputShell implements SessionInput {
   }
 
   /**
+   * Move the active document through the package's Workspace wiring. The target
+   * must finish admission before the source relinquishes any runtime objects.
+   * Failed-message text backups stay in their original Session, without owning
+   * attachments that the target now owns.
+   */
+  transferDraftTo(target: SessionInputShell, acceptAttachments: (ids: readonly DraftAttachmentId[]) => void): boolean {
+    if (target === this) return true
+    const locked = (shell: SessionInputShell): boolean => shell.disposed
+      || shell.snapshot.phase === 'adjudicating' || shell.snapshot.phase === 'submitting'
+    if (locked(this) || locked(target)) return false
+    const draft = this.draftSnapshot
+    const ids = this.attachmentIds
+    if (draft.text === '' && ids.length === 0) return true
+    const previousDraft = target.draftSnapshot
+    const previousIds = target.attachmentIds
+    try {
+      target.attachmentIds = [...previousIds, ...ids]
+      if (draft.text !== '') target.setDraft(draft)
+      acceptAttachments(ids)
+    } catch (error: unknown) {
+      target.attachmentIds = previousIds
+      target.setDraft(previousDraft)
+      target.publish()
+      throw error
+    }
+    // Replacing a target draft must not make its older recovery backup belong
+    // to the incoming message. Its text remains explicitly recoverable.
+    if (draft.text !== '' && target.restoredRecordId !== undefined) {
+      const id = target.restoredRecordId
+      const record = target.failedDetached.get(id)
+      if (record !== undefined) target.failedDetached.set(id, { ...record, value: { ...record.value, restored: false } })
+      target.restoredRecordId = undefined
+      target.persistFailures()
+    }
+    const transferred = new Set(ids)
+    this.attachmentIds = this.attachmentIds.filter(id => !transferred.has(id))
+    for (const [id, record] of this.failedDetached) {
+      const retained = record.attachmentIds.filter(attachment => !transferred.has(attachment))
+      const moved = record.attachmentIds.length - retained.length
+      if (moved === 0 && id !== this.restoredRecordId) continue
+      this.failedDetached.set(id, {
+        attachmentIds: retained,
+        value: { ...record.value, missingAttachments: record.value.missingAttachments + moved, restored: false },
+      })
+    }
+    this.restoredRecordId = undefined
+    this.editEpoch += 1
+    target.editEpoch += 1
+    this.setDraft('')
+    this.persistFailures()
+    this.publish()
+    target.publish()
+    return true
+  }
+
+  /**
    * Bind the mounted composer's file action and live intake availability.
    * @param picker - availability query and native file-dialog opener.
    * @returns the unbind disposer.

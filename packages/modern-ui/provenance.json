@@ -238,7 +238,7 @@
       "source": "packages/client/ui-conversation/src/client/apply.ts",
       "target": "src/vendor/conversation/client/apply.ts",
       "sourceSha256": "ea62b83128fd24a60252e8d9636c43219e9bdc171c8b88cab2be04081da34ab2",
-      "targetSha256": "d2b32b082edff7189e08cb12fdf2d84e8c2b9b8803c6271789187f035f15c552",
+      "targetSha256": "2d82025d445adcc87f14fa72315785036cc40cb8fe9e22f2c3ddb5a4d627d36a",
       "adapted": true
     },
     {
@@ -603,14 +603,14 @@
       "source": "packages/client/ui-conversation/src/client/input/facade.ts",
       "target": "src/vendor/conversation/client/input/facade.ts",
       "sourceSha256": "9790e2207849606abfa31bdc54865ed0ef5cb2d76c76c2552e620fcf6ef25f9a",
-      "targetSha256": "892a499e9af458509d2558a285b1aaec5a58738632fee5ec8a18bca7551187d8",
+      "targetSha256": "fbb340ca92765c5f2162a0df45a9ae9cdb617c4c29c8b0353544b65f000efebb",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/input/hub.ts",
       "target": "src/vendor/conversation/client/input/hub.ts",
       "sourceSha256": "c4f5dc61fc83acc3c6cad6b80ead070187c74766668833c0d4a2b20f6f015ca6",
-      "targetSha256": "52850daae4025c2ba16c790345b768e3dd05e4f823805172f93eb1631354d503",
+      "targetSha256": "f2c32af202cc8795b51288a90930823ed1075f00f7000bc7a426f56c87624eeb",
       "adapted": true
     },
     {

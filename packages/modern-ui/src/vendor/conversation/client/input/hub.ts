@@ -52,6 +52,7 @@ interface ConversationAttachmentFace {
   serializeDraftAttachments(attachmentIds: readonly DraftAttachmentId[]): Promise<DraftAttachmentSerializationResult>
   releaseDraftAttachment(id: DraftAttachmentId): void
   resolveDraftAttachments(ids: readonly DraftAttachmentId[]): readonly { readonly id: DraftAttachmentId }[]
+  rebindDraftFiles(sessionId: SessionId, ids: readonly DraftAttachmentId[]): void
 }
 
 /** Session-addressed input facade registry (SessionInputResolver face + composer-layer extras). */
@@ -214,6 +215,23 @@ export class InputHub implements SessionInputResolver {
     const binding = this.sessions().binding(id)
     if (binding === undefined) throw new Error(`conversation.input: session "${id}" resolved no binding`)
     return this.shellFor(binding)
+  }
+
+  /** Workspace-only ownership handoff; kept off the frozen input action face. */
+  transferDraft(fromId: SessionId, nextId: SessionId): void {
+    const from = this.shell(fromId)
+    const next = this.shell(nextId)
+    const conversation = this.conversation()
+    let rebound: readonly DraftAttachmentId[] | undefined
+    try {
+      if (!from.transferDraftTo(next, (ids) => {
+        rebound = ids
+        conversation.rebindDraftFiles(nextId, ids)
+      })) throw new Error(`ui-conversation: session "${nextId}" cannot accept a transferred draft`)
+    } catch (error: unknown) {
+      if (rebound !== undefined) conversation.rebindDraftFiles(fromId, rebound)
+      throw error
+    }
   }
 
   /**
