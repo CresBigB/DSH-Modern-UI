@@ -737,7 +737,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css",
       "target": "src/vendor/conversation/client/skeleton/ConversationRoot.module.css",
       "sourceSha256": "e53de4d68f1e88bb602d68bdeb8996034752c1fcbc3652ced44c0429ca9cbcc0",
-      "targetSha256": "9d801ce955ba6e6e048e338dca15a765e7c97b9c6277e64d64df00dd13690816",
+      "targetSha256": "575f493ee4ca5fe90f13bef3090bc9dc271166b39dd83a5f70cd2adb01dc6d38",
       "adapted": true
     },
     {

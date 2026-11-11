@@ -461,6 +461,21 @@
   }
 }
 
+/* Opaque header fallbacks must also remove the glass's shadow-fade mask. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .root[data-phase='active'] .header::before {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .root[data-phase='active'] .header::before {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
 .root[data-phase='active'] .viewArea,
 .embeddedBody[data-content-phase='active'] .viewArea {
   flex: 1 0 auto;
