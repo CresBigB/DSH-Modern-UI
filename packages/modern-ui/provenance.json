@@ -603,7 +603,7 @@
       "source": "packages/client/ui-conversation/src/client/input/facade.ts",
       "target": "src/vendor/conversation/client/input/facade.ts",
       "sourceSha256": "9790e2207849606abfa31bdc54865ed0ef5cb2d76c76c2552e620fcf6ef25f9a",
-      "targetSha256": "fbb340ca92765c5f2162a0df45a9ae9cdb617c4c29c8b0353544b65f000efebb",
+      "targetSha256": "59dedb5e9ca244c130a1a931db5b0a985f50a77fb645205adc16171e1aca13fd",
       "adapted": true
     },
     {
